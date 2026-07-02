@@ -1,0 +1,97 @@
+.lang-ios-texttoggle {
+  display: inline-block;
+  position: relative;
+}
+
+.lang-ios-texttoggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.lang-ios-texttoggle .track {
+  --w: 64px;
+  --h: 36px;
+  --pad: 3px;
+
+  width: var(--w);
+  height: var(--h);
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .15);
+  display: inline-block;
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+  border: 0;
+  padding: 0;
+}
+
+.lang-ios-texttoggle .label-text {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  font-weight: 600;
+  color: #111;
+  pointer-events: none;
+}
+
+.lang-ios-texttoggle .label-text.en {
+  left: 10px;
+}
+
+.lang-ios-texttoggle .label-text.vi {
+  right: 10px;
+}
+
+.lang-ios-texttoggle .knob {
+  position: absolute;
+  top: var(--pad);
+  left: var(--pad);
+  width: calc(var(--h) - var(--pad) * 2);
+  height: calc(var(--h) - var(--pad) * 2);
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform .25s cubic-bezier(.22, .61, .36, 1);
+  overflow: hidden;
+}
+
+.lang-ios-texttoggle .flag {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.lang-ios-texttoggle .flag-en {
+  background: #1f5fff;
+  color: #fff;
+}
+
+.lang-ios-texttoggle .flag-vi {
+  background: #ee1b24;
+  color: #ffdf35;
+  font-size: 13px;
+}
+
+.lang-ios-texttoggle input:not(:checked) + .track .knob .flag-en {
+  display: flex;
+}
+
+.lang-ios-texttoggle input:checked + .track .knob {
+  transform: translateX(calc(var(--w) - var(--h)));
+}
+
+.lang-ios-texttoggle input:checked + .track .knob .flag-vi {
+  display: flex;
+}

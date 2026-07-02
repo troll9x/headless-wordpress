@@ -1,0 +1,10 @@
+/*
+  Site-wide CSS custom properties.
+  Imported by src/app/globals.css in Phase 2+ when design tokens are finalised.
+  Tailwind v4 theme tokens live in globals.css under @theme.
+*/
+
+:root {
+  --site-max-width: 72rem;  /* 1152 px — matches max-w-6xl */
+  --site-gutter: 1rem;
+}

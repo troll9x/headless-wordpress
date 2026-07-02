@@ -1,0 +1,10 @@
+{
+  "name": "headless-wordpress-workspace",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix university-next run dev",
+    "build": "npm --prefix university-next run build",
+    "lint": "npm --prefix university-next run lint",
+    "start": "npm --prefix university-next run start"
+  }
+}

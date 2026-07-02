@@ -1,0 +1,100 @@
+.live-search {
+  isolation: isolate;
+  position: relative;
+  z-index: 60;
+}
+
+.wpx-ft-dd {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 100;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 14px 35px rgba(15, 23, 42, 0.18);
+}
+
+.wpx-ft-item {
+  color: #1f2937;
+  font-size: 14px;
+}
+
+.wpx-ft-item > a {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  color: inherit;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.wpx-ft-item.is-active > a,
+.wpx-ft-item > a:hover {
+  background: #f1f5ff;
+  color: #0118d8;
+}
+
+.wpx-ft-item:not(:has(a)) {
+  padding: 11px 14px;
+  color: #64748b;
+}
+
+.wpx-ft-thumb {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #f1f5f9;
+}
+
+.wpx-ft-body {
+  display: block;
+  min-width: 0;
+}
+
+.wpx-ft-title {
+  display: block;
+  color: inherit;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.wpx-ft-exc {
+  display: -webkit-box;
+  margin-top: 4px;
+  overflow: hidden;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.wpx-ft-more {
+  border-top: 1px solid #eef2f7;
+  background: #f8fafc;
+}
+
+.wpx-ft-more > a {
+  display: block;
+  padding: 10px 12px;
+  color: #0118d8;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+
+.wpx-ft-more > a:hover {
+  background: #eef2ff;
+}
+
+.wpx-ft-hl {
+  background: #fff3a3;
+  color: inherit;
+  font-weight: 800;
+}
