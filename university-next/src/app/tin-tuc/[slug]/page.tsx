@@ -38,7 +38,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     publishedTime: post.date,
     modifiedTime: post.modified,
     viUrl: canonical,
-    enUrl,
+    enUrl: enUrl ?? undefined,
+    includeAlternates: Boolean(enUrl),
   });
 }
 

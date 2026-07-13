@@ -1,5 +1,6 @@
 import { wpFetch } from '@/lib/wordpress/client';
-import { CACHE_TAGS, REVALIDATE_MENUS, WP_SITE_URL } from '@/constants/api';
+import { CACHE_TAGS, REVALIDATE_MENUS } from '@/constants/api';
+import { WP_SITE_URL } from '@/config/env/server';
 import type { WPMenu, WPMenuItem, WPMenuItemWithChildren } from '@/types/wordpress';
 
 const TAGS = [CACHE_TAGS.MENUS];

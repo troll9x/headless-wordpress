@@ -1,6 +1,6 @@
 import type { Locale } from '@/types/ngon-ngu';
 import type { WPPost, WPPage } from '@/types/wordpress';
-import { buildPostUrl, getHomePath } from '@/constants/duong-dan';
+import { buildPostUrl } from '@/constants/duong-dan';
 import { LOCALE_CONFIG } from '@/constants/ngon-ngu';
 
 /** Returns the WordPress `lang` query param value for a locale. */
@@ -37,14 +37,15 @@ export function getTranslationSlug(
 }
 
 /**
- * Returns the URL for the translated version of a post.
- * Falls back to the target locale's homepage if no translation is found.
+ * Returns the URL for a verified translated post slug.
+ *
+ * Returns null when translation mapping is unavailable. Metadata must omit an
+ * unverified alternate rather than pointing an article alternate to a homepage.
  */
 export function getTranslatedPostUrl(
   post: WPPost,
   targetLocale: Locale,
-): string {
+): string | null {
   const slug = getTranslationSlug(post, targetLocale);
-  if (slug) return buildPostUrl(slug, targetLocale);
-  return getHomePath(targetLocale);
+  return slug ? buildPostUrl(slug, targetLocale) : null;
 }

@@ -1,11 +1,18 @@
-import { WP_API_URL, REVALIDATE_POSTS } from '@/constants/api';
-
-type QueryValue = string | number | boolean | (string | number)[] | undefined;
-type QueryParams = Record<string, QueryValue>;
+import { REVALIDATE_POSTS } from '@/constants/api';
+import { WP_API_URL } from '@/config/env/server';
+import {
+  parseWordPressRestError,
+  WordPressApiError,
+  WordPressResponseError,
+} from '@/lib/wordpress/errors';
+import {
+  buildWordPressUrl,
+  type WordPressQueryParams,
+} from '@/lib/wordpress/url';
 
 interface WpFetchOptions {
   /** Query-string parameters appended to the URL. */
-  params?: QueryParams;
+  params?: WordPressQueryParams;
   /**
    * Next.js ISR revalidation window in seconds.
    * Defaults to REVALIDATE_POSTS (60 s).
@@ -14,63 +21,128 @@ interface WpFetchOptions {
   revalidate?: number;
   /** Cache tags for on-demand revalidation via revalidateTag(). */
   tags?: string[];
+  /** Optional caller-provided cancellation signal. */
+  signal?: AbortSignal;
+  /** Request timeout in milliseconds. Defaults to 10 seconds. */
+  timeoutMs?: number;
 }
 
+const DEFAULT_TIMEOUT_MS = 10_000;
+
 /**
- * Typed wrapper around fetch() pre-configured for the WordPress REST API.
+ * Typed wrapper around fetch() pre-configured for the WordPress core REST API.
  *
- * - Builds the full URL from endpoint + optional query params.
- * - Delegates caching/ISR to Next.js via `next: { revalidate, tags }`.
- * - Throws a descriptive Error on non-2xx responses.
+ * Endpoint contracts in current consumers use the `/wp/v2` API. Headless API
+ * normalized routes are documented separately and require a dedicated
+ * normalization migration before replacing these callers.
  */
 export async function wpFetch<T>(
   endpoint: string,
-  { params, revalidate = REVALIDATE_POSTS, tags }: WpFetchOptions = {}
+  {
+    params,
+    revalidate = REVALIDATE_POSTS,
+    tags,
+    signal,
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+  }: WpFetchOptions = {},
 ): Promise<T> {
-  const url = new URL(`${WP_API_URL}${endpoint}`);
+  const url = buildWordPressUrl(WP_API_URL, endpoint, params);
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs);
+  const requestSignal = signal
+    ? AbortSignal.any([signal, timeoutController.signal])
+    : timeoutController.signal;
 
-  if (params) {
-    for (const [key, value] of Object.entries(params)) {
-      if (value === undefined) continue;
-      url.searchParams.set(
-        key,
-        Array.isArray(value) ? value.join(',') : String(value)
+  try {
+    const response = await fetch(url.toString(), {
+      next: { revalidate, tags },
+      headers: { Accept: 'application/json' },
+      signal: requestSignal,
+    });
+
+    if (!response.ok) {
+      const payload = await parseJsonSafely(response);
+      const parsedError = parseWordPressRestError(payload);
+
+      throw new WordPressApiError({
+        endpoint: url.pathname,
+        status: response.status,
+        code: parsedError.code,
+        message:
+          parsedError.message ??
+          `WordPress API request failed with status ${response.status}.`,
+      });
+    }
+
+    const payload = await parseJsonSafely(response);
+    if (payload === undefined || payload === null) {
+      throw new WordPressResponseError(
+        url.pathname,
+        'WordPress API returned an empty or invalid JSON response.',
       );
     }
-  }
 
-  const res = await fetch(url.toString(), {
-    next: { revalidate, tags },
-    headers: { Accept: 'application/json' },
-  });
+    return payload as T;
+  } catch (error) {
+    if (error instanceof WordPressApiError || error instanceof WordPressResponseError) {
+      throw error;
+    }
 
-  if (!res.ok) {
-    throw new Error(
-      `WordPress API error ${res.status} ${res.statusText} — ${url.toString()}`
+    const isTimeout = timeoutController.signal.aborted && !signal?.aborted;
+    throw new WordPressResponseError(
+      url.pathname,
+      isTimeout
+        ? 'WordPress API request timed out.'
+        : 'WordPress API request could not be completed.',
+      error,
     );
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return res.json() as Promise<T>;
 }
 
 /**
- * Fetch from an arbitrary WordPress JSON URL (e.g. the /wp-json root)
- * rather than from the /wp/v2 base.
+ * Fetch a pre-built WordPress REST URL. Intended only for documented root/API
+ * URLs that cannot be expressed as an endpoint relative to `WP_API_URL`.
  */
 export async function wpFetchUrl<T>(
   fullUrl: string,
-  revalidate = REVALIDATE_POSTS
+  revalidate = REVALIDATE_POSTS,
 ): Promise<T> {
-  const res = await fetch(fullUrl, {
+  const response = await fetch(fullUrl, {
     next: { revalidate },
     headers: { Accept: 'application/json' },
   });
 
-  if (!res.ok) {
-    throw new Error(
-      `WordPress API error ${res.status} ${res.statusText} — ${fullUrl}`
+  if (!response.ok) {
+    const payload = await parseJsonSafely(response);
+    const parsedError = parseWordPressRestError(payload);
+
+    throw new WordPressApiError({
+      endpoint: fullUrl,
+      status: response.status,
+      code: parsedError.code,
+      message:
+        parsedError.message ??
+        `WordPress API request failed with status ${response.status}.`,
+    });
+  }
+
+  const payload = await parseJsonSafely(response);
+  if (payload === undefined || payload === null) {
+    throw new WordPressResponseError(
+      fullUrl,
+      'WordPress API returned an empty or invalid JSON response.',
     );
   }
 
-  return res.json() as Promise<T>;
+  return payload as T;
+}
+
+async function parseJsonSafely(response: Response): Promise<unknown | undefined> {
+  try {
+    return await response.json();
+  } catch {
+    return undefined;
+  }
 }

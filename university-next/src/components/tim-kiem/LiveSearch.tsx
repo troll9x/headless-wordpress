@@ -11,6 +11,7 @@ import {
   useState,
 } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { SearchIcon } from '@/components/ui/icons';
 import { searchPosts, suggestPosts } from '@/services/search';
 import type { LiveSearchItem } from '@/types/search';
@@ -249,7 +250,15 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
                     router.push(item.url);
                   }}
                 >
-                  {item.thumb && <img className="wpx-ft-thumb" src={item.thumb} alt="" />}
+                  {item.thumb && (
+                    <Image
+                      className="wpx-ft-thumb"
+                      src={item.thumb}
+                      alt={item.title}
+                      width={48}
+                      height={48}
+                    />
+                  )}
                   <span className="wpx-ft-body">
                     <span
                       className="wpx-ft-title"

@@ -37,8 +37,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     imageAlt: title,
     publishedTime: post.date,
     modifiedTime: post.modified,
-    viUrl,
+    viUrl: viUrl ?? undefined,
     enUrl: canonical,
+    includeAlternates: Boolean(viUrl),
   });
 }
 

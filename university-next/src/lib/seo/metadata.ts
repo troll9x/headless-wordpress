@@ -8,7 +8,10 @@ import { buildHreflangAlternates } from '@/lib/seo/hreflang';
 export function generatePageMetadata(seo: SeoData): Metadata {
   const viUrl = seo.locale === 'vi' ? seo.canonical : seo.viUrl;
   const enUrl = seo.locale === 'en' ? seo.canonical : seo.enUrl;
-  const hreflang = buildHreflangAlternates(viUrl, enUrl);
+  const hreflang =
+    seo.includeAlternates === false
+      ? undefined
+      : buildHreflangAlternates(viUrl, enUrl);
 
   const imageEntry = seo.imageUrl
     ? [{ url: seo.imageUrl, alt: seo.imageAlt ?? seo.title }]

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { getFullHomepageData, extractHeroData } from '@/services/homepage';
-import { SITE_NAME, FRONTEND_URL } from '@/constants/api';
+import { FRONTEND_URL } from '@/constants/api';
 import { UNIVERSITY } from '@/constants/site';
 import { generatePageMetadata } from '@/lib/seo/metadata';
 import TrangChu from '@/components/trang-chu/TrangChu';
@@ -13,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const canonical = FRONTEND_URL;
 
   return generatePageMetadata({
-    title: SITE_NAME,
+    title: "Trang chủ",
     description,
     canonical,
     locale: 'vi',

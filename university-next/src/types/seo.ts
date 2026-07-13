@@ -14,4 +14,6 @@ export interface SeoData {
   viUrl?: string;
   /** English canonical URL for hreflang (`en` tag). */
   enUrl?: string;
+  /** Disable hreflang output when translated URLs are not verified. */
+  includeAlternates?: boolean;
 }
