@@ -1,16 +1,67 @@
-import type { LiveSearchItem, WpxFtSearchResponse } from '@/types/search';
+import type { LiveSearchItem } from '@/types/search';
 
 const WP_BASE_URL = (
   process.env.NEXT_PUBLIC_WP_BASE_URL ?? 'https://tlu.edu.vn'
 ).replace(/\/$/, '');
 
-function normalizeItems(data: WpxFtSearchResponse): LiveSearchItem[] {
-  return (data.items ?? []).map((item) => ({
-    title: item.title ?? '',
-    url: normalizeSearchUrl(item.url ?? ''),
-    excerpt: item.excerpt ?? '',
-    thumb: item.thumb ?? '',
-  }));
+export class SearchResponseError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SearchResponseError';
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function plainText(value: string): string {
+  return value.replace(/<[^>]*>/g, '').trim();
+}
+
+function isAllowedImageUrl(value: string): boolean {
+  if (!value) return false;
+
+  try {
+    const parsed = new URL(value);
+    return (
+      parsed.protocol === 'https:' &&
+      (parsed.hostname === 'tlu.edu.vn' || parsed.hostname === 'www.tlu.edu.vn')
+    );
+  } catch {
+    return false;
+  }
+}
+
+function normalizeItems(data: unknown): LiveSearchItem[] {
+  if (!isRecord(data)) {
+    throw new SearchResponseError('Search response is not an object.');
+  }
+
+  const rawItems = data.items;
+  if (rawItems === undefined) return [];
+
+  if (!Array.isArray(rawItems)) {
+    throw new SearchResponseError('Search response items is not an array.');
+  }
+
+  return rawItems.flatMap((item) => {
+    if (!isRecord(item)) return [];
+
+    const rawTitle = item.title;
+    const rawUrl = item.url;
+    if (typeof rawTitle !== 'string' || typeof rawUrl !== 'string') return [];
+
+    const title = plainText(rawTitle);
+    const url = normalizeSearchUrl(rawUrl);
+    if (!title || url === '#') return [];
+
+    const excerpt = typeof item.excerpt === 'string' ? plainText(item.excerpt) : '';
+    const thumb =
+      typeof item.thumb === 'string' && isAllowedImageUrl(item.thumb) ? item.thumb : '';
+
+    return [{ title, url, excerpt, thumb }];
+  });
 }
 
 async function fetchSearchEndpoint(
@@ -25,12 +76,23 @@ async function fetchSearchEndpoint(
     url.searchParams.set('per', String(limit));
   }
 
-  const response = await fetch(url.toString(), { signal });
+  const response = await fetch(url.toString(), {
+    signal,
+    cache: 'no-store',
+    headers: { Accept: 'application/json' },
+  });
   if (!response.ok) {
-    throw new Error(`Search request failed: ${response.status}`);
+    throw new SearchResponseError(`Search request failed with status ${response.status}.`);
   }
 
-  return normalizeItems((await response.json()) as WpxFtSearchResponse);
+  let payload: unknown;
+  try {
+    payload = await response.json();
+  } catch {
+    throw new SearchResponseError('Search response is not valid JSON.');
+  }
+
+  return normalizeItems(payload);
 }
 
 export function searchPosts(
@@ -55,12 +117,16 @@ export function normalizeSearchUrl(url: string): string {
     const parsed = new URL(url);
     const wpBase = new URL(WP_BASE_URL);
 
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return '#';
+    }
+
     if (parsed.hostname === wpBase.hostname) {
       return `${parsed.pathname}${parsed.search}${parsed.hash}` || '/';
     }
-  } catch {
-    return url;
-  }
 
-  return url;
+    return parsed.toString();
+  } catch {
+    return url.startsWith('/') && !url.startsWith('//') ? url : '#';
+  }
 }

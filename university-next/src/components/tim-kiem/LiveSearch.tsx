@@ -69,18 +69,24 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
   const router = useRouter();
   const rootRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const requestIdRef = useRef(0);
   const [query, setQuery] = useState('');
   const [items, setItems] = useState<LiveSearchItem[]>([]);
   const [status, setStatus] = useState<SearchStatus>('idle');
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const trimmedQuery = query.trim();
-  const searchPath = pathname.startsWith('/en') ? '/en/search' : '/tim-kiem';
-  const viewAllHref = trimmedQuery
-    ? `${searchPath}?q=${encodeURIComponent(trimmedQuery)}`
-    : searchPath;
-  const showDropdown = isOpen && (status === 'loading' || status === 'error' || items.length > 0);
+   const trimmedQuery = query.trim();
+   const locale = pathname.startsWith('/en') ? 'en' : 'vi';
+   const searchPath = locale === 'en' ? '/en/search' : '/tim-kiem';
+   const viewAllHref = (() => {
+     if (!trimmedQuery) return '#';
+
+     const params = new URLSearchParams();
+     params.set('q', trimmedQuery);
+     return `${searchPath}?${params.toString()}`;
+   })();
+   const showDropdown = isOpen && (status === 'loading' || status === 'error' || items.length > 0);
 
   const highlightedItems = useMemo(
     () =>
@@ -107,10 +113,16 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
     const controller = new AbortController();
 
     if (!trimmedQuery) {
+      requestIdRef.current += 1;
       return () => controller.abort();
     }
 
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+
     const timer = window.setTimeout(async () => {
+      setItems([]);
+      setActiveIndex(0);
       setStatus('loading');
       setIsOpen(true);
 
@@ -120,13 +132,22 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
             ? await searchPosts(trimmedQuery, RESULT_LIMIT, controller.signal)
             : await suggestPosts(trimmedQuery, controller.signal);
 
+        if (controller.signal.aborted || requestIdRef.current !== requestId) return;
+
         setItems(results);
         setActiveIndex(0);
         setStatus('ready');
         setIsOpen(results.length > 0);
-      } catch {
-        if (controller.signal.aborted) return;
+      } catch (error) {
+        const isAbortError =
+          error instanceof Error && error.name === 'AbortError';
+
+        if (isAbortError || controller.signal.aborted || requestIdRef.current !== requestId) {
+          return;
+        }
+
         setItems([]);
+        setActiveIndex(0);
         setStatus('error');
         setIsOpen(true);
       }
@@ -152,7 +173,8 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
   function submitSearch() {
     if (!trimmedQuery) return;
     setIsOpen(false);
-    router.push(viewAllHref);
+    // Route search không tồn tại (/en/search, /tim-kiem)
+    // Không điều hướng đến route giả - chờ implement search result page
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -200,25 +222,30 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
       <label htmlFor={inputId} className="sr-only">
         Tìm kiếm
       </label>
-      <input
-        ref={inputRef}
-        id={inputId}
-        type="search"
-        value={query}
-        onChange={(event) => updateQuery(event.target.value)}
-        onFocus={() => {
-          if (items.length > 0 || status === 'error') setIsOpen(true);
-        }}
-        onKeyDown={handleKeyDown}
-        placeholder="Tìm kiếm..."
-        className="h-[50px] w-full rounded-full bg-[#f2f2f2] pl-5 pr-14 text-[17px] text-slate-700 shadow-[inset_0_2px_5px_rgba(0,0,0,0.22),0_1px_2px_rgba(255,255,255,0.9)] outline-none ring-1 ring-black/10 transition focus:bg-white focus:ring-2 focus:ring-[#1600d8]/45"
-        role="combobox"
-        autoComplete="off"
-        aria-autocomplete="list"
-        aria-controls={`${inputId}-results`}
-        aria-haspopup="listbox"
-        aria-expanded={showDropdown}
-      />
+       <input
+         ref={inputRef}
+         id={inputId}
+         type="search"
+         value={query}
+         onChange={(event) => updateQuery(event.target.value)}
+         onFocus={() => {
+           if (items.length > 0 || status === 'error') setIsOpen(true);
+         }}
+         onKeyDown={handleKeyDown}
+         placeholder="Tìm kiếm..."
+         className="h-[50px] w-full rounded-full bg-[#f2f2f2] pl-5 pr-14 text-[17px] text-slate-700 shadow-[inset_0_2px_5px_rgba(0,0,0,0.22),0_1px_2px_rgba(255,255,255,0.9)] outline-none ring-1 ring-black/10 transition focus:bg-white focus:ring-2 focus:ring-[#1600d8]/45"
+         role="combobox"
+         autoComplete="off"
+         aria-autocomplete="list"
+         aria-controls={`${inputId}-results`}
+         aria-haspopup="listbox"
+         aria-expanded={showDropdown}
+         aria-activedescendant={
+           showDropdown && highlightedItems[activeIndex]
+             ? `${inputId}-result-${activeIndex}`
+             : undefined
+         }
+       />
       <button
         type="submit"
         className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-black transition-colors hover:bg-black/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1600d8]"
@@ -233,14 +260,15 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
 
           {status === 'error' && <div className="wpx-ft-item">Lỗi tìm kiếm</div>}
 
-          {status === 'ready' &&
-            highlightedItems.map((item, index) => (
-              <div
-                key={`${item.url}-${index}`}
-                className={`wpx-ft-item${index === activeIndex ? ' is-active' : ''}`}
-                role="option"
-                aria-selected={index === activeIndex}
-              >
+           {status === 'ready' &&
+             highlightedItems.map((item, index) => (
+               <div
+                 key={`${item.url}-${index}`}
+                 id={`${inputId}-result-${index}`}
+                 className={`wpx-ft-item${index === activeIndex ? ' is-active' : ''}`}
+                 role="option"
+                 aria-selected={index === activeIndex}
+               >
                 <a
                   href={item.url}
                   onMouseDown={handleResultMouseDown}
