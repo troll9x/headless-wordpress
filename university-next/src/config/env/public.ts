@@ -20,7 +20,11 @@ function validateURL(key: string, value: string): string {
       `Environment variable ${key} is not a valid HTTP/HTTPS URL: ${value}`,
     );
   }
-  return value;
+  const url = new URL(value);
+  if (process.env.NODE_ENV === 'production' && url.protocol !== 'https:') {
+    throw new Error(`Environment variable ${key} must use HTTPS in production.`);
+  }
+  return value.replace(/\/+$/, '');
 }
 
 export const NEXT_PUBLIC_WP_BASE_URL = validateURL(
@@ -30,8 +34,8 @@ export const NEXT_PUBLIC_WP_BASE_URL = validateURL(
 
 export const NEXT_PUBLIC_SITE_URL = validateURL(
   'NEXT_PUBLIC_SITE_URL',
-  process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://tlu.edu.vn',
 );
 
 export const NEXT_PUBLIC_SITE_NAME =
-  process.env.NEXT_PUBLIC_SITE_NAME ?? 'MyLab TLU';
+  process.env.NEXT_PUBLIC_SITE_NAME ?? 'Trường Đại Học Thủy Lợi';

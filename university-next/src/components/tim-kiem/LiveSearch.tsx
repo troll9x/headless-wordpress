@@ -1,5 +1,7 @@
 'use client';
 
+import { sanitizeInlineHtml } from '@/lib/security/html';
+
 import {
   FormEvent,
   KeyboardEvent,
@@ -13,9 +15,8 @@ import {
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { SearchIcon } from '@/components/ui/icons';
-import { searchPosts, suggestPosts } from '@/services/search';
+import { searchPosts } from '@/services/search';
 import type { LiveSearchItem } from '@/types/search';
-import './live-search.css';
 
 const MIN_CHARS = 2;
 const DEBOUNCE_MS = 180;
@@ -48,7 +49,10 @@ function highlightText(text: string, query: string) {
 
   try {
     const phrasePattern = new RegExp(`(${escapeRegExp(phrase)})`, 'gi');
-    const highlighted = escapedText.replace(phrasePattern, '<span class="wpx-ft-hl">$1</span>');
+    const highlighted = escapedText.replace(
+      phrasePattern,
+      '<span class="bg-[#fff3a3] font-extrabold text-inherit">$1</span>',
+    );
     if (highlighted !== escapedText) return highlighted;
   } catch {
     return escapedText;
@@ -57,7 +61,10 @@ function highlightText(text: string, query: string) {
   try {
     const words = phrase.split(/\s+/).filter(Boolean).map(escapeRegExp);
     if (!words.length) return escapedText;
-    return escapedText.replace(new RegExp(`(${words.join('|')})`, 'gi'), '<span class="wpx-ft-hl">$1</span>');
+    return escapedText.replace(
+      new RegExp(`(${words.join('|')})`, 'gi'),
+      '<span class="bg-[#fff3a3] font-extrabold text-inherit">$1</span>',
+    );
   } catch {
     return escapedText;
   }
@@ -77,7 +84,8 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
   const [activeIndex, setActiveIndex] = useState(0);
 
    const trimmedQuery = query.trim();
-   const locale = pathname.startsWith('/en') ? 'en' : 'vi';
+   const locale = pathname === '/en' || pathname.startsWith('/en/') ? 'en' : 'vi';
+   const isEn = locale === 'en';
    const searchPath = locale === 'en' ? '/en/search' : '/tim-kiem';
    const viewAllHref = (() => {
      if (!trimmedQuery) return '#';
@@ -101,7 +109,7 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
   function updateQuery(value: string) {
     setQuery(value);
 
-    if (!value.trim()) {
+    if (value.trim().length < MIN_CHARS) {
       setItems([]);
       setStatus('idle');
       setIsOpen(false);
@@ -112,7 +120,7 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
   useEffect(() => {
     const controller = new AbortController();
 
-    if (!trimmedQuery) {
+    if (trimmedQuery.length < MIN_CHARS) {
       requestIdRef.current += 1;
       return () => controller.abort();
     }
@@ -127,10 +135,12 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
       setIsOpen(true);
 
       try {
-        const results =
-          trimmedQuery.length >= MIN_CHARS
-            ? await searchPosts(trimmedQuery, RESULT_LIMIT, controller.signal)
-            : await suggestPosts(trimmedQuery, controller.signal);
+        const results = await searchPosts(
+          trimmedQuery,
+          locale,
+          RESULT_LIMIT,
+          controller.signal,
+        );
 
         if (controller.signal.aborted || requestIdRef.current !== requestId) return;
 
@@ -157,7 +167,7 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [trimmedQuery]);
+  }, [locale, trimmedQuery]);
 
   useEffect(() => {
     function handlePointerDown(event: PointerEvent) {
@@ -173,8 +183,7 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
   function submitSearch() {
     if (!trimmedQuery) return;
     setIsOpen(false);
-    // Route search không tồn tại (/en/search, /tim-kiem)
-    // Không điều hướng đến route giả - chờ implement search result page
+    router.push(viewAllHref);
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -217,10 +226,10 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
       ref={rootRef}
       onSubmit={handleSubmit}
       role="search"
-      className={`live-search relative ${className}`}
+      className={`relative z-[60] isolate ${className}`}
     >
       <label htmlFor={inputId} className="sr-only">
-        Tìm kiếm
+        {isEn ? 'Search' : 'Tìm kiếm'}
       </label>
        <input
          ref={inputRef}
@@ -232,8 +241,8 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
            if (items.length > 0 || status === 'error') setIsOpen(true);
          }}
          onKeyDown={handleKeyDown}
-         placeholder="Tìm kiếm..."
-         className="h-[50px] w-full rounded-full bg-[#f2f2f2] pl-5 pr-14 text-[17px] text-slate-700 shadow-[inset_0_2px_5px_rgba(0,0,0,0.22),0_1px_2px_rgba(255,255,255,0.9)] outline-none ring-1 ring-black/10 transition focus:bg-white focus:ring-2 focus:ring-[#1600d8]/45"
+         placeholder={isEn ? 'Search...' : 'Tìm kiếm...'}
+         className="h-[50px] w-full rounded-full bg-[#f2f2f2] pl-5 pr-14 text-[17px] text-slate-700 shadow-[inset_0_3px_6px_rgba(0,0,0,0.5)] outline-none ring-1 ring-black/10 transition focus:bg-white focus:ring-2 focus:ring-[#0118d8]/45"
          role="combobox"
          autoComplete="off"
          aria-autocomplete="list"
@@ -248,29 +257,40 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
        />
       <button
         type="submit"
-        className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-black transition-colors hover:bg-black/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1600d8]"
-        aria-label="Tìm kiếm"
+        className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-black transition-colors hover:bg-black/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0118d8]"
+        aria-label={isEn ? 'Search' : 'Tìm kiếm'}
       >
         <SearchIcon className="h-5 w-5" />
       </button>
 
       {showDropdown && (
-        <div id={`${inputId}-results`} className="wpx-ft-dd" role="listbox">
-          {status === 'loading' && <div className="wpx-ft-item">Đang tìm...</div>}
+        <div
+          id={`${inputId}-results`}
+          className="absolute left-0 top-[calc(100%+8px)] z-[100] w-full overflow-hidden rounded-[10px] border border-gray-200 bg-white shadow-[0_14px_35px_rgba(15,23,42,0.18)]"
+          role="listbox"
+        >
+          {status === 'loading' && (
+            <div className="px-3.5 py-[11px] text-sm text-slate-500">{isEn ? 'Searching...' : 'Đang tìm...'}</div>
+          )}
 
-          {status === 'error' && <div className="wpx-ft-item">Lỗi tìm kiếm</div>}
+          {status === 'error' && (
+            <div className="px-3.5 py-[11px] text-sm text-slate-500">{isEn ? 'Search error' : 'Lỗi tìm kiếm'}</div>
+          )}
 
            {status === 'ready' &&
              highlightedItems.map((item, index) => (
                <div
                  key={`${item.url}-${index}`}
                  id={`${inputId}-result-${index}`}
-                 className={`wpx-ft-item${index === activeIndex ? ' is-active' : ''}`}
+                 className={`text-sm text-gray-800 ${
+                   index === activeIndex ? 'bg-[#f1f5ff] text-[#0118d8]' : ''
+                 }`}
                  role="option"
                  aria-selected={index === activeIndex}
                >
                 <a
                   href={item.url}
+                  className="flex gap-2.5 px-3 py-2.5 text-inherit no-underline transition-colors duration-150 hover:bg-[#f1f5ff] hover:text-[#0118d8]"
                   onMouseDown={handleResultMouseDown}
                   onClick={(event) => {
                     event.preventDefault();
@@ -280,22 +300,22 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
                 >
                   {item.thumb && (
                     <Image
-                      className="wpx-ft-thumb"
+                      className="h-[52px] w-[52px] flex-[0_0_52px] rounded-md bg-slate-100 object-cover"
                       src={item.thumb}
                       alt={item.title}
                       width={48}
                       height={48}
                     />
                   )}
-                  <span className="wpx-ft-body">
+                  <span className="block min-w-0">
                     <span
-                      className="wpx-ft-title"
-                      dangerouslySetInnerHTML={{ __html: item.highlightedTitle }}
+                      className="block font-bold leading-[1.35] text-inherit"
+                      dangerouslySetInnerHTML={{ __html: sanitizeInlineHtml(item.highlightedTitle) }}
                     />
                     {item.excerpt && (
                       <span
-                        className="wpx-ft-exc"
-                        dangerouslySetInnerHTML={{ __html: item.highlightedExcerpt }}
+                        className="mt-1 line-clamp-2 text-xs leading-[1.4] text-slate-500"
+                        dangerouslySetInnerHTML={{ __html: sanitizeInlineHtml(item.highlightedExcerpt) }}
                       />
                     )}
                   </span>
@@ -304,16 +324,17 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
             ))}
 
           {status === 'ready' && highlightedItems.length > 0 && (
-            <div className="wpx-ft-more">
+            <div className="border-t border-slate-100 bg-slate-50">
               <a
                 href={viewAllHref}
+                className="block px-3 py-2.5 text-center text-[13px] font-bold text-[#0118d8] no-underline hover:bg-indigo-50"
                 onMouseDown={handleResultMouseDown}
                 onClick={(event) => {
                   event.preventDefault();
                   submitSearch();
                 }}
               >
-                Xem tất cả kết quả
+                {isEn ? 'View all results' : 'Xem tất cả kết quả'}
               </a>
             </div>
           )}

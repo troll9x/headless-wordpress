@@ -15,7 +15,7 @@
 | `WP_SITE_URL` | Private | Required | `lib/api/menus.ts` | Server | `https://tlu.edu.vn` | Medium |
 | `NEXT_PUBLIC_WP_BASE_URL` | Public | Required | `services/search.ts` | Client | `https://tlu.edu.vn` | High |
 | `NEXT_PUBLIC_SITE_URL` | Public | Required | `constants/api.ts` | Client | `http://localhost:3000` | Medium |
-| `NEXT_PUBLIC_SITE_NAME` | Public | Optional | `constants/api.ts` | Client | `MyLab TLU` | Low |
+| `NEXT_PUBLIC_SITE_NAME` | Public | Optional | `constants/api.ts` | Client | `Trường Đại học Thủy lợi` | Low |
 
 ## 3. Phân loại Public/Private
 - **Public (Browser-exposed)**: `NEXT_PUBLIC_WP_BASE_URL`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_SITE_NAME`. Các biến này được định nghĩa trong `src/config/env/public.ts`.

@@ -1,6 +1,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { sanitizeInlineHtml } from '@/lib/security/html';
 import { formatDate } from '@/lib/utils/date';
+import { buildPostUrl } from '@/constants/duong-dan';
+import type { Locale } from '@/types/ngon-ngu';
 import type { WPPost, WPMedia } from '@/types/wordpress';
 
 function getFeaturedImage(post: WPPost): WPMedia | null {
@@ -13,25 +16,27 @@ interface NewsCardProps {
   post: WPPost;
   variant?: 'card' | 'horizontal';
   sizes?: string;
+  locale?: Locale;
 }
 
 export default function NewsCard({
   post,
   variant = 'card',
   sizes = '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw',
+  locale = 'vi',
 }: NewsCardProps) {
   const image = getFeaturedImage(post);
-  const href = `/tin-tuc/${post.slug}`;
+  const href = buildPostUrl(post.slug, locale, post.link);
 
   if (variant === 'horizontal') {
     return (
-      <article className="group flex items-start gap-3">
+      <article className="group flex items-start gap-[15px] border-b border-[#eee] pb-5 last:border-b-0 sm:gap-3 sm:border-b-0 sm:pb-0">
         {image && (
           <Link
             href={href}
             aria-hidden="true"
             tabIndex={-1}
-            className="relative h-16 w-24 flex-shrink-0 overflow-hidden rounded bg-slate-100"
+            className="relative h-[90px] w-[90px] flex-shrink-0 overflow-hidden rounded bg-slate-100 sm:h-16 sm:w-24"
           >
             <Image
               src={image.source_url}
@@ -43,10 +48,10 @@ export default function NewsCard({
           </Link>
         )}
         <div className="min-w-0 flex-1">
-          <time className="block text-xs text-slate-400">{formatDate(post.date)}</time>
-          <h3 className="line-clamp-2 text-sm font-medium text-slate-800 transition-colors group-hover:text-blue-800">
+          <time className="mt-[5px] block text-[11px] text-[#777] sm:mt-0 sm:text-xs">{formatDate(post.date, locale)}</time>
+          <h3 className="line-clamp-2 text-base font-normal leading-[1.3] text-[#5065a1] transition-colors group-hover:text-[#0118d8] sm:text-sm">
             <Link href={href}>
-              <span dangerouslySetInnerHTML={{ __html: post.title.rendered }} />
+              <span dangerouslySetInnerHTML={{ __html: sanitizeInlineHtml(post.title.rendered) }} />
             </Link>
           </h3>
         </div>
@@ -55,12 +60,12 @@ export default function NewsCard({
   }
 
   return (
-    <article className="group overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+    <article className="group overflow-hidden rounded-[10px] bg-white shadow-[0_5px_16px_0_rgba(2,55,102,0.05)] transition-all hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(2,55,102,0.14)]">
       <Link
         href={href}
         aria-hidden="true"
         tabIndex={-1}
-        className="relative block aspect-video overflow-hidden bg-slate-100"
+        className="relative block aspect-video overflow-hidden rounded-t-[10px] bg-slate-100"
       >
         {image ? (
           <Image
@@ -75,10 +80,10 @@ export default function NewsCard({
         )}
       </Link>
       <div className="p-4">
-        <time className="block text-xs text-slate-400">{formatDate(post.date)}</time>
-        <h3 className="mt-1 line-clamp-2 text-sm font-semibold text-slate-900 transition-colors group-hover:text-blue-800">
+        <time className="block pl-5 text-[13px] font-medium text-[#777]">{formatDate(post.date, locale)}</time>
+        <h3 className="mt-1 line-clamp-2 text-base font-semibold text-[#0118d8] transition-colors group-hover:text-[#2d2d2d]">
           <Link href={href}>
-            <span dangerouslySetInnerHTML={{ __html: post.title.rendered }} />
+            <span dangerouslySetInnerHTML={{ __html: sanitizeInlineHtml(post.title.rendered) }} />
           </Link>
         </h3>
       </div>

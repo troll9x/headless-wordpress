@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import { getFullHomepageData, extractHeroData } from '@/services/homepage';
 import { FRONTEND_URL } from '@/constants/api';
 import { UNIVERSITY } from '@/constants/site';
-import { generatePageMetadata } from '@/lib/seo/metadata';
+import { generateHeadlessMetadata } from '@/lib/seo/metadata';
+import { getHeadlessSeoById } from '@/lib/wordpress/seo';
 import TrangChu from '@/components/trang-chu/TrangChu';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -11,8 +12,11 @@ export async function generateMetadata(): Promise<Metadata> {
 
   const description = hero.subtitle ?? UNIVERSITY.tagline;
   const canonical = FRONTEND_URL;
+  const seo = data.heroPage
+    ? await getHeadlessSeoById(data.heroPage.id, 'vi')
+    : null;
 
-  return generatePageMetadata({
+  return generateHeadlessMetadata(seo, {
     title: "Trang chủ",
     description,
     canonical,

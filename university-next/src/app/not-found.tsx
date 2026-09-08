@@ -3,7 +3,12 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Không tìm thấy trang',
-  robots: { index: false, follow: false },
+  robots: {
+    index: false,
+    follow: false,
+    noarchive: true,
+    noimageindex: true,
+  },
 };
 
 /**
