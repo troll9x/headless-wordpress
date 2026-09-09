@@ -11,6 +11,7 @@ Tài liệu này ghi lại các thay đổi đáng chú ý của frontend Next.j
 - Add per-client TTS rate limiting with HTTP 429, Retry-After and RateLimit response headers.
 - Require HTTPS production origins, fix HTTP 404 before streaming, and normalize Rank Math robots metadata.
 - Verify English International Relations and Research data against the production WordPress API.
+- Load the complete 69-item partner-logo ACF repeater through the dedicated Headless API, with a temporary legacy-template fallback until that endpoint is deployed.
 
 ### Thêm mới
 

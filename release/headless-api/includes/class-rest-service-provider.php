@@ -21,6 +21,7 @@ use TLU_Headless_API\Endpoints\Preview;
 use TLU_Headless_API\Endpoints\Revalidation;
 use TLU_Headless_API\Endpoints\Cache;
 use TLU_Headless_API\Endpoints\Media_Gallery;
+use TLU_Headless_API\Endpoints\Partner_Logos;
 use TLU_Headless_API\Endpoints\Organizations;
 use TLU_Headless_API\Endpoints\Documents;
 
@@ -54,6 +55,7 @@ class Rest_Service_Provider {
 			new Term(),
 			new Endpoints\Content_Types(),
 			new Media_Gallery(),
+			new Partner_Logos(),
 			new Organizations(),
 			new Documents(),
 			new PreviewToken(),

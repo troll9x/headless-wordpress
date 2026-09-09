@@ -46,6 +46,8 @@ Khi Polylang hoạt động, API nhận `lang` dưới dạng slug ngôn ngữ (
 
 Các field ACF Pro được chuẩn hóa để frontend luôn nhận đúng kiểu dữ liệu. `password` luôn trả về `null`, không bao giờ làm lộ giá trị đã nhập.
 
+Danh sách logo đối tác công khai có endpoint chuyên biệt `GET /wp-json/headless/v1/partner-logos?lang=vi`. Endpoint trả toàn bộ repeater `danh_sach_doi_tac` nhưng chỉ công khai `logo_cong_ty`, `link_doi_tac`, vị trí và số lượng; không mở toàn bộ ACF Options.
+
 - `text`, `textarea`, `email`, `wysiwyg` trả về chuỗi; email không hợp lệ trả về chuỗi rỗng.
 - `oembed` trả về `{ url, html }`; `html` đã được lọc an toàn và có thể rỗng nếu WordPress không tạo được embed.
 - `select`, `radio`, `button_group` trả về `{ value, label }`; `checkbox` và select nhiều lựa chọn trả về mảng các object cùng cấu trúc.

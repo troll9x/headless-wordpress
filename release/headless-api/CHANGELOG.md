@@ -6,6 +6,7 @@
 - Automatically enable Headless API response caching when a persistent object cache is active and report Redis explicitly in cache diagnostics.
 - Replace stale localhost frontend URLs with `https://tlu.edu.vn` on the production site and require HTTPS for non-local CORS origins.
 - Preserve HTTP 200 for existing taxonomy terms and HTTP 404 only for genuinely missing resources.
+- Add `GET /headless/v1/partner-logos`, returning every valid row from the public ACF repeater `danh_sach_doi_tac` without exposing unrelated Options fields.
 
 ### Bổ sung
 - Hoàn tất API cho ba template trong `daihocthuyloi.zip`: `single-tai-lieu.php`, `single-to-chuc.php` và `taxonomy-loai-tai-lieu.php`.

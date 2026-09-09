@@ -136,6 +136,13 @@ class Schema {
 				],
 			],
 
+			"$h/partner-logos" => [
+				'description' => 'Toàn bộ logo công khai từ ACF repeater danh_sach_doi_tac.',
+				'params'      => [
+					[ 'name' => 'lang', 'type' => 'string', 'required' => false, 'default' => '' ],
+				],
+			],
+
 			"$h/menus" => [
 				'description' => 'Menu điều hướng dạng cây phân cấp.',
 				'params'      => [
