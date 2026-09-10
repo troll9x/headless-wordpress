@@ -1,147 +1,316 @@
-# Website Headless WordPress của Trường Đại học Thủy lợi
+# TLU Headless Web
 
-Frontend Next.js lấy nội dung từ WordPress của `tlu.edu.vn`. Dự án hỗ trợ nội dung Việt/Anh qua Polylang, permalink phẳng, trang chuyên mục, trang bài viết, kho tài liệu, tìm kiếm và đọc bài bằng giọng nói.
+Nền tảng website Trường Đại học Thủy lợi được xây dựng bằng Next.js và sử dụng WordPress làm hệ quản trị nội dung headless. Sản phẩm cung cấp trải nghiệm web Việt/Anh, giữ cấu trúc permalink của website hiện hữu và tách hoàn toàn lớp trình bày khỏi WordPress.
 
-## Công nghệ chính
+## Tổng quan sản phẩm
 
-- Next.js 16 App Router, React 19 và TypeScript strict.
+TLU Headless Web phục vụ ba nhóm nhu cầu chính:
+
+- Người dùng truy cập tin tức, thông báo, sự kiện, tài liệu, thư viện ảnh và thông tin tổ chức trên giao diện nhanh, responsive và thân thiện SEO.
+- Biên tập viên tiếp tục quản lý nội dung, media, menu, taxonomy và bản dịch trong WordPress.
+- Đội kỹ thuật triển khai frontend độc lập, kiểm soát cache, bảo mật, quan sát lỗi và cập nhật giao diện mà không sửa theme WordPress.
+
+### Tính năng nổi bật
+
+| Nhóm | Khả năng |
+| --- | --- |
+| Nội dung | Trang chủ động, bài viết, trang, chuyên mục và permalink phẳng theo WordPress. |
+| Đa ngôn ngữ | Nội dung Việt/Anh, liên kết bản dịch, `hreflang` và route riêng cho từng ngôn ngữ. |
+| Tuyển sinh và đào tạo | Khu vực tuyển sinh, đơn vị đào tạo, nghiên cứu, hợp tác quốc tế và liên kết nhanh. |
+| Tin tức | Tin nổi bật, thông báo, sự kiện, archive chuyên mục và sidebar điều hướng. |
+| Tài liệu | Kho văn bản theo taxonomy, trang chi tiết và tải tệp trực tiếp khi phù hợp. |
+| Tổ chức | Cơ cấu tổ chức, danh sách thành viên và hồ sơ cán bộ. |
+| Media | Album, thư viện ảnh và gallery trang chủ. |
+| Tìm kiếm | Tìm kiếm toàn trang và gợi ý trực tiếp qua API nội bộ. |
+| Trợ năng | Đọc bài tiếng Việt bằng Viettel AI và tiếng Anh bằng Web Speech API. |
+| SEO | Metadata, canonical, Open Graph, schema, sitemap và robots động. |
+| Hiệu năng | Server Components, cache theo loại dữ liệu, ISR và on-demand revalidation. |
+| Bảo mật | CSP, HSTS, lọc HTML, rate limit TTS và webhook HMAC chống giả mạo/phát lại. |
+
+## Kiến trúc
+
+```text
+Trình duyệt
+    │
+    ▼
+Next.js App Router
+    ├── Render giao diện và metadata
+    ├── /api/search       Proxy tìm kiếm
+    ├── /api/tts          Proxy Viettel AI, giữ token phía server
+    └── /api/revalidate   Nhận webhook có chữ ký từ WordPress
+    │
+    ▼
+WordPress REST API
+    ├── WordPress Core REST
+    ├── Headless API
+    ├── Polylang
+    ├── ACF
+    └── Các dịch vụ tìm kiếm/gallery hiện hữu
+```
+
+WordPress là nguồn dữ liệu và nơi biên tập. Next.js chịu trách nhiệm định tuyến, render, cache, SEO và trải nghiệm người dùng. Khi nội dung thay đổi, WordPress gửi webhook tới Next.js để làm mới đúng path và cache tag liên quan.
+
+## Công nghệ
+
+- Next.js 16 App Router.
+- React 19 và TypeScript strict.
 - Tailwind CSS 4.
-- WordPress REST API và các endpoint headless riêng.
-- Polylang để lọc và liên kết bản dịch Việt/Anh.
-- Permalink Manager Pro để giữ URL bài viết và chuyên mục dạng phẳng.
-- Viettel AI Text-to-Speech cho bài viết tiếng Việt; Web Speech API cho tiếng Anh.
-- Font Awesome và `react-countup` cho biểu tượng, số liệu động.
+- WordPress REST API và Headless API schema `4.7`.
+- Polylang, ACF Pro và Rank Math.
+- Viettel AI Text-to-Speech.
+- Font Awesome, Swiper và `react-countup`.
 
-## Yêu cầu môi trường
+## Yêu cầu hệ thống
 
-- Node.js `>=20.9.0`.
-- npm theo phiên bản khai báo trong `package.json`.
-- WordPress phải bật REST API cho nội dung công khai.
-- Các endpoint WordPress tùy biến được liệt kê ở phần tích hợp bên dưới.
+- Node.js `>=20.9.0`; nên dùng một phiên bản Node.js LTS còn được hỗ trợ.
+- npm theo phiên bản được khai báo trong `package.json`; dùng `npm ci` để cài đúng lockfile.
+- WordPress `>=6.0` với REST API công khai hoạt động.
+- HTTPS cho toàn bộ URL frontend và WordPress ở môi trường production.
+- Quyền truy cập các endpoint WordPress được liệt kê trong phần tích hợp.
 
-## Cài đặt và chạy local
+## Bắt đầu nhanh
 
-Từ thư mục `university-next`:
+Clone repository và chuyển vào ứng dụng:
+
+```bash
+git clone https://github.com/troll9x/headless-wordpress.git
+cd headless-wordpress/university-next
+npm ci
+```
+
+Tạo file môi trường trên Linux/macOS:
+
+```bash
+cp .env.example .env.local
+```
+
+Hoặc trên PowerShell:
 
 ```powershell
-npm install
 Copy-Item .env.example .env.local
+```
+
+Khởi động môi trường phát triển:
+
+```bash
 npm run dev
 ```
 
-Mở `http://localhost:3000`. Điền token Viettel AI vào `.env.local` nếu cần thử chức năng đọc bài.
-
-Cũng có thể chạy `npm run dev` từ thư mục workspace cha.
+Mở `http://localhost:3000`. Chức năng TTS tiếng Việt chỉ hoạt động khi `VIETTEL_TTS_TOKEN` hợp lệ; các phần còn lại không được phụ thuộc vào token này.
 
 ## Biến môi trường
 
-File mẫu nằm tại `.env.example`; file dùng thật là `.env.local` và không được commit.
+Sao chép `.env.example` thành `.env.local` khi phát triển hoặc `.env.production.local` trên máy chủ. Hai file này đã được Git bỏ qua.
 
-| Biến | Phạm vi | Mục đích |
+### Public variables
+
+Các biến có tiền tố `NEXT_PUBLIC_` có thể xuất hiện trong bundle trình duyệt.
+
+| Biến | Bắt buộc | Mô tả |
 | --- | --- | --- |
-| `NEXT_PUBLIC_WP_BASE_URL` | Trình duyệt | Origin WordPress cho ảnh và tìm kiếm trực tiếp. |
-| `NEXT_PUBLIC_SITE_URL` | Trình duyệt | Origin frontend Next.js cho canonical, sitemap và robots. |
-| `NEXT_PUBLIC_SITE_NAME` | Trình duyệt | Tên website. |
-| `WP_API_URL` | Server | Base URL WordPress REST API, mặc định `/wp-json/wp/v2`. |
-| `WP_SITE_URL` | Server | Origin WordPress dùng để tạo endpoint headless. |
-| `VIETTEL_TTS_API_URL` | Server | Endpoint tổng hợp giọng nói Viettel AI. |
-| `VIETTEL_TTS_TOKEN` | Server | Token bí mật của Viettel AI. |
-| `VIETTEL_TTS_VOICE` | Server | Mã giọng đọc, mặc định `hn-quynhanh`. |
-| `VIETTEL_TTS_SPEED` | Server | Tốc độ: `0.8`, `0.9`, `1`, `1.1` hoặc `1.2`. |
-| `VIETTEL_TTS_WITHOUT_FILTER` | Server | Bật/tắt bộ lọc chất lượng Viettel AI. |
-| `TTS_RATE_LIMIT_MAX` | Server | Số request TTS tối đa cho mỗi client trong một cửa sổ, mặc định `30`. |
-| `TTS_RATE_LIMIT_WINDOW_SECONDS` | Server | Độ dài cửa sổ rate limit, mặc định `60` giây. |
+| `NEXT_PUBLIC_WP_BASE_URL` | Có | Origin WordPress dùng cho media và các luồng chạy trên trình duyệt. |
+| `NEXT_PUBLIC_SITE_URL` | Có | Origin frontend dùng cho canonical, sitemap, robots và liên kết chia sẻ. |
+| `NEXT_PUBLIC_SITE_NAME` | Có | Tên website hiển thị trong metadata và giao diện. |
 
-Không đặt token hoặc khóa bí mật vào biến có tiền tố `NEXT_PUBLIC_`.
+### Server-only variables
 
-## Cấu trúc mã nguồn
+| Biến | Bắt buộc | Mặc định/Mô tả |
+| --- | --- | --- |
+| `WP_API_URL` | Có | Base URL WordPress Core REST, thường là `/wp-json/wp/v2`. |
+| `WP_SITE_URL` | Có | Origin WordPress dùng để xây dựng các endpoint headless. |
+| `VIETTEL_TTS_API_URL` | Khi dùng TTS | `https://viettelai.vn/tts/speech_synthesis`. |
+| `VIETTEL_TTS_TOKEN` | Khi dùng TTS | Token Viettel AI; không được đưa vào `NEXT_PUBLIC_*`. |
+| `VIETTEL_TTS_VOICE` | Không | `hn-quynhanh`. |
+| `VIETTEL_TTS_SPEED` | Không | Một trong `0.8`, `0.9`, `1`, `1.1`, `1.2`. |
+| `VIETTEL_TTS_WITHOUT_FILTER` | Không | `false`. |
+| `TTS_RATE_LIMIT_MAX` | Không | Tối đa `30` request/client trong một cửa sổ. |
+| `TTS_RATE_LIMIT_WINDOW_SECONDS` | Không | Cửa sổ rate limit `60` giây. |
+| `REVALIDATION_SECRET` | Production | Secret dùng để xác minh webhook HMAC từ WordPress. |
+| `REVALIDATION_TIMESTAMP_TOLERANCE_SECONDS` | Không | Sai lệch timestamp tối đa `300` giây. |
+| `REVALIDATION_MAX_BODY_BYTES` | Không | Kích thước payload tối đa `262144` byte. |
 
-```text
-src/
-├── app/                    # Route, metadata, sitemap, robots và API nội bộ
-│   ├── [...path]/          # Bài viết/chuyên mục theo permalink WordPress
-│   ├── api/tts/            # Proxy TTS giữ token ở phía server
-│   ├── en/                 # Trang chủ tiếng Anh
-│   └── van-ban-tai-lieu/   # Kho tài liệu theo taxonomy
-├── components/
-│   ├── bai-viet/           # Chi tiết bài viết, chia sẻ và đọc bài
-│   ├── chuyen-muc/         # Danh sách bài và sidebar chuyên mục
-│   ├── layout/             # Header, menu, footer và điều hướng mobile
-│   ├── tai-lieu/           # Giao diện taxonomy tài liệu
-│   ├── trang-chu/          # Các khu vực trang chủ, đặt tên tiếng Việt
-│   └── ui/                 # Component dùng chung
-├── config/env/             # Tách biến public và server-only
-├── constants/              # Route, slug chuyên mục và thông tin trường
-├── lib/wordpress/          # Client và truy vấn WordPress
-├── services/               # Tổng hợp dữ liệu cho từng màn hình
-├── styles/                 # Công thức Tailwind chuyển từ template cũ
-└── types/                  # Kiểu dữ liệu WordPress và ứng dụng
+Ví dụ production:
+
+```dotenv
+NEXT_PUBLIC_WP_BASE_URL=https://cms.example.edu.vn
+NEXT_PUBLIC_SITE_URL=https://www.example.edu.vn
+NEXT_PUBLIC_SITE_NAME=Trường Đại học Thủy lợi
+
+WP_API_URL=https://cms.example.edu.vn/wp-json/wp/v2
+WP_SITE_URL=https://cms.example.edu.vn
+
+VIETTEL_TTS_API_URL=https://viettelai.vn/tts/speech_synthesis
+VIETTEL_TTS_TOKEN=
+VIETTEL_TTS_VOICE=hn-quynhanh
+VIETTEL_TTS_SPEED=1
+VIETTEL_TTS_WITHOUT_FILTER=false
+TTS_RATE_LIMIT_MAX=30
+TTS_RATE_LIMIT_WINDOW_SECONDS=60
+
+REVALIDATION_SECRET=
+REVALIDATION_TIMESTAMP_TOLERANCE_SECONDS=300
+REVALIDATION_MAX_BODY_BYTES=262144
 ```
 
-Tài liệu khảo sát và thiết kế chi tiết nằm tại `../docs/nextjs-audit`.
+Không commit token, secret, Application Password hoặc file `.env.local`.
 
-## Quy tắc route
+Nếu hostname WordPress khác `tlu.edu.vn` hoặc `www.tlu.edu.vn`, hãy thêm hostname đó vào `images.remotePatterns` trong `next.config.ts` trước khi build.
+
+## Định tuyến
 
 | Nội dung | Tiếng Việt | Tiếng Anh |
 | --- | --- | --- |
 | Trang chủ | `/` | `/en` |
-| Bài viết | `/<permalink>` | `/en/<permalink>` |
+| Bài viết/trang động | `/<permalink>` | `/en/<permalink>` |
 | Chuyên mục | `/<slug>` | `/en/<slug>` |
+| Tìm kiếm | `/tim-kiem` | `/en/search` |
 | Kho tài liệu | `/van-ban-tai-lieu[/<slug>]` | `/en/van-ban-tai-lieu[/<slug>]` |
 | Chi tiết tài liệu | `/tai-lieu/<slug>` | `/en/tai-lieu/<slug>` |
 | Cơ cấu tổ chức | `/co-cau-to-chuc` | `/en/organizational-structure` |
 | Hồ sơ tổ chức | `/to-chuc/<slug>` | `/en/to-chuc/<slug>` |
-| Thư viện Media | `/media[/<album>]` | `/en/media[/<album>]` |
+| Thư viện media | `/media[/<album>]` | `/en/media[/<album>]` |
 
-Route `[...path]` kiểm tra chuyên mục trước, sau đó mới kiểm tra bài viết. Không nên đặt bài viết và chuyên mục trùng slug.
+Catch-all route `[...path]` ưu tiên phân giải chuyên mục trước bài viết. Không nên cấu hình bài viết và chuyên mục có cùng slug. URL do WordPress trả về được ưu tiên để giữ permalink hiện hữu; slug thuần chỉ là phương án dự phòng.
 
-URL do WordPress trả về được ưu tiên để giữ đúng permalink có hậu tố ID. Dạng slug thuần chỉ là phương án dự phòng.
+## API nội bộ
+
+| Method | Endpoint | Mục đích |
+| --- | --- | --- |
+| `GET` | `/api/search?q=...&lang=vi&limit=5` | Chuẩn hóa tìm kiếm và giới hạn dữ liệu trả về cho live search. |
+| `POST` | `/api/tts` | Xác minh bài viết, gọi Viettel AI và trả dữ liệu âm thanh. |
+| `POST` | `/api/revalidate` | Xác minh webhook WordPress, làm mới path và cache tag. |
+
+API revalidation yêu cầu JSON, event ID, timestamp và chữ ký HMAC hợp lệ. Secret rỗng làm endpoint trả `503`; payload quá hạn, trùng lặp hoặc sai chữ ký bị từ chối.
 
 ## Tích hợp WordPress
 
-Frontend hiện dùng các nhóm endpoint sau:
+Frontend sử dụng các nhóm endpoint sau:
 
-- WordPress core: posts, pages, categories, media, menus và menu-items dưới `/wp-json/wp/v2`.
-- Headless API nội dung: `/wp-json/headless/v1/page`, `/wp-json/headless/v1/term/category/{slug}` và `/wp-json/headless/v1/term/loai-tai-lieu/{slug}`.
-- Gallery: `/wp-json/headless/v1/media-gallery/home`, `/media-gallery/categories` và `/media-gallery/categories/{slug}`.
-- Cơ cấu tổ chức: `/wp-json/headless/v1/organizations/{slug}` và `/organizations/members/{slug}`.
-- Tài liệu: `/wp-json/headless/v1/documents/{slug}` và `/documents/categories/{slug}`.
+- WordPress Core: `/wp-json/wp/v2` cho posts, pages, categories và media.
+- Nội dung headless: `/wp-json/headless/v1/page`, `/resolve`, `/archive`, `/seo` và taxonomy.
+- Menu: `/wp-json/headless/v1/menus`.
+- Tìm kiếm: `/wp-json/headless/v1/search`, có fallback cho WPX Fulltext.
+- Gallery: `/wp-json/headless/v1/media-gallery/*`.
+- Đối tác: `/wp-json/headless/v1/partner-logos`.
+- Tổ chức: `/wp-json/headless/v1/organizations/*`.
+- Tài liệu: `/wp-json/headless/v1/documents/*`.
+- Sidebar cũ: `/wp-json/acw/v1/sidebar`.
 
-Production hiện chạy Headless API `1.14.0` (schema `4.7`). Frontend vẫn giữ fallback chỉ đọc từ WordPress core/page cũ để không trả 404 khi nội dung chưa được gán Polylang hoặc một plugin nguồn tạm ngừng hoạt động.
+Polylang được truyền bằng `lang=vi|en`. Các endpoint đọc nội dung công khai không cần WordPress Application Password. Route ghi dữ liệu, preview, cache và quản trị phải giữ cơ chế xác thực riêng.
 
-- Sidebar chuyên mục: `/wp-json/acw/v1/sidebar`.
-- Tìm kiếm: `/wp-json/wpx-ft/v1/search` và `/wp-json/wpx-ft/v1/suggest`.
+### On-demand revalidation
 
-Polylang được truyền qua tham số `lang=vi|en`; dữ liệu bản dịch trên bài viết được dùng để tạo liên kết chuyển ngôn ngữ và metadata `hreflang`.
-
-Các endpoint đọc nội dung công khai không cần chứa WordPress Application Password ở frontend. Endpoint ghi dữ liệu hoặc quản trị phải được bảo vệ và không thuộc luồng hiện tại.
-
-## Đọc bài bằng giọng nói
-
-Trình duyệt chỉ gửi `postId`, locale và số thứ tự đoạn tới `POST /api/tts`. Server lấy lại bài viết công khai từ WordPress, chia văn bản, gọi Viettel AI và trả MP3. Token không được gửi xuống trình duyệt.
-
-Âm thanh được cache trong bộ nhớ tối đa 100 đoạn trong 6 giờ. API giới hạn mặc định 30 request/client/phút và trả `429` cùng `Retry-After` khi vượt ngưỡng. Với nhiều replica, reverse proxy phải áp dụng cùng ngưỡng và audio cache nên chuyển sang Redis hoặc object storage.
-
-## Lệnh kiểm tra
+Tạo secret ít nhất 32 byte:
 
 ```bash
+openssl rand -hex 32
+```
+
+Đặt cùng một giá trị vào `REVALIDATION_SECRET` của Next.js và cấu hình WordPress. URL webhook production:
+
+```text
+https://www.example.edu.vn/api/revalidate
+```
+
+WordPress cần chạy WP-Cron ổn định để queue webhook không bị chậm. Khi sử dụng nhiều instance Next.js, cần chuyển replay state/cache sang hạ tầng dùng chung hoặc bảo đảm webhook được phân phối nhất quán.
+
+## Cấu trúc thư mục
+
+```text
+src/
+├── app/                 App Router, page, metadata và API route
+├── components/          Component theo nghiệp vụ và component dùng chung
+├── config/env/          Kiểm tra biến public, server-only và cache constants
+├── constants/           Route, chuyên mục và cấu hình website
+├── hooks/               React hooks dùng chung
+├── lib/
+│   ├── security/        HTML sanitization, rate limit và webhook verification
+│   ├── seo/             Metadata, hreflang và structured data
+│   ├── utils/           Tiện ích dữ liệu, ngày tháng và HTML
+│   └── wordpress/       REST client và truy vấn theo miền nghiệp vụ
+├── services/            Tổng hợp dữ liệu cho màn hình
+├── styles/              Font và công thức giao diện
+└── types/               Kiểu dữ liệu ứng dụng, WordPress, SEO và tìm kiếm
+```
+
+## Scripts
+
+| Lệnh | Mục đích |
+| --- | --- |
+| `npm run dev` | Chạy development server bằng Webpack. |
+| `npm run lint` | Kiểm tra ESLint. |
+| `npm run typecheck` | Kiểm tra TypeScript mà không tạo output. |
+| `npm run build` | Tạo production build. |
+| `npm run start` | Chạy production server từ thư mục `.next`. |
+
+Trước mỗi lần phát hành:
+
+```bash
+npm ci
 npm run lint
 npm run typecheck
 npm run build
-npm run start
 ```
 
-Chạy cả ba lệnh `lint`, `typecheck` và `build` trước khi triển khai.
+## Triển khai production
 
-## Lưu ý triển khai
+Ứng dụng phải được triển khai dưới dạng Node.js server; không dùng static export vì project có Server Components, API routes, ISR và on-demand revalidation.
 
-- Production phải đặt `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_WP_BASE_URL`, `WP_SITE_URL` và `WP_API_URL` bằng URL HTTPS; build sẽ dừng nếu phát hiện HTTP.
-- Cấu hình Headless API `frontend_url=https://tlu.edu.vn`; bật Redis Object Cache drop-in trước khi bật response cache của plugin.
-- Project chưa có Dockerfile; khi đóng gói Docker, truyền `VIETTEL_TTS_TOKEN` qua secret hoặc biến môi trường lúc chạy, không chép `.env.local` vào image.
-- `next.config.ts` đang để ảnh WordPress ở chế độ `unoptimized` do chuỗi chứng chỉ TLS của origin từng không được Node xác minh. Sau khi sửa chứng chỉ tại WordPress nên bật lại Image Optimization.
-- Request WordPress dùng thời gian revalidate khác nhau theo loại nội dung; xem `src/config/env/constants.ts`.
-- Khi thay đổi permalink, slug Polylang hoặc contract endpoint WordPress, cần kiểm tra đồng thời route VI và EN.
+### aaPanel
 
-## Nhật ký thay đổi
+1. Cài Nginx và Node.js LTS trong aaPanel.
+2. Clone repository vào `/www/wwwroot/headless-wordpress`.
+3. Tạo `university-next/.env.production.local` trước khi build.
+4. Chạy `npm ci`, `npm run lint`, `npm run typecheck` và `npm run build` trong `university-next`.
+5. Tạo Node Project với document root là thư mục `university-next`, run script `start`, user `www` và cổng nội bộ `3000`.
+6. Bật Domain Mapping, reverse proxy tới `127.0.0.1:3000` và cấp SSL Let's Encrypt.
+7. Không mở cổng `3000` ra Internet và không bật proxy cache cho toàn bộ HTML/API.
 
-Xem [CHANGELOG.md](./CHANGELOG.md).
+Nginx proxy tối thiểu:
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_buffering off;
+    proxy_read_timeout 300s;
+}
+```
+
+Sau khi đổi bất kỳ biến `NEXT_PUBLIC_*` nào, phải build lại và restart Node Project.
+
+## Cache và khả năng mở rộng
+
+- Request WordPress sử dụng thời gian revalidate và cache tag riêng theo loại nội dung.
+- TTS cache tối đa 100 đoạn trong bộ nhớ tiến trình, thời hạn 6 giờ.
+- Rate limit TTS mặc định cũng nằm trong bộ nhớ tiến trình.
+- Một instance `next start` phù hợp cho triển khai ban đầu trên aaPanel.
+- Với nhiều instance, cần cache/replay store dùng chung và cơ chế đồng bộ revalidation.
+- `next.config.ts` hiện để ảnh WordPress ở chế độ `unoptimized`. Chỉ bật Image Optimization sau khi chuỗi chứng chỉ TLS của WordPress được Node.js xác minh ổn định.
+
+## Xử lý sự cố
+
+| Hiện tượng | Kiểm tra |
+| --- | --- |
+| Build báo URL không hợp lệ | Bốn biến URL phải là URL đầy đủ và dùng HTTPS trong production. |
+| Ảnh WordPress không hiển thị | Kiểm tra `NEXT_PUBLIC_WP_BASE_URL`, CSP, TLS và `images.remotePatterns`. |
+| API trả `404` | Kiểm tra plugin nguồn, permalink WordPress và endpoint health/schema. |
+| CORS bị chặn | Thêm chính xác origin frontend vào allowlist WordPress, không kèm path. |
+| Nội dung cũ sau khi sửa bài | Kiểm tra webhook URL, secret, WP-Cron và log revalidation. |
+| TTS trả `503` | Chưa cấu hình `VIETTEL_TTS_TOKEN` hoặc dịch vụ nguồn không sẵn sàng. |
+| TTS trả `429` | Client đã vượt giới hạn trong cửa sổ rate limit. |
+| aaPanel trả `502` | Node Project chưa chạy, sai port hoặc cấu hình reverse proxy sai. |
+
+## Tài liệu liên quan
+
+- [API contract](./API.md)
+- [Nhật ký thay đổi](./CHANGELOG.md)
+- Tài liệu khảo sát và thiết kế: `../docs/nextjs-audit`
+
+## Bản quyền
+
+Dự án nội bộ phục vụ website Trường Đại học Thủy lợi. Việc sử dụng mã nguồn, nội dung, logo, font và tài nguyên thương hiệu phải tuân theo quyền sở hữu và quy định của đơn vị quản lý.
