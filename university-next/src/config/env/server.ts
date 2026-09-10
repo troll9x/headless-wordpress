@@ -79,3 +79,18 @@ export const TTS_RATE_LIMIT_WINDOW_SECONDS = boundedInteger(
   10,
   3_600,
 );
+
+/** Shared HMAC secret used only by the WordPress revalidation webhook. */
+export const REVALIDATION_SECRET = optionalEnv('REVALIDATION_SECRET', '').trim();
+export const REVALIDATION_TIMESTAMP_TOLERANCE_SECONDS = boundedInteger(
+  'REVALIDATION_TIMESTAMP_TOLERANCE_SECONDS',
+  300,
+  30,
+  900,
+);
+export const REVALIDATION_MAX_BODY_BYTES = boundedInteger(
+  'REVALIDATION_MAX_BODY_BYTES',
+  262_144,
+  1_024,
+  1_048_576,
+);
