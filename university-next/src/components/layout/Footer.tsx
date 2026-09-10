@@ -1,173 +1,91 @@
+'use client';
+
+import Image from 'next/image';
 import Link from 'next/link';
-import { getMenuTree } from '@/lib/api/menus';
-import { SITE_NAME } from '@/constants/api';
-import { UNIVERSITY, SOCIAL_LINKS } from '@/constants/site';
-import {
-  PhoneIcon,
-  EnvelopeIcon,
-  MapPinIcon,
-  FacebookIcon,
-  YouTubeIcon,
-  TwitterIcon,
-} from '@/components/ui/icons';
-import type { WPMenuItemWithChildren } from '@/types/wordpress';
+import { usePathname } from 'next/navigation';
+import { EnvelopeIcon, MapPinIcon, PhoneIcon } from '@/components/ui/icons';
+import type { Locale } from '@/types/ngon-ngu';
 
-function SocialIconComponent({ icon }: { icon: string }) {
-  if (icon === 'facebook') return <FacebookIcon className="h-4 w-4" />;
-  if (icon === 'youtube') return <YouTubeIcon className="h-4 w-4" />;
-  return <TwitterIcon className="h-4 w-4" />;
-}
+const LOGO = 'https://tlu.edu.vn/wp-content/uploads/2025/08/Logo-Truong-Dai-hoc-Thuy-loi-am-ban.webp';
 
-/**
- * Footer menu column — renders a top-level item as a section heading
- * with its children as links. Falls back to a flat link if no children.
- */
-function FooterMenuSection({ item }: { item: WPMenuItemWithChildren }) {
-  if (item.children.length > 0) {
-    return (
-      <div>
-        <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-white">
-          <span dangerouslySetInnerHTML={{ __html: item.title.rendered }} />
-        </h3>
-        <ul className="space-y-2.5">
-          {item.children.map((child) => (
-            <li key={child.id}>
-              <Link
-                href={child.url}
-                className="text-sm text-slate-400 transition-colors hover:text-white"
-                target={child.target === '_blank' ? '_blank' : undefined}
-                rel={child.target === '_blank' ? 'noopener noreferrer' : undefined}
-              >
-                <span dangerouslySetInnerHTML={{ __html: child.title.rendered }} />
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
-    );
-  }
+const FOOTER_LINKS = {
+  vi: {
+    about: [
+      ['Tổng quan', '/gioi-thieu'],
+      ['Sứ mạng', '/su-mang-muc-tieu-chien-luoc'],
+      ['Tin tức & Sự kiện', '/tin-tuc-thong-bao'],
+      ['Cơ cấu tổ chức', '/co-cau-to-chuc'],
+    ],
+    quick: [
+      ['Các đơn vị đào tạo', '/khoa-dao-tao'],
+      ['Đào tạo', '/dao-tao'],
+      ['Tuyển sinh', '/tuyen-sinh'],
+      ['Nghiên cứu', '/nghien-cuu'],
+      ['Hợp tác quốc tế', '/doi-ngoai'],
+    ],
+  },
+  en: {
+    about: [
+      ['Overview', '/en/about'],
+      ['Mission', '/en/mission-goals-strategy'],
+      ['News & Events', '/en/news'],
+      ['Organizational Structure', '/en/organizational-structure'],
+    ],
+    quick: [
+      ['Training Units', '/en/faculties'],
+      ['Education', '/en/education'],
+      ['Admissions', '/en/admission'],
+      ['Research', '/en/research'],
+      ['International Cooperation', '/en/external-relations'],
+    ],
+  },
+} as const satisfies Record<Locale, { about: readonly (readonly [string, string])[]; quick: readonly (readonly [string, string])[] }>;
 
-  // Flat item — render as standalone link
+function LinkColumn({ title, items }: { title: string; items: readonly (readonly [string, string])[] }) {
   return (
-    <Link
-      href={item.url}
-      className="text-sm text-slate-400 transition-colors hover:text-white"
-    >
-      <span dangerouslySetInnerHTML={{ __html: item.title.rendered }} />
-    </Link>
+    <div>
+      <h3 className="mb-5 text-sm font-bold uppercase text-white after:mt-2 after:block after:h-px after:w-7 after:bg-white/60">{title}</h3>
+      <ul className="space-y-3 text-sm text-white/90">
+        {items.map(([label, href]) => <li key={href}><Link href={href} className="hover:text-yellow-300">{label}</Link></li>)}
+      </ul>
+    </div>
   );
 }
 
-export default async function Footer() {
-  const footerMenu = await getMenuTree('footer');
+export default function Footer() {
+  const pathname = usePathname();
+  const locale: Locale = pathname === '/en' || pathname.startsWith('/en/') ? 'en' : 'vi';
+  const isEn = locale === 'en';
+  const links = FOOTER_LINKS[locale];
   const year = new Date().getFullYear();
-
   return (
-    <footer className="bg-slate-900 text-slate-300">
-      {/* ── Main columns ─────────────────────────────────────────────── */}
-      <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+    <footer className="bg-[#0118d8] text-white">
+      <div className="mx-auto max-w-[1400px] px-4 pb-8 pt-10 sm:px-6 lg:px-8 lg:pt-12">
+        <div className="grid gap-5 border-b border-white/15 pb-8 md:grid-cols-[1.25fr_1fr_1fr_1fr] md:items-center">
+          <Image src={LOGO} alt={isEn ? 'Thuyloi University' : 'Trường Đại học Thủy lợi'} width={360} height={78} className="h-auto w-[300px] max-w-full" />
+          <p className="flex items-start gap-2 text-sm font-semibold"><MapPinIcon className="mt-0.5 h-4 w-4 shrink-0" />{isEn ? 'Address' : 'Địa chỉ'}:<br />{isEn ? '175 Tay Son - Kim Lien Ward - Hanoi' : '175 Tây Sơn - P. Kim Liên - Hà Nội'}</p>
+          <p className="flex items-start gap-2 text-sm font-semibold"><EnvelopeIcon className="mt-0.5 h-4 w-4 shrink-0" />Email:<br /><a href="mailto:daihocthuyloi@tlu.edu.vn">daihocthuyloi@tlu.edu.vn</a></p>
+          <p className="flex items-start gap-2 text-sm font-semibold"><PhoneIcon className="mt-0.5 h-4 w-4 shrink-0" />{isEn ? 'Phone' : 'Điện thoại'}:<br /><a href="tel:02438522201">(024) 38522201</a></p>
+        </div>
 
-          {/* Column 1 — University identity */}
-          <div className="col-span-1">
-            <Link href="/" className="mb-4 inline-flex items-center gap-3 group">
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-700 text-white font-bold text-base transition-colors group-hover:bg-blue-600">
-                {UNIVERSITY.shortName.charAt(0)}
-              </div>
-              <div className="leading-tight">
-                <p className="font-bold text-white">{SITE_NAME}</p>
-                <p className="text-xs text-slate-400">{UNIVERSITY.fullName}</p>
-              </div>
-            </Link>
-
-            <p className="mt-4 text-sm leading-relaxed text-slate-400">
-              {UNIVERSITY.tagline}
-            </p>
-
-            {/* Social links */}
-            <div className="mt-6 flex gap-3">
-              {SOCIAL_LINKS.map((social) => (
-                <a
-                  key={social.icon}
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={social.label}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-slate-400 transition-colors hover:bg-blue-700 hover:text-white"
-                >
-                  <SocialIconComponent icon={social.icon} />
-                </a>
-              ))}
-            </div>
+        <div className="grid gap-10 py-10 sm:grid-cols-2 lg:grid-cols-4">
+          <LinkColumn title={isEn ? 'About us' : 'Giới thiệu'} items={links.about} />
+          <LinkColumn title={isEn ? 'Quick links' : 'Truy cập nhanh'} items={links.quick} />
+          <div>
+            <h3 className="mb-5 text-sm font-bold uppercase after:mt-2 after:block after:h-px after:w-7 after:bg-white/60">{isEn ? 'Follow TLU' : 'Theo dõi TLU'}</h3>
+            <ul className="space-y-3 text-sm text-white/90">
+              <li><a href="https://www.facebook.com/daihocthuyloi1959" target="_blank" rel="noreferrer" className="hover:text-yellow-300">Facebook</a></li>
+              <li><a href="https://www.instagram.com/daihocthuyloi" target="_blank" rel="noreferrer" className="hover:text-yellow-300">Instagram</a></li>
+              <li><a href="https://www.youtube.com/@daihocthuyloi" target="_blank" rel="noreferrer" className="hover:text-yellow-300">Youtube</a></li>
+              <li><a href="https://www.tiktok.com/@daihocthuyloi" target="_blank" rel="noreferrer" className="hover:text-yellow-300">Tiktok</a></li>
+            </ul>
           </div>
-
-          {/* Columns 2–3 — WordPress footer menu sections (up to 2 columns) */}
-          {footerMenu.slice(0, 2).map((section) => (
-            <div key={section.id} className="col-span-1">
-              <FooterMenuSection item={section} />
-            </div>
-          ))}
-
-          {/* If footer menu has fewer than 2 top-level sections, fill with spacer */}
-          {footerMenu.length === 0 && (
-            <>
-              <div className="col-span-1" />
-              <div className="col-span-1" />
-            </>
-          )}
-          {footerMenu.length === 1 && <div className="col-span-1" />}
-
-          {/* Column 4 — Contact info */}
-          <div className="col-span-1">
-            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-white">
-              Liên hệ
-            </h3>
-            <address className="not-italic space-y-3 text-sm text-slate-400">
-              <p className="flex items-start gap-2">
-                <MapPinIcon className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-500" />
-                {UNIVERSITY.address}
-              </p>
-              <p className="flex items-center gap-2">
-                <PhoneIcon className="h-4 w-4 flex-shrink-0 text-slate-500" />
-                <a href={`tel:${UNIVERSITY.phone.replace(/\s/g, '')}`} className="hover:text-white transition-colors">
-                  {UNIVERSITY.phone}
-                </a>
-              </p>
-              <p className="flex items-center gap-2">
-                <EnvelopeIcon className="h-4 w-4 flex-shrink-0 text-slate-500" />
-                <a href={`mailto:${UNIVERSITY.email}`} className="hover:text-white transition-colors">
-                  {UNIVERSITY.email}
-                </a>
-              </p>
-            </address>
+          <div>
+            <h3 className="mb-5 text-sm font-bold uppercase after:mt-2 after:block after:h-px after:w-7 after:bg-white/60">{isEn ? 'Thuyloi University' : 'Trường Đại học Thủy lợi'}</h3>
+            <iframe title={isEn ? 'Map of Thuyloi University' : 'Bản đồ Trường Đại học Thủy lợi'} src="https://www.google.com/maps?q=Tr%C6%B0%E1%BB%9Dng+%C4%90%E1%BA%A1i+h%E1%BB%8Dc+Th%E1%BB%A7y+l%E1%BB%A3i+175+T%C3%A2y+S%C6%A1n&output=embed" className="h-40 w-full border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
           </div>
         </div>
-      </div>
-
-      {/* ── Bottom bar ───────────────────────────────────────────────── */}
-      <div className="border-t border-slate-800">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-5 sm:flex-row sm:px-6 lg:px-8">
-          <p className="text-xs text-slate-500">
-            © {year} {SITE_NAME} — {UNIVERSITY.fullName}
-          </p>
-          {/* Remaining footer menu items (3rd+) displayed flat in the bottom bar */}
-          {footerMenu.length > 2 && (
-            <nav aria-label="Footer bottom navigation">
-              <ul className="flex flex-wrap gap-x-5 gap-y-1">
-                {footerMenu.slice(2).map((item) => (
-                  <li key={item.id}>
-                    <Link
-                      href={item.url}
-                      className="text-xs text-slate-500 transition-colors hover:text-slate-300"
-                    >
-                      <span dangerouslySetInnerHTML={{ __html: item.title.rendered }} />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          )}
-        </div>
+        <p className="text-center text-xs font-semibold text-white">Copyright © {year} Thuyloi University. Dev by IT Center TLU.</p>
       </div>
     </footer>
   );

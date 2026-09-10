@@ -69,6 +69,47 @@ export interface WPCategory {
   parent: number;
 }
 
+export interface CategoryBannerData {
+  categoryId: number;
+  categorySlug: string;
+  categoryName: string;
+  imageUrl: string;
+  imageAlt: string;
+  width: number;
+  height: number;
+}
+
+export interface CategorySidebarTermItem {
+  type: 'term';
+  id: number;
+  parent: number;
+  name: string;
+  slug: string;
+  url: string;
+  children: CategorySidebarItem[];
+}
+
+export interface CategorySidebarCustomItem {
+  type: 'custom';
+  label: string;
+  url: string;
+  children: CategorySidebarItem[];
+}
+
+export type CategorySidebarItem =
+  | CategorySidebarTermItem
+  | CategorySidebarCustomItem;
+
+export interface CategorySidebarData {
+  root: {
+    id: number;
+    name: string;
+    slug: string;
+    url: string;
+  };
+  items: CategorySidebarItem[];
+}
+
 // ─── Tag ──────────────────────────────────────────────────────────────────────
 
 export interface WPTag {
@@ -114,7 +155,17 @@ export interface WPPost {
   format: string;
   categories: number[];
   tags: number[];
+  /** Public post meta returned when the priority fields are registered with show_in_rest. */
+  meta?: Record<string, unknown>;
   acf?: Record<string, unknown>;
+  /** Also supported when a custom REST field exposes priority values at the post root. */
+  post_priority_label?: 'hot' | 'new' | '';
+  post_priority_order?: number | string;
+  post_priority_expire_date?: string;
+  /** Legacy field names used by the original WordPress shortcode. */
+  _priority_label?: 'hot' | 'new' | '';
+  _priority_order?: number | string;
+  _priority_expire?: string;
   _embedded?: WPEmbedded;
 }
 

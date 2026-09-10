@@ -25,9 +25,17 @@ export type SocialIcon = (typeof SOCIAL_LINKS)[number]['icon'];
  * with subfields `value` and `label`.
  */
 export const SITE_STATS = [
-  { value: '24.000+', label: 'Người học' },
-  { value: '500+', label: 'Giảng viên & Nghiên cứu viên' },
-  { value: '95%', label: 'Sinh viên có việc làm' },
-  { value: '75', label: 'Ngành đào tạo' },
-  { value: '60%', label: 'Giảng viên trình độ tiến sĩ' },
+  { value: '24,000+', label: 'Người học' },
+  { value: '500+', label: 'Đối tác trong & ngoài nước' },
+  { value: '95%', label: 'Sinh viên tốt nghiệp có việc làm' },
+  { value: '75+', label: 'Ngành học' },
+  { value: '60%', label: 'Giảng Viên Tiến sĩ' },
+] as const;
+
+export const SITE_STATS_EN = [
+  { value: '24,000+', label: 'Learners' },
+  { value: '500+', label: 'Domestic and international partners' },
+  { value: '95%', label: 'Graduates employed after graduation' },
+  { value: '75+', label: 'Academic programs' },
+  { value: '60%', label: 'Faculty members with doctorates' },
 ] as const;

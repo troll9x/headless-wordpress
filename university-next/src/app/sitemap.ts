@@ -22,5 +22,26 @@ export default function sitemap(): MetadataRoute.Sitemap {
     {
       url: `${baseUrl}/en`,
     },
+    {
+      url: `${baseUrl}/su-mang-muc-tieu-chien-luoc`,
+    },
+    {
+      url: `${baseUrl}/en/mission-goals-strategy`,
+    },
+    {
+      url: `${baseUrl}/co-cau-to-chuc`,
+    },
+    {
+      url: `${baseUrl}/en/organizational-structure`,
+    },
+    {
+      url: `${baseUrl}/media`,
+    },
+    {
+      url: `${baseUrl}/en/media`,
+    },
+    {
+      url: `${baseUrl}/van-ban-tai-lieu`,
+    },
   ];
 }

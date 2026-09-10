@@ -1,4 +1,5 @@
 import { getMenuTree } from '@/lib/api/menus';
+import type { Locale } from '@/types/ngon-ngu';
 import type { WPMenuItemWithChildren } from '@/types/wordpress';
 
 export interface NavigationData {
@@ -16,11 +17,11 @@ export interface NavigationData {
  *   footer   → footer link columns
  *   topbar   → utility bar quick links
  */
-export async function getNavigationData(): Promise<NavigationData> {
+export async function getNavigationData(locale: Locale = 'vi'): Promise<NavigationData> {
   const [primaryMenu, footerMenu, topbarMenu] = await Promise.all([
-    getMenuTree('primary'),
-    getMenuTree('footer'),
-    getMenuTree('topbar'),
+    getMenuTree('primary', locale),
+    getMenuTree('footer', locale),
+    getMenuTree('topbar', locale),
   ]);
 
   return { primaryMenu, footerMenu, topbarMenu };

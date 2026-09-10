@@ -2,86 +2,83 @@ import type { HomepageData } from '@/types/homepage';
 import type { Locale } from '@/types/ngon-ngu';
 import { extractHeroData, extractStats } from '@/services/homepage';
 
-import HeroBanner from '@/components/homepage/HeroBanner';
-import QuickAccessLinks from '@/components/homepage/QuickAccessLinks';
-import NewsSection from '@/components/homepage/NewsSection';
-import AnnouncementsSection from '@/components/homepage/AnnouncementsSection';
-import EventsSection from '@/components/homepage/EventsSection';
-import StatsSection from '@/components/homepage/StatsSection';
-import RectorBanner from '@/components/homepage/RectorBanner';
-import AdmissionsSection from '@/components/homepage/AdmissionsSection';
-import FeatureCardsSection from '@/components/homepage/FeatureCardsSection';
-import TrainingUnitsSection from '@/components/homepage/TrainingUnitsSection';
-import CooperationSection from '@/components/homepage/CooperationSection';
-import ResearchSection from '@/components/homepage/ResearchSection';
-import PartnersSection from '@/components/homepage/PartnersSection';
-import CommunitySection from '@/components/homepage/CommunitySection';
-import MomentsGallery from '@/components/homepage/MomentsGallery';
+import BannerChinh from '@/components/trang-chu/BannerChinh';
+import BannerHieuTruong from '@/components/trang-chu/BannerHieuTruong';
+import CongDong from '@/components/trang-chu/CongDong';
+import DoiTac from '@/components/trang-chu/DoiTac';
+import DonViDaoTao from '@/components/trang-chu/DonViDaoTao';
+import HopTacQuocTe from '@/components/trang-chu/HopTacQuocTe';
+import KhoanhKhacTLU from '@/components/trang-chu/KhoanhKhacTLU';
+import KhuVucSuKien from '@/components/trang-chu/KhuVucSuKien';
+import KhuVucThongBao from '@/components/trang-chu/KhuVucThongBao';
+import KhuVucThongKe from '@/components/trang-chu/KhuVucThongKe';
+import KhuVucTinTuc from '@/components/trang-chu/KhuVucTinTuc';
+import KhuVucTuyenSinh from '@/components/trang-chu/KhuVucTuyenSinh';
+import NghienCuu from '@/components/trang-chu/NghienCuu';
+import TheNoiBat from '@/components/trang-chu/TheNoiBat';
 
 interface TrangChuProps {
   data: HomepageData;
   locale: Locale;
 }
 
-/** Shared homepage renderer. Accepts pre-fetched data and locale. */
-export default function TrangChu({ data }: TrangChuProps) {
+/** Bộ dựng trang chủ dùng chung cho giao diện tiếng Việt và tiếng Anh. */
+export default function TrangChu({ data, locale }: TrangChuProps) {
   const hero = extractHeroData(data.heroPage);
-  const stats = extractStats(data.heroPage);
+  const stats = extractStats(data.heroPage, locale);
 
   return (
-    <main>
-      {/* 1. Hero Banner */}
-      <HeroBanner data={hero} />
+    <div>
+      {/* 1. Banner chính */}
+      <BannerChinh data={hero} locale={locale} />
 
-      {/* 2. Quick Access Links */}
-      {data.quickLinks.length > 0 && <QuickAccessLinks items={data.quickLinks} />}
-
-      {/* 3+4. Tin Tức + Thông Báo */}
-      <section className="bg-white py-12">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      {/* 2. Liên kết nhanh */}
+      {/* 3 + 4. Tin tức và thông báo */}
+      <section className="bg-white py-10 sm:py-14">
+        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
           <div className="grid gap-10 lg:grid-cols-3">
             <div className="lg:col-span-2">
-              <NewsSection posts={data.news} />
+              <KhuVucTinTuc posts={data.news} locale={locale} />
             </div>
             <div>
-              <AnnouncementsSection posts={data.announcements} />
+              <KhuVucThongBao posts={data.announcements} locale={locale} />
             </div>
           </div>
         </div>
       </section>
 
-      {/* 5. Sự Kiện */}
-      <EventsSection posts={data.events} />
+      {/* 5. Sự kiện */}
+      <KhuVucSuKien posts={data.events} locale={locale} />
 
-      {/* 6. Thống Kê */}
-      <StatsSection stats={stats} />
+      {/* 6. Thống kê */}
+      <KhuVucThongKe stats={stats} locale={locale} />
 
-      {/* 7. Rector Banner */}
-      <RectorBanner />
+      {/* 7. Banner Hiệu trưởng */}
+      <BannerHieuTruong locale={locale} />
 
-      {/* 8. Tuyển Sinh */}
-      {data.admissionsPage && <AdmissionsSection page={data.admissionsPage} />}
+      {/* 8. Tuyển sinh */}
+      <KhuVucTuyenSinh page={data.admissionsPage} locale={locale} />
 
-      {/* 9. Feature Cards */}
-      <FeatureCardsSection />
+      {/* 9. Các thẻ nội dung nổi bật */}
+      <TheNoiBat posts={data.featurePosts} locale={locale} />
 
-      {/* 10. Đơn Vị Đào Tạo */}
-      <TrainingUnitsSection posts={data.faculties} />
+      {/* 10. Đơn vị đào tạo */}
+      <DonViDaoTao posts={data.faculties} locale={locale} />
 
-      {/* 11. Hợp Tác Quốc Tế */}
-      <CooperationSection posts={data.cooperation} />
+      {/* 11. Hợp tác quốc tế */}
+      <HopTacQuocTe posts={data.cooperation} locale={locale} />
 
-      {/* 12. Nghiên Cứu */}
-      <ResearchSection posts={data.research} />
+      {/* 12. Nghiên cứu */}
+      <NghienCuu posts={data.research} locale={locale} />
 
-      {/* 13. Đối Tác */}
-      {data.partners.length > 0 && <PartnersSection posts={data.partners} />}
+      {/* 13. Đối tác */}
+      <DoiTac logos={data.partnerLogos} fallbackPosts={data.partners} locale={locale} />
 
-      {/* 14. Cộng Đồng */}
-      <CommunitySection posts={data.community} />
+      {/* 14. Cộng đồng */}
+      <CongDong posts={data.community} locale={locale} />
 
-      {/* 15. Khoảnh Khắc TLU */}
-      <MomentsGallery posts={data.moments} />
-    </main>
+      {/* 15. Khoảnh khắc TLU */}
+      <KhoanhKhacTLU posts={data.moments} gallery={data.momentGallery} locale={locale} />
+    </div>
   );
 }

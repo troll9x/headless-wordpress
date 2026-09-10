@@ -1,20 +1,12 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
+import '@/styles/site-font.css';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import MangXaHoiNoi from '@/components/layout/MangXaHoiNoi';
+import DocumentLanguage from '@/components/ngon-ngu/DocumentLanguage';
 import { SITE_NAME } from '@/constants/api';
 import { NEXT_PUBLIC_SITE_URL } from '@/config/env/public';
-
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(NEXT_PUBLIC_SITE_URL),
@@ -53,13 +45,12 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="vi"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="flex min-h-full flex-col bg-gray-50">
+    <html lang="vi" className="h-full antialiased">
+      <body className="flex min-h-full flex-col bg-white">
+        <DocumentLanguage />
         <Header />
         <main className="flex-1">{children}</main>
+        <MangXaHoiNoi />
         <Footer />
       </body>
     </html>

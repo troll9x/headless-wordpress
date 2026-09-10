@@ -18,7 +18,7 @@ interface BreadcrumbProps {
  * Usage:
  *   <Breadcrumb items={[
  *     { label: 'Trang chủ', href: '/' },
- *     { label: 'Tin tức', href: '/tin-tuc' },
+ *     { label: 'Tin tức', href: '/tin-tuc-thong-bao' },
  *     { label: 'Bài viết chi tiết' },
  *   ]} />
  */

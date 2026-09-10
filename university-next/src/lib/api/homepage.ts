@@ -1,6 +1,6 @@
-import { getPosts } from '@/lib/wordpress/posts';
+import { getPostSummaries } from '@/lib/wordpress/posts';
 import { getPageBySlug } from '@/lib/wordpress/pages';
-import { getCategoryBySlug } from '@/lib/wordpress/categories';
+import { getCategoryBySlug, getCategoryTreeIds } from '@/lib/wordpress/categories';
 import type { WPPost, WPPage } from '@/types/wordpress';
 import type { Locale } from '@/types/ngon-ngu';
 
@@ -12,12 +12,16 @@ export async function getPostsByCategories(
   slugs: readonly string[],
   perPage: number,
   locale: Locale = 'vi',
+  includeChildren = false,
 ): Promise<WPPost[]> {
   for (const slug of slugs) {
-    const cat = await getCategoryBySlug(slug).catch(() => null);
+    const cat = await getCategoryBySlug(slug, locale).catch(() => null);
     if (!cat) continue;
-    const posts = await getPosts({
-      categories: cat.id,
+    const categoryIds = includeChildren
+      ? await getCategoryTreeIds(cat.id, locale)
+      : [cat.id];
+    const posts = await getPostSummaries({
+      categories: categoryIds,
       per_page: perPage,
       orderby: 'date',
       order: 'desc',

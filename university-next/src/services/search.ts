@@ -1,8 +1,5 @@
 import type { LiveSearchItem } from '@/types/search';
-
-const WP_BASE_URL = (
-  process.env.NEXT_PUBLIC_WP_BASE_URL ?? 'https://tlu.edu.vn'
-).replace(/\/$/, '');
+import type { Locale } from '@/types/ngon-ngu';
 
 export class SearchResponseError extends Error {
   constructor(message: string) {
@@ -17,20 +14,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function plainText(value: string): string {
   return value.replace(/<[^>]*>/g, '').trim();
-}
-
-function isAllowedImageUrl(value: string): boolean {
-  if (!value) return false;
-
-  try {
-    const parsed = new URL(value);
-    return (
-      parsed.protocol === 'https:' &&
-      (parsed.hostname === 'tlu.edu.vn' || parsed.hostname === 'www.tlu.edu.vn')
-    );
-  } catch {
-    return false;
-  }
 }
 
 function normalizeItems(data: unknown): LiveSearchItem[] {
@@ -57,26 +40,24 @@ function normalizeItems(data: unknown): LiveSearchItem[] {
     if (!title || url === '#') return [];
 
     const excerpt = typeof item.excerpt === 'string' ? plainText(item.excerpt) : '';
-    const thumb =
-      typeof item.thumb === 'string' && isAllowedImageUrl(item.thumb) ? item.thumb : '';
+    const thumb = typeof item.thumb === 'string' ? item.thumb : '';
 
     return [{ title, url, excerpt, thumb }];
   });
 }
 
-async function fetchSearchEndpoint(
-  endpoint: 'search' | 'suggest',
+async function fetchLocalSearch(
   query: string,
+  locale: Locale,
+  limit: number,
   signal?: AbortSignal,
-  limit?: number
 ): Promise<LiveSearchItem[]> {
-  const url = new URL(`${WP_BASE_URL}/wp-json/wpx-ft/v1/${endpoint}`);
-  url.searchParams.set('q', query);
-  if (endpoint === 'search' && limit) {
-    url.searchParams.set('per', String(limit));
-  }
-
-  const response = await fetch(url.toString(), {
+  const params = new URLSearchParams({
+    q: query,
+    lang: locale,
+    limit: String(limit),
+  });
+  const response = await fetch(`/api/search?${params.toString()}`, {
     signal,
     cache: 'no-store',
     headers: { Accept: 'application/json' },
@@ -97,17 +78,11 @@ async function fetchSearchEndpoint(
 
 export function searchPosts(
   query: string,
+  locale: Locale,
   limit = 5,
   signal?: AbortSignal
 ): Promise<LiveSearchItem[]> {
-  return fetchSearchEndpoint('search', query, signal, limit);
-}
-
-export function suggestPosts(
-  query: string,
-  signal?: AbortSignal
-): Promise<LiveSearchItem[]> {
-  return fetchSearchEndpoint('suggest', query, signal);
+  return fetchLocalSearch(query, locale, limit, signal);
 }
 
 export function normalizeSearchUrl(url: string): string {
@@ -115,13 +90,11 @@ export function normalizeSearchUrl(url: string): string {
 
   try {
     const parsed = new URL(url);
-    const wpBase = new URL(WP_BASE_URL);
-
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
       return '#';
     }
 
-    if (parsed.hostname === wpBase.hostname) {
+    if (parsed.hostname === 'tlu.edu.vn' || parsed.hostname === 'www.tlu.edu.vn') {
       return `${parsed.pathname}${parsed.search}${parsed.hash}` || '/';
     }
 
