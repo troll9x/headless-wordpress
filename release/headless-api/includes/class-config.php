@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Không class nào khác cần biết tên hằng số thô hoặc chuỗi option key.
  */
 class Config {
-	private const RELEASE_DEFAULTS_OPTION = 'tlu_headless_api_1140_hardening_applied';
+	private const RELEASE_DEFAULTS_OPTION = 'tlu_headless_api_200_hardening_applied';
 
 	public static function version(): string {
 		return TLU_HEADLESS_API_VERSION;
@@ -47,7 +47,7 @@ class Config {
 		return (array) \get_option( self::option_key(), [] );
 	}
 
-	/** Apply production-safe defaults once when the hardened 1.14.0 package boots. */
+	/** Apply production-safe defaults once when the hardened 2.0.0 package boots. */
 	public static function apply_release_defaults(): void {
 		if ( get_option( self::RELEASE_DEFAULTS_OPTION, false ) ) {
 			return;

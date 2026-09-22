@@ -34,6 +34,7 @@ class Plugin {
 		$this->loader = new Loader();
 		$this->loader->load_core();
 		Config::apply_release_defaults();
+		Upgrader::run();
 		$this->init_hooks();
 	}
 
@@ -85,6 +86,17 @@ class Plugin {
 		if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
 			return;
 		}
+
+		$post_type = $post instanceof \WP_Post ? $post->post_type : get_post_type( $post_id );
+		if ( in_array( $post_type, [
+			'acf-field-group',
+			'acf-field',
+			'acf-post-type',
+			'acf-taxonomy',
+			'acf-ui-options-page',
+		], true ) ) {
+			return;
+		}
 		TransientCache::from_config()->flush();
 	}
 
@@ -95,12 +107,12 @@ class Plugin {
 
 	/**
 	 * Flush cache khi ACF lưu options page hoặc post.
-	 * acf/save_post nhận post_id có thể là string 'options'.
+	 * ACF dùng post_id dạng chuỗi cho options, user, term và các storage key tùy chỉnh.
 	 *
 	 * @param int|string $post_id
 	 */
 	public function on_acf_save( $post_id ): void {
-		if ( 'options' === $post_id || ( is_string( $post_id ) && str_ends_with( $post_id, 'options' ) ) ) {
+		if ( is_string( $post_id ) ) {
 			TransientCache::from_config()->flush( 'options' );
 		} else {
 			// Bài viết thông thường — flush toàn bộ.

@@ -13,8 +13,9 @@ final class Partner_Logos {
 	private const FIELD_NAME = 'danh_sach_doi_tac';
 
 	public function register_routes(): void {
-		register_rest_route(
-			HEADLESS_API_NAMESPACE,
+		foreach ( [ HEADLESS_API_NAMESPACE, TLU_HEADLESS_API_NAMESPACE ] as $namespace ) {
+			register_rest_route(
+			$namespace,
 			'/partner-logos',
 			[
 				'methods'             => \WP_REST_Server::READABLE,
@@ -28,7 +29,8 @@ final class Partner_Logos {
 					],
 				],
 			]
-		);
+			);
+		}
 	}
 
 	public function handle( \WP_REST_Request $request ) {

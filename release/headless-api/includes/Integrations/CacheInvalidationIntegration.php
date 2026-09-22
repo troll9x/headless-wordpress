@@ -99,7 +99,7 @@ final class CacheInvalidationIntegration {
 		}
 	}
 
-	public function on_term_assignment( int $object_id, array $terms, array $tt_ids, string $taxonomy, bool $append, array $old_terms ): void {
+	public function on_term_assignment( int $object_id, $terms, array $tt_ids, string $taxonomy, bool $append, array $old_terms ): void {
 		if ( $append ) {
 			return;
 		}
@@ -134,7 +134,7 @@ final class CacheInvalidationIntegration {
 		}
 	}
 
-	public function on_menu_updated( int $menu_id, \WP_Term $menu ): void {
+	public function on_menu_updated( int $menu_id, array $menu_data = [] ): void {
 		$this->versions->bump( 'menus' );
 	}
 
@@ -184,7 +184,21 @@ final class CacheInvalidationIntegration {
 	}
 
 	private function should_skip_post( WP_Post $post ): bool {
-		return in_array( $post->post_type, [ 'revision', 'autosave' ], true );
+		return in_array( $post->post_type, [
+			'revision',
+			'autosave',
+			'nav_menu_item',
+			'customize_changeset',
+			'oembed_cache',
+			'user_request',
+			'wp_global_styles',
+			'wp_navigation',
+			'acf-field-group',
+			'acf-field',
+			'acf-post-type',
+			'acf-taxonomy',
+			'acf-ui-options-page',
+		], true );
 	}
 
 	private function get_post_domains( WP_Post $post ): array {

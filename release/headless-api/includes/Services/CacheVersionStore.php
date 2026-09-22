@@ -58,11 +58,27 @@ final class CacheVersionStore {
 	}
 
 	public function bump_many( array $domains ): array {
-		$out = [];
-		foreach ( $domains as $domain ) {
-			$out[ $domain ] = $this->bump( (string) $domain );
+		$domains = array_values( array_unique( array_filter( array_map(
+			fn( $domain ) => $this->sanitize_domain( (string) $domain ),
+			$domains
+		) ) ) );
+		if ( empty( $domains ) ) {
+			return [];
 		}
-		return $out;
+
+		return $this->with_lock( function () use ( $domains ): array {
+			$versions = $this->versions();
+			$out      = [];
+			foreach ( $domains as $domain ) {
+				$versions[ $domain ] = max( 1, (int) ( $versions[ $domain ] ?? 1 ) ) + 1;
+				$out[ $domain ]      = $versions[ $domain ];
+			}
+			update_option( self::OPTION_KEY, $versions, false );
+			foreach ( $out as $domain => $version ) {
+				wp_cache_set( $this->cache_key( $domain ), $version, self::CACHE_GROUP );
+			}
+			return $out;
+		} );
 	}
 
 	public function reset_all(): void {

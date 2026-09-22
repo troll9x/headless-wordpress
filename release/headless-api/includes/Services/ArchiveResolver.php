@@ -53,7 +53,7 @@ final class ArchiveResolver implements Service {
 	public function resolve( array $query ): array|\WP_Error {
 		// Determine which selector family is used
 		$selectors = [
-			'post_type' => isset( $query['post_type'] ) && '' !== $query['post_type'],
+			'post_type' => isset( $query['post_type'] ) && '' !== $query['post_type'] && empty( $query['year'] ),
 			'taxonomy'  => isset( $query['taxonomy'] ) && '' !== $query['taxonomy'],
 			'author'    => isset( $query['author'] ) && '' !== $query['author'],
 			'year'      => isset( $query['year'] ) && '' !== $query['year'],
@@ -320,6 +320,15 @@ final class ArchiveResolver implements Service {
 	 * @return array|\WP_Error Archive context.
 	 */
 	public function resolve_date( int $year, int $month = 0, int $day = 0, string $post_type = 'post', string $lang = '' ): array|\WP_Error {
+		$post_type_obj = get_post_type_object( $post_type );
+		if ( ! $post_type_obj || ! $this->is_valid_public_post_type( $post_type_obj ) ) {
+			return new \WP_Error(
+				'headless_archive_post_type_invalid',
+				'Post type khÃ´ng há»£p lá»‡ hoáº·c khÃ´ng cÃ´ng khai.',
+				[ 'status' => 404 ]
+			);
+		}
+
 		if ( $year < 1970 || $year > 2100 ) {
 			return new \WP_Error(
 				'headless_archive_date_invalid',

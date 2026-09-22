@@ -42,7 +42,7 @@ final class RestHttpIntegration {
 		add_filter( 'rest_post_dispatch', [ $this, 'store_cache' ], 10, 3 );
 
 		// ETag/Last-Modified: sau dispatch
-		add_filter( 'rest_post_dispatch', [ $this, 'add_validation_headers' ], 20, 3 );
+		add_filter( 'rest_post_dispatch', [ $this, 'add_validation_headers' ], 5, 3 );
 
 		// 304 responses cho conditional GET
 		add_filter( 'rest_pre_dispatch', [ $this, 'handle_conditional_get' ], 5, 3 );
@@ -157,6 +157,25 @@ final class RestHttpIntegration {
 
 		$response->header( 'X-Headless-Schema', TLU_HEADLESS_API_SCHEMA_VERSION );
 		$response->header( 'X-Headless-Cache', $this->get_response_header( $response, 'X-Headless-Cache' ) ?: 'BYPASS' );
+		$response->header( 'X-Content-Type-Options', 'nosniff' );
+		$response->header( 'X-Frame-Options', 'DENY' );
+		$response->header( 'Referrer-Policy', 'no-referrer' );
+		$response->header( 'Permissions-Policy', 'camera=(), microphone=(), geolocation=()' );
+		$response->header( 'Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'; base-uri 'none'" );
+
+		$profile = $this->cache_policy->classify( $request, $response );
+		foreach ( $this->cache_policy->get_headers( $profile ) as $name => $value ) {
+			$response->header( $name, (string) $value );
+		}
+
+		if ( $this->cache_policy->is_cacheable_response( $request, $response ) ) {
+			if ( '' === $this->get_response_header( $response, 'ETag' ) ) {
+				$response->header( 'ETag', '"' . hash( 'sha256', (string) wp_json_encode( $response->get_data() ) ) . '"' );
+			}
+			if ( '' === $this->get_response_header( $response, 'Last-Modified' ) ) {
+				$response->header( 'Last-Modified', gmdate( 'D, d M Y H:i:s' ) . ' GMT' );
+			}
+		}
 
 		$cache_key = $this->key_builder->build( $request );
 		$cached = $this->cache->get( $cache_key );
@@ -168,14 +187,13 @@ final class RestHttpIntegration {
 			if ( '' === $this->get_response_header( $response, 'Last-Modified' ) && isset( $cached['last_modified'] ) ) {
 				$response->header( 'Last-Modified', (string) $cached['last_modified'] );
 			}
-			$response->header( 'Cache-Control', $this->cache_policy->get_headers( $this->cache_policy->classify( $request, $response ) )['Cache-Control'] ?? '' );
 		}
 
 		return $result;
 	}
 
 	public function handle_conditional_get( $result, WP_REST_Server $server, WP_REST_Request $request ): mixed {
-		if ( ! in_array( strtoupper( $request->get_method() ), [ 'GET', 'HEAD' ], true ) ) {
+		if ( ! $this->enabled || ! $this->cors->is_plugin_route( $request->get_route() ) || ! in_array( strtoupper( $request->get_method() ), [ 'GET', 'HEAD' ], true ) ) {
 			return $result;
 		}
 

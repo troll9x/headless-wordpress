@@ -4,7 +4,9 @@ Plugin WordPress cung cấp REST API có cấu trúc cho frontend headless; hỗ
 
 ## Cài đặt
 
-Cài file ZIP phát hành trong WordPress và thay thế thư mục plugin headless-api hiện có. Không cài đồng thời một bản sao khác dưới tên thư mục khác.
+Cài file `headless-api.zip` trong WordPress. Gói luôn chứa thư mục gốc `headless-api/`, vì vậy WordPress sẽ nhận diện đúng plugin basename `headless-api/headless-api.php` và hiển thị thao tác **Thay thế bản hiện tại bằng bản đã tải lên**.
+
+Nếu một bản cũ từng được cài dưới tên thư mục khác, khi kích hoạt bản mới plugin sẽ tự vô hiệu hóa bản Headless API trùng đó để tránh hai bộ class/hook chạy song song. Plugin không tự xóa file của bản cũ; sau khi kiểm tra website, quản trị viên có thể xóa bản đã bị vô hiệu hóa trong màn hình Plugin.
 
 ## Yêu cầu
 

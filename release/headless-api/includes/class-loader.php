@@ -66,8 +66,10 @@ require_once $i . 'PreviewLinkIntegration.php';
 	require_once $i . 'RevalidationHooksIntegration.php';
 	require_once $s . 'CorsPolicy.php';
 	require_once $s . 'HttpCachePolicy.php';
-	require_once $s . 'CacheVersionStore.php';
-	require_once $s . 'CacheKeyBuilder.php';
+		require_once $s . 'CacheVersionStore.php';
+		require_once $s . 'RevalidationConfig.php';
+		require_once $s . 'CacheKeyBuilder.php';
+		require_once $s . 'RateLimiter.php';
 	require_once $i . 'RestHttpIntegration.php';
 	require_once $i . 'CacheInvalidationIntegration.php';
 
@@ -103,6 +105,7 @@ require_once $n . 'PreviewNormalizer.php';
 
 		// ── 7. Core ───────────────────────────────────────────────────────────
 		require_once $base . 'class-config.php';
+		require_once $base . 'class-upgrader.php';
 		require_once $base . 'class-helpers.php';
 		require_once $base . 'class-response.php';
 		require_once $base . 'class-rest-service-provider.php';

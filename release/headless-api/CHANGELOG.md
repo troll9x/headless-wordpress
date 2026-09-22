@@ -1,5 +1,21 @@
 # Nhật ký thay đổi
 
+## [2.0.2] - 2026-09-15
+### Đã sửa
+- Phát hiện bản Headless API cũ theo plugin header ngay cả khi thư mục hoặc file PHP chính đã bị đổi tên.
+- Trì hoãn việc xóa thông báo transient cho đến request kế tiếp, khi hook của bản legacy không còn trong bộ nhớ; tránh fatal error xuất hiện sau thông báo “Plugin đã được cập nhật thành công”.
+
+## [2.0.1] - 2026-09-15
+### Đã sửa
+- Ngăn fatal error khi ACF hoặc WordPress xóa option bằng cách đồng bộ số tham số của hook `deleted_option`.
+- Bỏ qua các post type quản trị nội bộ của ACF khi vô hiệu hóa cache và gửi revalidation.
+- Sửa chữ ký callback cập nhật menu, callback xóa bài và callback WP-Cron để tương thích với dữ liệu WordPress thực tế truyền vào.
+- Tạo lại đối tượng `WP_Post` hợp lệ khi gửi sự kiện xóa nội dung.
+- Cho phép kích hoạt hoặc cập nhật gói mới an toàn khi một bản Headless API cũ đang active dưới thư mục khác; bootstrap tránh khai báo trùng class bất kể thứ tự nạp và bản cũ sẽ được vô hiệu hóa sau đó.
+
+### Đóng gói
+- Giữ cố định plugin basename `headless-api/headless-api.php` để WordPress nhận diện bản tải lên là bản thay thế.
+
 ## [1.14.0] - 2026-08-21
 ### Production hardening - 2026-09-08
 - Unify response-cache invalidation on one generation store and serialize writes so concurrent Redis invalidations cannot overwrite each other.
