@@ -2,19 +2,31 @@ import { cache } from 'react';
 import { connection } from 'next/server';
 import { getPostsByCategories, getFirstPageBySlug } from '@/lib/api/homepage';
 import { enrichPostsWithHeadlessAcf, getPostSummaries } from '@/lib/wordpress/posts';
-import { getCategoryBySlug, getCategoryTreeIds } from '@/lib/wordpress/categories';
+import {
+  getCategoryBySlug,
+  getCategoryTreeIds,
+} from '@/lib/wordpress/categories';
 import { getFacultySliderItems } from '@/lib/wordpress/faculties';
 import { getPartnerLogos } from '@/lib/wordpress/partner-logos';
 import { getHomeMediaGallery } from '@/lib/wordpress/media-gallery';
+import { getHeroSlides } from '@/lib/wordpress/hero-slides';
+import { getSiteStaticImage } from '@/lib/wordpress/site-static-image';
 import { applyHomepagePostPriorities } from '@/lib/wordpress/post-priority';
-import { CATEGORY_SLUGS, PAGE_SLUGS } from '@/constants/categories';
+import {
+  CATEGORY_SLUGS,
+  HOMEPAGE_NEWS_CATEGORY_IDS,
+  PAGE_SLUGS,
+} from '@/constants/categories';
 import { SITE_STATS, SITE_STATS_EN } from '@/constants/site';
 import type { Locale } from '@/types/ngon-ngu';
 import { stripHtml } from '@/lib/utils/html';
 import type { WPApiError, WPPage, WPPost, WPMedia } from '@/types/wordpress';
 import type { HomepageData, HeroData, SiteStatistic } from '@/types/homepage';
 
-const HOMEPAGE_DATA_TIMEOUT_MS = 12_000;
+// This deadline includes time spent waiting for a WordPress request slot.
+// CMS responses can take 2-5 seconds, so 12 seconds caused cold homepage
+// requests near the back of the queue to resolve as empty sections.
+const HOMEPAGE_DATA_TIMEOUT_MS = 30_000;
 
 /** Prevent one slow optional WordPress integration from blocking the homepage. */
 function withHomepageFallback<T>(
@@ -52,7 +64,14 @@ async function getHomepageEvents(locale: Locale) {
 }
 
 async function getHomepageNews(locale: Locale) {
-  const posts = await getPostsByCategories(CATEGORY_SLUGS.NEWS, 40, locale, true);
+  const posts = getPostSummaries({
+    categories: [...HOMEPAGE_NEWS_CATEGORY_IDS[locale]],
+    // The component renders one featured post plus six side posts. Priority
+    // selections outside this window are fetched separately by ID below.
+    per_page: 10,
+    orderby: 'date',
+    order: 'desc',
+  }, locale);
   return applyHomepagePostPriorities(posts, locale);
 }
 
@@ -75,7 +94,13 @@ async function getLatestPostByCategoryCandidates(
       order: 'desc',
     }, locale).catch(() => []);
 
-    if (posts[0]) return posts[0];
+    if (posts[0]) {
+      const media = posts[0]._embedded?.['wp:featuredmedia']?.[0];
+      if (media && !('code' in media)) return posts[0];
+
+      const [enrichedPost] = await enrichPostsWithHeadlessAcf([posts[0]], locale);
+      return enrichedPost ?? posts[0];
+    }
   }
 
   return null;
@@ -90,6 +115,8 @@ export const getFullHomepageData = cache(async function getFullHomepageData(
 
   const [
     heroPage,
+    heroSlides,
+    staticImage,
     announcements,
     news,
     events,
@@ -107,6 +134,11 @@ export const getFullHomepageData = cache(async function getFullHomepageData(
     momentGallery,
   ] = await Promise.all([
     withHomepageFallback('hero', getFirstPageBySlug(PAGE_SLUGS.HERO, locale), null),
+    withHomepageFallback('hero slides', getHeroSlides(locale), []),
+    getSiteStaticImage(locale).catch((error: unknown) => {
+      console.warn('[homepage] CMS static image unavailable; section omitted.', error);
+      return null;
+    }),
     withHomepageFallback('announcements', getPostsByCategories(CATEGORY_SLUGS.ANNOUNCEMENTS, 8, locale), []),
     // Match the WordPress shortcode and merge the selected HOT/NEW posts.
     withHomepageFallback('news', getHomepageNews(locale), []),
@@ -130,6 +162,8 @@ export const getFullHomepageData = cache(async function getFullHomepageData(
 
   return {
     heroPage,
+    heroSlides,
+    staticImage,
     announcements: compactPosts(announcements),
     news: compactPosts(news),
     events: compactPosts(events),

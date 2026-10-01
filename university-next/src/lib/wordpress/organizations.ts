@@ -1,7 +1,8 @@
-import { WP_SITE_URL } from '@/config/env/server';
+import { WP_API_URL, WP_SITE_URL } from '@/config/env/server';
 import { CACHE_TAGS, REVALIDATE_POSTS } from '@/constants/api';
 import { getPageById } from '@/lib/wordpress/pages';
 import { wpFetch } from '@/lib/wordpress/client';
+import { buildWordPressRestUrl } from '@/lib/wordpress/url';
 import { stripHtml } from '@/lib/utils/html';
 import type { HeadlessMedia } from '@/lib/wordpress/media-gallery';
 import type { Locale } from '@/types/ngon-ngu';
@@ -86,9 +87,15 @@ function localPath(url: string): string {
   }
 }
 
-async function fetchOrganization<T>(pathname: string, tag: string): Promise<T | null> {
+async function fetchOrganization<T>(
+  route: string,
+  tag: string,
+  locale: Locale,
+): Promise<T | null> {
+  const url = buildWordPressRestUrl(WP_API_URL, route, { lang: locale });
+
   try {
-    const response = await fetch(new URL(pathname, WP_SITE_URL), {
+    const response = await fetch(url, {
       headers: { Accept: 'application/json' },
       next: { revalidate: REVALIDATE_POSTS, tags: [CACHE_TAGS.POSTS, tag] },
       signal: AbortSignal.timeout(10_000),
@@ -173,10 +180,10 @@ function parseLegacyOrganization(html: string, slug: string, locale: Locale): Or
 }
 
 export async function getOrganization(slug: string, locale: Locale): Promise<OrganizationData | null> {
-  const query = new URLSearchParams({ lang: locale });
   const data = await fetchOrganization<OrganizationData>(
-    `/wp-json/headless/v1/organizations/${encodeURIComponent(slug)}?${query}`,
+    `/headless/v1/organizations/${encodeURIComponent(slug)}`,
     `organization-${slug}-${locale}`,
+    locale,
   );
   if (data) return {
     ...data,
@@ -193,10 +200,10 @@ export async function getOrganizationMember(
   slug: string,
   locale: Locale,
 ): Promise<OrganizationMemberDetails | null> {
-  const query = new URLSearchParams({ lang: locale });
   const data = await fetchOrganization<OrganizationMemberDetails>(
-    `/wp-json/headless/v1/organizations/members/${encodeURIComponent(slug)}?${query}`,
+    `/headless/v1/organizations/members/${encodeURIComponent(slug)}`,
     `organization-member-${slug}-${locale}`,
+    locale,
   );
   if (data) return data;
 

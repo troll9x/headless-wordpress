@@ -1,10 +1,13 @@
-import { WP_SITE_URL } from '@/config/env/server';
+import { LEGACY_WP_SITE_URL, WP_API_URL, WP_SITE_URL } from '@/config/env/server';
+import { buildWordPressRestUrl } from '@/lib/wordpress/url';
 import { CACHE_TAGS, REVALIDATE_POSTS } from '@/constants/api';
 import { getPostSummaries } from '@/lib/wordpress/posts';
 import type { Locale } from '@/types/ngon-ngu';
 import type { WPPost } from '@/types/wordpress';
 
 export type PostPriorityLabel = 'hot' | 'new';
+
+const PRIORITY_ADAPTER_TIMEOUT_MS = 3_000;
 
 interface PostPrioritySelection {
   id: number | null;
@@ -75,14 +78,15 @@ function normalizeApiItems(data: PriorityApiResponse | PriorityApiItem[]): PostP
 }
 
 async function getPriorityApiSelection(locale: Locale): Promise<PostPrioritySelection[] | null> {
-  const url = new URL('/wp-json/headless/v1/priority-posts', WP_SITE_URL);
-  url.searchParams.set('lang', locale);
+  const url = buildWordPressRestUrl(WP_API_URL, '/headless/v1/priority-posts', {
+    lang: locale,
+  });
 
   try {
     const response = await fetch(url, {
       headers: { Accept: 'application/json' },
       next: { revalidate: REVALIDATE_POSTS, tags: [CACHE_TAGS.POSTS, `post-priority-${locale}`] },
-      signal: AbortSignal.timeout(10_000),
+      signal: AbortSignal.timeout(PRIORITY_ADAPTER_TIMEOUT_MS),
     });
     if (!response.ok) return null;
 
@@ -132,10 +136,10 @@ async function getLegacyPrioritySelection(locale: Locale): Promise<PostPriorityS
   const path = locale === 'en' ? '/en/' : '/';
 
   try {
-    const response = await fetch(new URL(path, WP_SITE_URL), {
+    const response = await fetch(new URL(path, LEGACY_WP_SITE_URL), {
       headers: { Accept: 'text/html,application/xhtml+xml' },
       next: { revalidate: REVALIDATE_POSTS, tags: [CACHE_TAGS.POSTS, `post-priority-legacy-${locale}`] },
-      signal: AbortSignal.timeout(10_000),
+      signal: AbortSignal.timeout(PRIORITY_ADAPTER_TIMEOUT_MS),
     });
     return response.ok ? parseLegacyPrioritySelection(await response.text()) : [];
   } catch {
@@ -160,21 +164,31 @@ function applySelection(post: WPPost, selection: PostPrioritySelection): WPPost 
 
 /** Add the selected HOT/NEW posts and their display metadata to the normal news feed. */
 export async function applyHomepagePostPriorities(
-  posts: WPPost[],
+  posts: WPPost[] | Promise<WPPost[]>,
   locale: Locale,
 ): Promise<WPPost[]> {
-  const apiSelection = await getPriorityApiSelection(locale);
-  const selections = apiSelection ?? await getLegacyPrioritySelection(locale);
-  if (selections.length === 0) return posts;
+  // Category discovery and the optional priority adapters are independent.
+  // Run them together so a slow/missing adapter cannot consume the entire
+  // homepage fallback budget after the normal post query has completed.
+  const [resolvedPosts, apiSelection, legacySelection] = await Promise.all([
+    posts,
+    getPriorityApiSelection(locale),
+    getLegacyPrioritySelection(locale),
+  ]);
+  const selections = apiSelection ?? legacySelection;
+  if (selections.length === 0) return resolvedPosts;
 
-  const currentIds = new Set(posts.map((post) => post.id));
+  const currentIds = new Set(resolvedPosts.map((post) => post.id));
   const missingIds = selections
     .map((selection) => selection.id)
     .filter((id): id is number => id !== null && !currentIds.has(id));
   const missingPosts = missingIds.length > 0
     ? await getPostSummaries({ include: missingIds.join(','), per_page: missingIds.length }, locale).catch(() => [])
     : [];
-  const candidates = [...posts, ...missingPosts.filter((post) => !currentIds.has(post.id))];
+  const candidates = [
+    ...resolvedPosts,
+    ...missingPosts.filter((post) => !currentIds.has(post.id)),
+  ];
 
   return candidates.map((post) => {
     const selection = selections.find((item) => matchesSelection(post, item));

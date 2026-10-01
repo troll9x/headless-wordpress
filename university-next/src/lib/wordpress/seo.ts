@@ -1,5 +1,6 @@
-import { WP_SITE_URL } from '@/config/env/server';
+import { WP_API_URL } from '@/config/env/server';
 import { CACHE_TAGS, REVALIDATE_POSTS } from '@/constants/api';
+import { buildWordPressRestUrl } from '@/lib/wordpress/url';
 import type { HeadlessSeoData } from '@/types/seo';
 import type { WPPost, WPPage } from '@/types/wordpress';
 
@@ -60,9 +61,10 @@ export async function getHeadlessSeoById(
 ): Promise<HeadlessSeoData | null> {
   if (!Number.isInteger(id) || id <= 0) return null;
 
-  const url = new URL('/wp-json/headless/v1/seo', WP_SITE_URL);
-  url.searchParams.set('id', String(id));
-  url.searchParams.set('lang', lang);
+  const url = buildWordPressRestUrl(WP_API_URL, '/headless/v1/seo', {
+    id,
+    lang,
+  });
 
   try {
     const response = await fetch(url, {

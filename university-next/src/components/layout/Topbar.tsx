@@ -6,37 +6,39 @@ import { usePathname } from 'next/navigation';
 import { MenuIcon } from '@/components/ui/icons';
 import SearchBox from '@/components/layout/SearchBox';
 import ChuyenNgonNgu from '@/components/ngon-ngu/ChuyenNgonNgu';
+import type { SiteLogos } from '@/lib/wordpress/site-logo';
 
 interface TopbarProps {
   onMenuOpen: () => void;
   mobileOpen: boolean;
+  logos: SiteLogos | null;
 }
 
-const LOGO_URL = 'https://tlu.edu.vn/wp-content/uploads/2025/08/Logo-Truong-Dai-hoc-Thuy-loi.webp';
-
-export default function Topbar({ onMenuOpen, mobileOpen }: TopbarProps) {
+export default function Topbar({ onMenuOpen, mobileOpen, logos }: TopbarProps) {
   const pathname = usePathname();
   const isEnglish = pathname === '/en' || pathname.startsWith('/en/');
+  const logo = logos?.header[isEnglish ? 'en' : 'vi'] ?? null;
 
   return (
     <div className="relative z-40 bg-white">
       <div className="mx-auto flex h-[76px] max-w-[1400px] items-center justify-between gap-2 px-4 sm:h-[88px] sm:gap-4 sm:px-6 min-[1025px]:h-[100px] min-[1025px]:px-8">
-        <Link
-          href={isEnglish ? '/en' : '/'}
-          className="flex min-w-0 items-center"
-          aria-label={isEnglish ? 'Thuyloi University homepage' : 'Trang chủ Trường Đại học Thủy lợi'}
-        >
-          <Image
-            src={LOGO_URL}
-            alt={isEnglish ? 'Thuyloi University' : 'Trường Đại học Thủy lợi'}
-            width={360}
-            height={78}
-            priority
-            className="h-auto w-[220px] max-w-[calc(100vw-150px)] flex-none object-contain sm:w-[300px] min-[1025px]:w-[360px]"
-          />
-        </Link>
+        {logo && (
+          <Link
+            href={isEnglish ? '/en' : '/'}
+            className="relative block h-[48px] w-[220px] max-w-[calc(100vw-150px)] flex-none sm:h-[65px] sm:w-[300px] min-[1025px]:h-[78px] min-[1025px]:w-[360px]"
+          >
+            <Image
+              src={logo.url}
+              alt={logo.alt}
+              fill
+              priority
+              className="object-contain object-left"
+              sizes="(min-width: 1025px) 360px, (min-width: 640px) 300px, 220px"
+            />
+          </Link>
+        )}
 
-        <div className="flex flex-none items-center gap-2 sm:gap-3">
+        <div className="ml-auto flex flex-none items-center gap-2 sm:gap-3">
           <div className="relative z-50 hidden min-[1025px]:block">
             <SearchBox />
           </div>

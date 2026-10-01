@@ -8,13 +8,15 @@ import MobileNav from '@/components/layout/MobileNav';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import type { Locale } from '@/types/ngon-ngu';
 import type { WPMenuItemWithChildren } from '@/types/wordpress';
+import type { SiteLogos } from '@/lib/wordpress/site-logo';
 
 interface NavShellProps {
   primaryItemsVi: WPMenuItemWithChildren[];
   primaryItemsEn: WPMenuItemWithChildren[];
+  logos: SiteLogos | null;
 }
 
-export default function NavShell({ primaryItemsVi, primaryItemsEn }: NavShellProps) {
+export default function NavShell({ primaryItemsVi, primaryItemsEn, logos }: NavShellProps) {
   const pathname = usePathname();
   const locale: Locale = pathname === '/en' || pathname.startsWith('/en/') ? 'en' : 'vi';
   const primaryItems = locale === 'en' ? primaryItemsEn : primaryItemsVi;
@@ -27,7 +29,7 @@ export default function NavShell({ primaryItemsVi, primaryItemsEn }: NavShellPro
 
   return (
     <>
-      <Topbar onMenuOpen={openMobile} mobileOpen={mobileOpen} />
+      <Topbar onMenuOpen={openMobile} mobileOpen={mobileOpen} logos={logos} />
 
       <nav
         className="relative z-10 hidden h-12 bg-[#0118d8] min-[1025px]:block"

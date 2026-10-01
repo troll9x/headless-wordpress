@@ -1,7 +1,7 @@
 import { WP_API_URL, WP_SITE_URL } from '@/config/env/server';
 import { CACHE_TAGS, REVALIDATE_CATEGORIES, REVALIDATE_POSTS } from '@/constants/api';
 import { wpFetch } from '@/lib/wordpress/client';
-import { buildWordPressUrl } from '@/lib/wordpress/url';
+import { buildWordPressRestUrl, buildWordPressUrl } from '@/lib/wordpress/url';
 import { stripHtml } from '@/lib/utils/html';
 import type { Locale } from '@/types/ngon-ngu';
 import type { WPApiError, WPMedia } from '@/types/wordpress';
@@ -193,13 +193,11 @@ async function getHeadlessDocumentTerm(
   slug: string,
   locale: Locale,
 ): Promise<HeadlessDocumentTerm | null> {
-  const url = new URL(
-    `/wp-json/headless/v1/term/loai-tai-lieu/${encodeURIComponent(slug)}`,
-    WP_SITE_URL,
+  const url = buildWordPressRestUrl(
+    WP_API_URL,
+    `/headless/v1/term/loai-tai-lieu/${encodeURIComponent(slug)}`,
+    { lang: locale, page: 1, per_page: 1 },
   );
-  url.searchParams.set('lang', locale);
-  url.searchParams.set('page', '1');
-  url.searchParams.set('per_page', '1');
 
   try {
     const response = await fetch(url, {
@@ -255,10 +253,11 @@ async function enrichDocumentWithAcf(
   document: WPDocument,
   locale: Locale,
 ): Promise<WPDocument> {
-  const url = new URL('/wp-json/headless/v1/page', WP_SITE_URL);
-  url.searchParams.set('slug', document.slug);
-  url.searchParams.set('post_type', 'tai-lieu');
-  url.searchParams.set('lang', locale);
+  const url = buildWordPressRestUrl(WP_API_URL, '/headless/v1/page', {
+    slug: document.slug,
+    post_type: 'tai-lieu',
+    lang: locale,
+  });
 
   try {
     const response = await fetch(url, {
@@ -501,8 +500,11 @@ export async function getDocumentDetails(
   slug: string,
   locale: Locale = 'vi',
 ): Promise<DocumentDetailsData | null> {
-  const url = new URL(`/wp-json/headless/v1/documents/${encodeURIComponent(slug)}`, WP_SITE_URL);
-  url.searchParams.set('lang', locale);
+  const url = buildWordPressRestUrl(
+    WP_API_URL,
+    `/headless/v1/documents/${encodeURIComponent(slug)}`,
+    { lang: locale },
+  );
   try {
     const response = await fetch(url, {
       headers: { Accept: 'application/json' },

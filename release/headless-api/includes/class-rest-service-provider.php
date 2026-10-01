@@ -22,6 +22,7 @@ use TLU_Headless_API\Endpoints\Revalidation;
 use TLU_Headless_API\Endpoints\Cache;
 use TLU_Headless_API\Endpoints\Media_Gallery;
 use TLU_Headless_API\Endpoints\Partner_Logos;
+use TLU_Headless_API\Endpoints\Priority_Posts;
 use TLU_Headless_API\Endpoints\Organizations;
 use TLU_Headless_API\Endpoints\Documents;
 
@@ -56,6 +57,7 @@ class Rest_Service_Provider {
 			new Endpoints\Content_Types(),
 			new Media_Gallery(),
 			new Partner_Logos(),
+			new Priority_Posts(),
 			new Organizations(),
 			new Documents(),
 			new PreviewToken(),

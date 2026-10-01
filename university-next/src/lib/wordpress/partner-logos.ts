@@ -1,7 +1,8 @@
 import { unstable_cache } from 'next/cache';
 import { REVALIDATE_POSTS } from '@/constants/api';
-import { WP_SITE_URL } from '@/config/env/server';
+import { LEGACY_WP_SITE_URL, WP_API_URL } from '@/config/env/server';
 import { wpFetchUrl } from '@/lib/wordpress/client';
+import { buildWordPressRestUrl } from '@/lib/wordpress/url';
 import type { PartnerLogo } from '@/types/homepage';
 import type { Locale } from '@/types/ngon-ngu';
 
@@ -125,27 +126,32 @@ function parseLegacyPartnerLogos(html: string): PartnerLogo[] {
 }
 
 async function fetchPartnerLogoApi(locale: Locale): Promise<PartnerLogo[]> {
-  const paths = [
-    '/wp-json/headless/v1/partner-logos',
-    '/wp-json/tlu/v1/partner-logos',
+  const routes = [
+    '/headless/v1/partner-logos',
+    '/tlu/v1/partner-logos',
   ];
 
-  const candidates = await Promise.all(paths.map(async (path) => {
-    const url = new URL(path, WP_SITE_URL);
-    url.searchParams.set('lang', locale);
+  // The generic namespace is canonical. Only try the legacy alias when the
+  // canonical endpoint is unavailable or unexpectedly empty.
+  for (const route of routes) {
+    const url = buildWordPressRestUrl(WP_API_URL, route, { lang: locale });
     const payload = await wpFetchUrl<PartnerLogosResponse>(
       url.toString(),
       REVALIDATE_POSTS,
     ).catch(() => null);
     const rows = payload?.items ?? payload?.data?.items ?? [];
-    return rows.map(normalizeRow).filter((item): item is PartnerLogo => item !== null);
-  }));
+    const items = rows
+      .map(normalizeRow)
+      .filter((item): item is PartnerLogo => item !== null);
 
-  return candidates.find((items) => items.length > 0) ?? [];
+    if (items.length > 0) return items;
+  }
+
+  return [];
 }
 
 async function fetchLegacyPartnerLogos(locale: Locale): Promise<PartnerLogo[]> {
-  const url = new URL(locale === 'en' ? '/en/' : '/', WP_SITE_URL);
+  const url = new URL(locale === 'en' ? '/en/' : '/', LEGACY_WP_SITE_URL);
 
   try {
     const response = await fetch(url, {
@@ -165,17 +171,13 @@ async function fetchLegacyPartnerLogos(locale: Locale): Promise<PartnerLogo[]> {
  * Endpoint chỉ nên trả `logo_cong_ty` và `link_doi_tac`, không trả toàn bộ ACF Options.
  */
 const getCachedPartnerLogos = unstable_cache(async (locale: Locale): Promise<PartnerLogo[]> => {
-  // Run the temporary HTML fallback concurrently so a missing/slow custom
-  // endpoint cannot consume the homepage's entire optional-data timeout.
-  const [apiLogos, legacyLogos] = await Promise.all([
-    fetchPartnerLogoApi(locale),
-    fetchLegacyPartnerLogos(locale),
-  ]);
+  // Normal path: exactly one request to /headless/v1/partner-logos.
+  const apiLogos = await fetchPartnerLogoApi(locale);
   if (apiLogos.length > 0) return apiLogos;
 
   // Transitional fallback: production may render the ACF repeater in the old
   // template before the dedicated Headless API endpoint has been deployed.
-  return legacyLogos;
+  return fetchLegacyPartnerLogos(locale);
 }, ['homepage-partner-logos-v2'], {
   revalidate: REVALIDATE_POSTS,
   tags: ['partner-logos'],

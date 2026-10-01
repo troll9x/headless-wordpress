@@ -29,6 +29,31 @@ interface WpFetchOptions {
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000;
+// A cold homepage starts several independent category and post requests.
+// Keep a moderate ceiling so queued requests can start before the homepage's
+// fallback deadline without flooding WordPress.
+const MAX_CONCURRENT_WORDPRESS_REQUESTS = 6;
+let activeWordPressRequests = 0;
+const wordpressRequestQueue: Array<() => void> = [];
+
+async function withWordPressRequestSlot<T>(request: () => Promise<T>): Promise<T> {
+  if (activeWordPressRequests >= MAX_CONCURRENT_WORDPRESS_REQUESTS) {
+    await new Promise<void>((resolve) => wordpressRequestQueue.push(resolve));
+  } else {
+    activeWordPressRequests += 1;
+  }
+
+  try {
+    return await request();
+  } finally {
+    const nextRequest = wordpressRequestQueue.shift();
+    if (nextRequest) {
+      nextRequest();
+    } else {
+      activeWordPressRequests -= 1;
+    }
+  }
+}
 
 export interface WpCollectionResult<T> {
   data: T;
@@ -96,6 +121,24 @@ async function fetchWpPayload<T>(
 }
 
 async function executeWpPayload<T>(
+  url: URL,
+  {
+    revalidate,
+    tags,
+    signal,
+    timeoutMs,
+  }: Required<Pick<WpFetchOptions, 'revalidate' | 'timeoutMs'>> &
+    Pick<WpFetchOptions, 'tags' | 'signal'>,
+): Promise<WpPayloadResult<T>> {
+  return withWordPressRequestSlot(() => executeWpPayloadNow<T>(url, {
+    revalidate,
+    tags,
+    signal,
+    timeoutMs,
+  }));
+}
+
+async function executeWpPayloadNow<T>(
   url: URL,
   {
     revalidate,

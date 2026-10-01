@@ -30,7 +30,7 @@ export default function TrangChu({ data, locale }: TrangChuProps) {
   return (
     <div>
       {/* 1. Banner chính */}
-      <BannerChinh data={hero} locale={locale} />
+      <BannerChinh data={hero} slides={data.heroSlides} locale={locale} />
 
       {/* 2. Liên kết nhanh */}
       {/* 3 + 4. Tin tức và thông báo */}
@@ -54,7 +54,7 @@ export default function TrangChu({ data, locale }: TrangChuProps) {
       <KhuVucThongKe stats={stats} locale={locale} />
 
       {/* 7. Banner Hiệu trưởng */}
-      <BannerHieuTruong locale={locale} />
+      <BannerHieuTruong image={data.staticImage} />
 
       {/* 8. Tuyển sinh */}
       <KhuVucTuyenSinh page={data.admissionsPage} locale={locale} />
@@ -75,7 +75,7 @@ export default function TrangChu({ data, locale }: TrangChuProps) {
       <DoiTac logos={data.partnerLogos} fallbackPosts={data.partners} locale={locale} />
 
       {/* 14. Cộng đồng */}
-      <CongDong posts={data.community} locale={locale} />
+      {locale !== 'en' && <CongDong posts={data.community} locale={locale} />}
 
       {/* 15. Khoảnh khắc TLU */}
       <KhoanhKhacTLU posts={data.moments} gallery={data.momentGallery} locale={locale} />

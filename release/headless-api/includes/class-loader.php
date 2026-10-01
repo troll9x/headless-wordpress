@@ -127,6 +127,7 @@ require_once $ep . 'class-term.php';
 		require_once $ep . 'class-content-types.php';
 		require_once $ep . 'class-media-gallery.php';
 		require_once $ep . 'class-partner-logos.php';
+		require_once $ep . 'class-priority-posts.php';
 		require_once $ep . 'class-organizations.php';
 		require_once $ep . 'class-documents.php';
  require_once $ep . 'class-preview-token.php';

@@ -1,0 +1,53 @@
+.root {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: #e0f2fe;
+}
+
+.swiper,
+.slide,
+.mediaLink,
+.mediaLink picture {
+  display: block;
+  width: 100%;
+}
+
+.slide {
+  overflow: hidden;
+  background: #e0f2fe;
+}
+
+.media {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2.5 / 1;
+  object-fit: cover;
+}
+
+.root :global(.swiper-pagination-bullet) {
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  opacity: 0.65;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
+}
+
+.root :global(.swiper-pagination-bullet-active) {
+  width: 28px;
+  border-radius: 9999px;
+  opacity: 1;
+}
+
+@media (max-width: 767px) {
+  .media {
+    aspect-ratio: 16 / 9;
+  }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root :global(.swiper-wrapper) {
+    transition-duration: 0ms !important;
+  }
+}

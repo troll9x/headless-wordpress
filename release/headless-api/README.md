@@ -27,6 +27,8 @@ add_filter( 'headless_api_privileged_cors_origins', function( array $origins ): 
 
 - Endpoint ACF options công khai bị tắt mặc định. Chỉ cho phép những options page thực sự chứa dữ liệu công khai:
 
+  Bản TLU này đã cho phép sẵn các key chuyên biệt `tlu_site_hero`, `tlu_site_favicon`, `tlu_site_img`, `tlu_site_logo`, `tlu_site_footer` và `tlu_site_social`. Không đặt token, mật khẩu hoặc cấu hình nội bộ trong các options page đó.
+
 ```php
 add_filter( 'headless_api_allowed_options_pages', function( array $keys ): array {
 	return [ 'global_settings', 'header_options' ];
@@ -137,4 +139,4 @@ API cho template `taxonomy-loai-tai-lieu.php`:
 
 ## Phiên bản
 
-Phiên bản plugin hiện tại: **1.14.0**. Phiên bản schema API: **4.7**.
+Phiên bản plugin hiện tại: **2.0.6**. Phiên bản schema API: **4.8**.

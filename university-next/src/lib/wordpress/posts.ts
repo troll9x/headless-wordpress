@@ -1,7 +1,8 @@
-import { WP_SITE_URL } from '@/config/env/server';
+import { WP_API_URL, WP_SITE_URL } from '@/config/env/server';
 import { wpFetch, wpFetchCollection, wpFetchUrl } from '@/lib/wordpress/client';
+import { buildWordPressRestUrl } from '@/lib/wordpress/url';
 import { CACHE_TAGS, REVALIDATE_POSTS } from '@/constants/api';
-import type { WPPost } from '@/types/wordpress';
+import type { WPMedia, WPPost } from '@/types/wordpress';
 import type { Locale } from '@/types/ngon-ngu';
 
 const ENDPOINT = '/posts';
@@ -172,6 +173,15 @@ export async function getPostByPermalinkPath(
 
 interface HeadlessPostDetails {
   acf?: Record<string, unknown>;
+  featured_image?: {
+    id: number;
+    url: string;
+    alt?: string;
+    title?: string;
+    width?: number;
+    height?: number;
+    mime_type?: string;
+  } | null;
 }
 
 export interface PostPageData {
@@ -191,17 +201,59 @@ async function enrichPostWithHeadlessAcf(
   post: WPPost,
   locale: Locale,
 ): Promise<WPPost> {
-  const url = new URL('/wp-json/headless/v1/page', WP_SITE_URL);
-  url.searchParams.set('slug', post.slug);
-  url.searchParams.set('post_type', 'post');
-  url.searchParams.set('lang', locale);
+  const url = buildWordPressRestUrl(WP_API_URL, '/headless/v1/page', {
+    slug: post.slug,
+    post_type: 'post',
+    lang: locale,
+  });
 
   try {
     const details = await wpFetchUrl<HeadlessPostDetails>(url.toString(), REVALIDATE_POSTS);
-    return details.acf ? { ...post, acf: details.acf } : post;
+    const featuredImage = details.featured_image?.url
+      ? toEmbeddedMedia(details.featured_image)
+      : null;
+
+    return {
+      ...post,
+      ...(details.acf ? { acf: details.acf } : {}),
+      ...(featuredImage
+        ? {
+            featured_media: featuredImage.id,
+            _embedded: {
+              ...post._embedded,
+              'wp:featuredmedia': [featuredImage],
+            },
+          }
+        : {}),
+    };
   } catch {
     return post;
   }
+}
+
+function toEmbeddedMedia(
+  image: NonNullable<HeadlessPostDetails['featured_image']>,
+): WPMedia {
+  return {
+    id: image.id,
+    date: '',
+    slug: '',
+    status: 'inherit',
+    type: 'attachment',
+    link: image.url,
+    title: { rendered: image.title ?? '' },
+    author: 0,
+    source_url: image.url,
+    alt_text: image.alt ?? '',
+    media_type: 'image',
+    mime_type: image.mime_type ?? '',
+    media_details: {
+      width: image.width ?? 0,
+      height: image.height ?? 0,
+      file: '',
+      sizes: {},
+    },
+  };
 }
 
 /**

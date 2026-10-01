@@ -111,6 +111,12 @@ final class RestHttpIntegration {
 			return $result;
 		}
 
+		// A cached response still passes through rest_post_dispatch. Rewriting it
+		// would report MISS and renew the TTL on every hit, keeping busy entries stale.
+		if ( 'HIT' === $this->get_response_header( $response, 'X-Headless-Cache' ) ) {
+			return $result;
+		}
+
 		$key = $this->key_builder->build( $request );
 		if ( $this->key_builder->should_bypass( $request ) ) {
 			return $result;

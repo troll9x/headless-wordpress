@@ -27,14 +27,27 @@ function validateURL(key: string, value: string): string {
   return value.replace(/\/+$/, '');
 }
 
+function requiredEnv(key: string, rawValue: string | undefined): string {
+  const value = rawValue?.trim();
+
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${key}`);
+  }
+
+  return value;
+}
+
 export const NEXT_PUBLIC_WP_BASE_URL = validateURL(
   'NEXT_PUBLIC_WP_BASE_URL',
-  process.env.NEXT_PUBLIC_WP_BASE_URL ?? 'https://tlu.edu.vn',
+  requiredEnv(
+    'NEXT_PUBLIC_WP_BASE_URL',
+    process.env.NEXT_PUBLIC_WP_BASE_URL,
+  ),
 );
 
 export const NEXT_PUBLIC_SITE_URL = validateURL(
   'NEXT_PUBLIC_SITE_URL',
-  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://tlu.edu.vn',
+  requiredEnv('NEXT_PUBLIC_SITE_URL', process.env.NEXT_PUBLIC_SITE_URL),
 );
 
 export const NEXT_PUBLIC_SITE_NAME =

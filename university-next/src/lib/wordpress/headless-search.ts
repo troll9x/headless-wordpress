@@ -1,4 +1,5 @@
-import { WP_SITE_URL } from '@/config/env/server';
+import { WP_API_URL, WP_SITE_URL } from '@/config/env/server';
+import { buildWordPressRestUrl } from '@/lib/wordpress/url';
 import type { Locale } from '@/types/ngon-ngu';
 
 const REQUEST_TIMEOUT_MS = 20_000;
@@ -58,11 +59,12 @@ export async function searchHeadlessSite(
 
   const safePage = Math.max(1, Math.trunc(page));
   const safePerPage = Math.min(50, Math.max(1, Math.trunc(perPage)));
-  const endpoint = new URL('/wp-json/headless/v1/search', WP_SITE_URL);
-  endpoint.searchParams.set('q', cleanQuery);
-  endpoint.searchParams.set('per', String(safePerPage + 1));
-  endpoint.searchParams.set('page', String(safePage));
-  endpoint.searchParams.set('lang', locale);
+  const endpoint = buildWordPressRestUrl(WP_API_URL, '/headless/v1/search', {
+    q: cleanQuery,
+    per: safePerPage + 1,
+    page: safePage,
+    lang: locale,
+  });
 
   const timeoutController = new AbortController();
   const timeoutId = setTimeout(() => timeoutController.abort(), REQUEST_TIMEOUT_MS);

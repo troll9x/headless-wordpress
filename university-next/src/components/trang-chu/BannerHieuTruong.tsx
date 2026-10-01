@@ -1,17 +1,14 @@
 import Image from 'next/image';
-import type { Locale } from '@/types/ngon-ngu';
+import type { SiteStaticImage } from '@/lib/wordpress/site-static-image';
 
-const RECTOR_BANNER_URL =
-  'https://tlu.edu.vn/wp-content/uploads/2025/12/GS-Nguyen-Trung-Viet.webp';
-
-export default function BannerHieuTruong({ locale }: { locale: Locale }) {
-  const isEn = locale === 'en';
+export default function BannerHieuTruong({ image }: { image: SiteStaticImage | null }) {
+  if (!image) return null;
 
   return (
-    <section className="relative aspect-[1020/392] w-full overflow-hidden bg-[#0118d8]" aria-label={isEn ? 'Inspiration - Wisdom - Brilliance' : 'Khởi nguồn - Trí tuệ - Tỏa sáng'}>
+    <section className="relative aspect-[1020/392] w-full overflow-hidden bg-[#0118d8]">
       <Image
-        src={RECTOR_BANNER_URL}
-        alt={isEn ? 'Professor Nguyen Trung Viet - President of Thuyloi University' : 'GS.TS Nguyễn Trung Việt - Hiệu trưởng Trường Đại học Thủy lợi'}
+        src={image.url}
+        alt={image.alt}
         fill
         className="object-cover"
         sizes="100vw"

@@ -14,7 +14,6 @@ interface FeatureGroup {
   key: FeatureKey;
   title: string;
   href: string;
-  fallbackImage: string;
 }
 
 const GROUPS: Record<Locale, FeatureGroup[]> = {
@@ -23,19 +22,16 @@ const GROUPS: Record<Locale, FeatureGroup[]> = {
       key: 'training',
       title: 'Đào Tạo',
       href: '/dao-tao',
-      fallbackImage: 'https://tlu.edu.vn/wp-content/uploads/2025/07/Toan-truong-decan-boi-len-focmex-3ly-scaled.webp',
     },
     {
       key: 'students',
       title: 'Sinh Viên',
       href: '/sinh-vien',
-      fallbackImage: 'https://tlu.edu.vn/wp-content/uploads/2026/08/Screenshot-2026-08-09-081153.webp',
     },
     {
       key: 'alumni',
       title: 'Cựu Sinh Viên',
       href: '/sinh-vien/cuu-sinh-vien',
-      fallbackImage: 'https://tlu.edu.vn/wp-content/uploads/2026/07/755499203_2078243932768862_3593501592434375591_n.webp',
     },
   ],
   en: [
@@ -43,19 +39,16 @@ const GROUPS: Record<Locale, FeatureGroup[]> = {
       key: 'training',
       title: 'Education',
       href: '/en/education',
-      fallbackImage: 'https://tlu.edu.vn/wp-content/uploads/2025/07/Toan-truong-decan-boi-len-focmex-3ly-scaled.webp',
     },
     {
       key: 'students',
       title: 'Students',
       href: '/en/students',
-      fallbackImage: 'https://tlu.edu.vn/wp-content/uploads/2026/08/Screenshot-2026-08-09-081153.webp',
     },
     {
       key: 'alumni',
       title: 'Alumni',
       href: '/en/students/alumni',
-      fallbackImage: 'https://tlu.edu.vn/wp-content/uploads/2026/07/755499203_2078243932768862_3593501592434375591_n.webp',
     },
   ],
 };
@@ -86,32 +79,29 @@ export default function TheNoiBat({
           const post = posts[group.key];
           const postHref = post ? buildPostUrl(post.slug, locale, post.link) : null;
           const media = post ? getFeaturedImage(post) : null;
-          const imageUrl = media?.source_url || group.fallbackImage;
 
           return (
             <div key={group.key}>
               <SectionTitle title={group.title} href={group.href} className="!mb-4" />
               <article className="overflow-hidden rounded-md bg-white shadow-[0_2px_14px_rgba(15,23,42,0.12)]">
-                {postHref ? (
+                {postHref && media ? (
                   <Link href={postHref} className="relative block aspect-[16/9] overflow-hidden">
                     <Image
-                      src={imageUrl}
+                      src={media.source_url}
                       alt={media?.alt_text || group.title}
                       fill
                       className="object-cover transition-transform duration-500 hover:scale-105"
                       sizes="(max-width: 768px) 100vw, 33vw"
                     />
                   </Link>
+                ) : postHref ? (
+                  <Link
+                    href={postHref}
+                    className="block aspect-[16/9] bg-gradient-to-br from-blue-50 to-slate-100"
+                    aria-label={stripHtml(post?.title.rendered ?? group.title)}
+                  />
                 ) : (
-                  <div className="relative aspect-[16/9] overflow-hidden">
-                    <Image
-                      src={imageUrl}
-                      alt={group.title}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                    />
-                  </div>
+                  <div className="aspect-[16/9] bg-gradient-to-br from-blue-50 to-slate-100" />
                 )}
 
                 <div className="p-4">

@@ -1,6 +1,7 @@
 import { wpFetch } from '@/lib/wordpress/client';
 import { CACHE_TAGS, REVALIDATE_MENUS } from '@/constants/api';
-import { WP_SITE_URL } from '@/config/env/server';
+import { WP_API_URL, WP_SITE_URL } from '@/config/env/server';
+import { buildWordPressRestUrl } from '@/lib/wordpress/url';
 import type { Locale } from '@/types/ngon-ngu';
 import type { WPRendered } from '@/types/wordpress';
 import type { WPMenu, WPMenuItem, WPMenuItemWithChildren } from '@/types/wordpress';
@@ -141,9 +142,10 @@ async function getHeadlessMenuTree(
   locale: Locale,
 ): Promise<WPMenuItemWithChildren[]> {
   const fetchMenu = async (includeLanguage: boolean) => {
-    const url = new URL('/wp-json/headless/v1/menus', WP_SITE_URL);
-    url.searchParams.set('location', slugOrLocation);
-    if (includeLanguage) url.searchParams.set('lang', locale);
+    const url = buildWordPressRestUrl(WP_API_URL, '/headless/v1/menus', {
+      location: slugOrLocation,
+      lang: includeLanguage ? locale : undefined,
+    });
 
     return fetch(url, {
       headers: { Accept: 'application/json' },

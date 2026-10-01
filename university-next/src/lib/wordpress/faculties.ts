@@ -1,7 +1,8 @@
 import { REVALIDATE_POSTS } from '@/constants/api';
-import { WP_SITE_URL } from '@/config/env/server';
+import { WP_API_URL } from '@/config/env/server';
 import { stripHtml } from '@/lib/utils/html';
 import { wpFetchUrl } from '@/lib/wordpress/client';
+import { buildWordPressRestUrl } from '@/lib/wordpress/url';
 import type { FacultySliderItem } from '@/types/homepage';
 import type { Locale } from '@/types/ngon-ngu';
 
@@ -21,6 +22,13 @@ interface FacultyDetail {
     mo_ta_ngan_ve_khoa?: string;
     anh_khoa?: NormalizedImage | string | number | null;
     website_cua_khoa?: string;
+  };
+}
+
+interface FacultyListResponse {
+  items?: FacultyDetail[];
+  data?: {
+    items?: FacultyDetail[];
   };
 }
 
@@ -73,12 +81,20 @@ function trimWords(value: string, limit = 50): string {
   return words.length > limit ? `${words.slice(0, limit).join(' ')}…` : words.join(' ');
 }
 
-async function getFacultyDetail(slug: string, locale: Locale): Promise<FacultyDetail | null> {
-  const url = new URL('/wp-json/headless/v1/page', WP_SITE_URL);
-  url.searchParams.set('slug', slug);
-  url.searchParams.set('post_type', 'phan-hieu-khoa');
-  url.searchParams.set('lang', locale);
-  return wpFetchUrl<FacultyDetail>(url.toString(), REVALIDATE_POSTS).catch(() => null);
+async function getFacultyList(locale: Locale): Promise<FacultyDetail[]> {
+  const url = buildWordPressRestUrl(WP_API_URL, '/headless/v1/page', {
+    post_type: 'phan-hieu-khoa',
+    lang: locale,
+    page: 1,
+    per_page: 100,
+  });
+
+  const payload = await wpFetchUrl<FacultyListResponse>(
+    url.toString(),
+    REVALIDATE_POSTS,
+  ).catch(() => null);
+
+  return payload?.items ?? payload?.data?.items ?? [];
 }
 
 function normalizeFaculty(detail: FacultyDetail): FacultySliderItem {
@@ -123,13 +139,12 @@ function removeDuplicateFaculties(items: FacultySliderItem[]): FacultySliderItem
  * kiểm tra lại từ payload chi tiết trước khi trả dữ liệu cho giao diện.
  */
 export async function getFacultySliderItems(locale: Locale): Promise<FacultySliderItem[]> {
-  // Fetch only the units actually displayed. Loading every CPT record and then
-  // making one detail request per record caused a large N+1 request burst.
-  const details = await Promise.all(
-    PREFERRED_ORDER[locale].map((slug) => getFacultyDetail(slug, locale)),
-  );
+  // The list form of /headless/v1/page already includes normalized ACF and
+  // featured images, so all displayed units are loaded in exactly one request.
+  const preferredSlugs = new Set(PREFERRED_ORDER[locale]);
+  const details = await getFacultyList(locale);
   const items = removeDuplicateFaculties(details
-    .filter((detail): detail is FacultyDetail => Boolean(detail))
+    .filter((detail) => preferredSlugs.has(detail.slug))
     .filter((detail) => !detail.language?.slug || detail.language.slug === locale)
     .map(normalizeFaculty));
 

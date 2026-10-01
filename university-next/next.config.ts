@@ -1,9 +1,23 @@
 import type { NextConfig } from "next";
 
 const isProduction = process.env.NODE_ENV === "production";
-const wordpressOrigin = new URL(
-  process.env.NEXT_PUBLIC_WP_BASE_URL ?? "https://tlu.edu.vn",
-).origin;
+const wordpressBaseUrl = process.env.NEXT_PUBLIC_WP_BASE_URL?.trim();
+
+if (!wordpressBaseUrl) {
+  throw new Error(
+    "Missing required environment variable: NEXT_PUBLIC_WP_BASE_URL",
+  );
+}
+
+const wordpressUrl = new URL(wordpressBaseUrl);
+
+if (wordpressUrl.protocol !== "http:" && wordpressUrl.protocol !== "https:") {
+  throw new Error(
+    "Environment variable NEXT_PUBLIC_WP_BASE_URL must use HTTP or HTTPS.",
+  );
+}
+
+const wordpressOrigin = wordpressUrl.origin;
 
 const contentSecurityPolicy = [
   "default-src 'self'",
@@ -13,7 +27,7 @@ const contentSecurityPolicy = [
   `img-src 'self' data: blob: ${wordpressOrigin} https://tlu.edu.vn https://www.tlu.edu.vn`,
   `media-src 'self' blob: ${wordpressOrigin}`,
   `connect-src 'self' ${wordpressOrigin}${isProduction ? "" : " ws: wss:"}`,
-  "frame-src 'self' https://www.google.com https://www.youtube.com https://www.youtube-nocookie.com",
+  "frame-src 'self' https://www.google.com https://maps.google.com https://www.youtube.com https://www.youtube-nocookie.com",
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
@@ -49,12 +63,18 @@ const nextConfig: NextConfig = {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
   images: {
+    // The active WordPress media host is loaded from .env.local above.
     // tlu.edu.vn currently serves a certificate chain that Node's image
     // optimizer cannot verify (UNABLE_TO_VERIFY_LEAF_SIGNATURE). Deliver the
     // original WordPress image URL directly to the browser until that chain is
     // fixed on the origin server.
     unoptimized: true,
     remotePatterns: [
+      {
+        protocol: wordpressUrl.protocol === "https:" ? "https" : "http",
+        hostname: wordpressUrl.hostname,
+        port: wordpressUrl.port,
+      },
       {
         protocol: "https",
         hostname: "tlu.edu.vn",

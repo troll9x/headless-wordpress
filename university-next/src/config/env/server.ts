@@ -32,14 +32,30 @@ function optionalEnv(key: string, fallback: string): string {
   return process.env[key] ?? fallback;
 }
 
+function requiredEnv(key: string): string {
+  const value = process.env[key]?.trim();
+
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${key}`);
+  }
+
+  return value;
+}
+
 export const WP_API_URL = validateURL(
   'WP_API_URL',
-  optionalEnv('WP_API_URL', 'https://tlu.edu.vn/wp-json/wp/v2'),
+  requiredEnv('WP_API_URL'),
 );
 
 export const WP_SITE_URL = validateURL(
   'WP_SITE_URL',
-  optionalEnv('WP_SITE_URL', 'https://tlu.edu.vn'),
+  requiredEnv('WP_SITE_URL'),
+);
+
+/** Temporary source for selections rendered only by the legacy homepage. */
+export const LEGACY_WP_SITE_URL = validateURL(
+  'LEGACY_WP_SITE_URL',
+  optionalEnv('LEGACY_WP_SITE_URL', WP_SITE_URL),
 );
 
 export const VIETTEL_TTS_API_URL = validateURL(

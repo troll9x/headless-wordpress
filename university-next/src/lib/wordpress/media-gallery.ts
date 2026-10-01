@@ -1,6 +1,7 @@
-import { WP_SITE_URL } from '@/config/env/server';
+import { WP_API_URL, WP_SITE_URL } from '@/config/env/server';
 import { CACHE_TAGS, REVALIDATE_MEDIA } from '@/constants/api';
 import { getPageBySlug } from '@/lib/wordpress/pages';
+import { buildWordPressRestUrl, type WordPressQueryParams } from '@/lib/wordpress/url';
 import { stripHtml } from '@/lib/utils/html';
 import type { Locale } from '@/types/ngon-ngu';
 
@@ -87,8 +88,12 @@ const EMPTY_MEDIA: HeadlessMedia = {
   sizes: { thumbnail: '', medium: '', large: '', full: '' },
 };
 
-async function fetchHeadless<T>(pathname: string, tags: string[]): Promise<T | null> {
-  const url = new URL(pathname, WP_SITE_URL);
+async function fetchHeadless<T>(
+  route: string,
+  tags: string[],
+  params?: WordPressQueryParams,
+): Promise<T | null> {
+  const url = buildWordPressRestUrl(WP_API_URL, route, params);
 
   try {
     const response = await fetch(url, {
@@ -221,14 +226,10 @@ export async function getMediaGalleryCategories(
   page = 1,
   perPage = 50,
 ): Promise<MediaGalleryCategoriesData> {
-  const query = new URLSearchParams({
-    page: String(page),
-    per_page: String(perPage),
-    lang: locale,
-  });
   const data = await fetchHeadless<MediaGalleryCategoriesData>(
-    `/wp-json/headless/v1/media-gallery/categories?${query}`,
+    '/headless/v1/media-gallery/categories',
     [CACHE_TAGS.MEDIA, `media-gallery-categories-${locale}`],
+    { page, per_page: perPage, lang: locale },
   );
   if (data) return data;
 
@@ -249,15 +250,10 @@ export async function getMediaGalleryCategory(
   page = 1,
   perPage = 24,
 ): Promise<MediaGalleryCategoryData | null> {
-  const query = new URLSearchParams({
-    page: String(page),
-    per_page: String(perPage),
-    order: 'desc',
-    lang: locale,
-  });
   const data = await fetchHeadless<MediaGalleryCategoryData>(
-    `/wp-json/headless/v1/media-gallery/categories/${encodeURIComponent(slug)}?${query}`,
+    `/headless/v1/media-gallery/categories/${encodeURIComponent(slug)}`,
     [CACHE_TAGS.MEDIA, `media-gallery-${slug}-${locale}`],
+    { page, per_page: perPage, order: 'desc', lang: locale },
   );
   if (data) return data;
 
@@ -281,8 +277,9 @@ export async function getHomeMediaGallery(
   locale: Locale = 'vi',
 ): Promise<HomeMediaGalleryData | null> {
   const home = await fetchHeadless<HomeMediaGalleryData>(
-    '/wp-json/headless/v1/media-gallery/home',
+    '/headless/v1/media-gallery/home',
     [CACHE_TAGS.MEDIA, 'media-gallery-home'],
+    { lang: locale },
   );
 
   if (!home || home.selected_images.length > 0 || !home.category?.slug) return home;

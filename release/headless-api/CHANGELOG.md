@@ -1,5 +1,26 @@
 # Nhật ký thay đổi
 
+## [2.0.6] - 2026-10-01
+### Bổ sung
+- Cho phép công khai options page chuyên biệt `tlu_site_favicon` để frontend đọc cấu hình favicon; các options page khác vẫn bị chặn mặc định.
+- Cho phép công khai options page chuyên biệt `tlu_site_img` để frontend đọc ảnh tĩnh riêng cho trang tiếng Việt và tiếng Anh.
+- Cho phép công khai options page chuyên biệt `tlu_site_logo` để frontend đọc logo riêng cho trang tiếng Việt và tiếng Anh.
+- Cho phép công khai options page chuyên biệt `tlu_site_footer` và `tlu_site_social` để frontend đọc nội dung Footer và liên kết mạng xã hội từ CMS.
+
+## [2.0.5] - 2026-10-01
+### Bổ sung
+- Thêm `GET /headless/v1/priority-posts` để trả các bài HOT/NEW trang chủ từ post meta, có lọc ngôn ngữ Polylang.
+- Hỗ trợ cả bộ key `post_priority_*` và các key legacy `_priority_*`; chỉ công khai dữ liệu cần thiết cho frontend.
+
+## [2.0.4] - 2026-09-30
+### Đã sửa
+- Giữ đúng header `X-Headless-Cache: HIT` khi trả dữ liệu từ response cache; không ghi đè thành `MISS` trong `rest_post_dispatch`.
+- Không ghi lại hoặc gia hạn TTL của response cache khi đọc trúng cache, tránh giữ dữ liệu cũ kéo dài trên endpoint có nhiều lượt truy cập.
+
+## [2.0.3] - 2026-09-29
+### Bổ sung
+- Cho phép công khai options page chuyên biệt `tlu_site_hero` để frontend lấy danh sách ảnh và video banner; các options page khác vẫn bị chặn mặc định.
+
 ## [2.0.2] - 2026-09-15
 ### Đã sửa
 - Phát hiện bản Headless API cũ theo plugin header ngay cả khi thư mục hoặc file PHP chính đã bị đổi tên.

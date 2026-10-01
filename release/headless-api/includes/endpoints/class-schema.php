@@ -143,6 +143,13 @@ class Schema {
 				],
 			],
 
+			"$h/priority-posts" => [
+				'description' => 'Public HOT/NEW homepage post selections from post meta.',
+				'params'      => [
+					[ 'name' => 'lang', 'type' => 'string', 'required' => false, 'default' => '' ],
+				],
+			],
+
 			"$h/menus" => [
 				'description' => 'Menu điều hướng dạng cây phân cấp.',
 				'params'      => [

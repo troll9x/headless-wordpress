@@ -1,8 +1,55 @@
 # API cần bổ sung và sửa cho University Next
 
-Ngày kiểm tra: **21/08/2026**
-WordPress production: `https://tlu.edu.vn`
+Ngày kiểm tra gần nhất: **28/09/2026**
+WordPress CMS: `https://cms.tlu.edu.vn`
 Next.js: thư mục `university-next`
+
+## 0. Audit 28/09/2026 — CMS và REST transport
+
+`cms.tlu.edu.vn` không phục vụ REST API qua pretty path `/wp-json/...` (trả HTML `404`).
+Toàn bộ caller phía Next.js phải dùng base sau từ `.env.local`:
+
+```env
+WP_API_URL=https://cms.tlu.edu.vn/index.php?rest_route=/wp/v2
+WP_SITE_URL=https://cms.tlu.edu.vn
+```
+
+Các namespace ngoài Core REST được dựng bằng `buildWordPressRestUrl()`, ví dụ
+`index.php?rest_route=/headless/v1/...`. Không ghép `/wp-json/...` trực tiếp.
+
+### Kết quả test trực tiếp
+
+| Nhóm | Kết quả | Ghi chú |
+| --- | --- | --- |
+| Core `posts`, `categories`, `pages` | `200` | Có dữ liệu JSON. |
+| Core `phan-hieu-khoa`, `tai-lieu`, `loai-tai-lieu`, `to-chuc` | `200` | Có dữ liệu JSON. |
+| `tlu/v1/health`, `settings`, `schema` | `200` | Plugin và schema hoạt động. |
+| Headless page — `post`, `phan-hieu-khoa` | `200` | Có content, ACF và ảnh. |
+| Headless term category | `200` | Banner/taxonomy category hoạt động. |
+| SEO và content resolver | `200` | Test bằng bài viết công khai. |
+| Tổ chức và thành viên tổ chức | `200` | Có taxonomy, chức vụ, ảnh và quá trình công tác. |
+| Media gallery categories/category/home | `200` | `home.selected_images` vẫn rỗng; frontend còn dùng fallback công khai. |
+| Partner logos (`headless/v1` và `tlu/v1`) | `200` | Trả `69` logo. |
+| Document category archive | `200` | Archive chuyên dụng hoạt động. |
+| Search (`headless` và `wpx-ft`) | `200` | Trả `items: []` với toàn bộ từ khóa thử nghiệm; cần kiểm tra index/search backend. |
+| Search suggest | `200` | Có dữ liệu gợi ý. |
+| `/api/search` của Next.js | `200` | Transport đã sửa; hiện trả rỗng theo upstream. |
+| `/api/tts` validation | `400` đúng kỳ vọng | Không gọi Viettel AI thật để tránh phát sinh chi phí. |
+| `/api/revalidate` | `503` | Chưa cấu hình `REVALIDATION_SECRET`. |
+
+### Endpoint còn lỗi phía WordPress
+
+| Endpoint | Hiện trạng |
+| --- | --- |
+| `headless/v1/page` với `post_type=page` | HTML `404`. |
+| `headless/v1/page` với `post_type=tai-lieu` | HTML `404`. |
+| `headless/v1/term/loai-tai-lieu/{slug}` | HTML `404`. |
+| `headless/v1/documents/{slug}` | HTML `404`; frontend dùng Core REST fallback. |
+| `headless/v1/priority-posts` | Đã bổ sung trong plugin 2.0.5; production vẫn `404` cho đến khi cập nhật plugin. |
+| `headless/v1/menus?location=primary` | HTML `404`; Core menu trả `401`, frontend dùng menu fallback. |
+| `acw/v1/sidebar` | HTML `404`; frontend dựng sidebar từ Core taxonomy. |
+
+Các kết quả phía dưới được giữ lại làm lịch sử audit ngày 21/08/2026.
 
 ## 1. Kết luận nhanh
 

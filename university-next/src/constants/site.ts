@@ -11,14 +11,6 @@ export const UNIVERSITY = {
   fax: '+84 (24) 8522 7757',
 } as const;
 
-export const SOCIAL_LINKS = [
-  { label: 'Facebook', href: 'https://facebook.com', icon: 'facebook' as const },
-  { label: 'YouTube', href: 'https://youtube.com', icon: 'youtube' as const },
-  { label: 'Twitter / X', href: 'https://x.com', icon: 'twitter' as const },
-] as const;
-
-export type SocialIcon = (typeof SOCIAL_LINKS)[number]['icon'];
-
 /**
  * University statistics — used as fallback when WordPress ACF fields are not configured.
  * To override: WordPress admin → ACF → Homepage page → `statistics` repeater field

@@ -40,6 +40,7 @@ class Plugin {
 
 	private function init_hooks(): void {
 		add_action( 'rest_api_init', [ $this, 'register_rest_routes' ] );
+		add_filter( 'headless_api_allowed_options_pages', [ $this, 'allow_public_options_pages' ] );
 
 		// Invalidation cache khi nội dung thay đổi.
 		add_action( 'save_post',                [ $this, 'on_post_change' ], 10, 2 );
@@ -73,6 +74,25 @@ class Plugin {
 
 	public function register_rest_routes(): void {
 		( new Rest_Service_Provider() )->register();
+	}
+
+	/**
+	 * Allow only the dedicated public site options pages.
+	 *
+	 * Keep secrets and unrelated site settings on separate ACF options keys;
+	 * the generic options endpoint returns every field assigned to an allowed key.
+	 *
+	 * @param string[] $keys Existing allowlisted options page keys.
+	 * @return string[]
+	 */
+	public function allow_public_options_pages( array $keys ): array {
+		$keys[] = 'tlu_site_hero';
+		$keys[] = 'tlu_site_favicon';
+		$keys[] = 'tlu_site_img';
+		$keys[] = 'tlu_site_logo';
+		$keys[] = 'tlu_site_footer';
+		$keys[] = 'tlu_site_social';
+		return array_values( array_unique( $keys ) );
 	}
 
 	/**

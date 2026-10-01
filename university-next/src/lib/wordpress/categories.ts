@@ -1,7 +1,8 @@
 import { unstable_cache } from 'next/cache';
-import { wpFetch } from '@/lib/wordpress/client';
+import { wpFetch, wpFetchCollection } from '@/lib/wordpress/client';
 import { CACHE_TAGS, REVALIDATE_CATEGORIES } from '@/constants/api';
-import { WP_SITE_URL } from '@/config/env/server';
+import { WP_API_URL } from '@/config/env/server';
+import { buildWordPressRestUrl } from '@/lib/wordpress/url';
 import { stripHtml } from '@/lib/utils/html';
 import { coalesce } from '@/lib/utils/coalesce';
 import type { Locale } from '@/types/ngon-ngu';
@@ -80,10 +81,11 @@ async function getHeadlessCategoryTerm(
   slug: string,
   locale: Locale,
 ): Promise<HeadlessCategoryTerm | null> {
-  const url = new URL(`/wp-json/headless/v1/term/category/${encodeURIComponent(slug)}`, WP_SITE_URL);
-  url.searchParams.set('lang', locale);
-  url.searchParams.set('page', '1');
-  url.searchParams.set('per_page', '1');
+  const url = buildWordPressRestUrl(
+    WP_API_URL,
+    `/headless/v1/term/category/${encodeURIComponent(slug)}`,
+    { lang: locale, page: 1, per_page: 1 },
+  );
 
   try {
     return await coalesce(`category-term:${url.toString()}`, async () => {
@@ -218,24 +220,56 @@ async function resolveSidebarCategory(
   return null;
 }
 
+async function fetchChildCategories(parentId: number, locale: Locale): Promise<WPCategory[]> {
+  const categories = await wpFetch<WPCategory[]>(ENDPOINT, {
+    params: {
+      parent: parentId,
+      per_page: 100,
+      hide_empty: false,
+      orderby: 'name',
+      order: 'asc',
+      lang: locale,
+    },
+    revalidate: REVALIDATE_CATEGORIES,
+    tags: [CACHE_TAGS.CATEGORIES, `category-children-${parentId}-${locale}`],
+  });
+  return categories.map(normalizeCategory);
+}
+
 async function getChildCategories(parentId: number, locale: Locale): Promise<WPCategory[]> {
   try {
-    const categories = await wpFetch<WPCategory[]>(ENDPOINT, {
-      params: {
-        parent: parentId,
-        per_page: 100,
-        hide_empty: false,
-        orderby: 'name',
-        order: 'asc',
-        lang: locale,
-      },
-      revalidate: REVALIDATE_CATEGORIES,
-      tags: [CACHE_TAGS.CATEGORIES, `category-children-${parentId}-${locale}`],
-    });
-    return categories.map(normalizeCategory);
+    return await fetchChildCategories(parentId, locale);
   } catch {
     return [];
   }
+}
+
+async function fetchAllCategories(locale: Locale): Promise<WPCategory[]> {
+  const params = {
+    per_page: 100,
+    hide_empty: false,
+    orderby: 'name',
+    order: 'asc',
+    lang: locale,
+  } as const;
+  const cacheOptions = {
+    revalidate: REVALIDATE_CATEGORIES,
+    tags: [CACHE_TAGS.CATEGORIES, `categories-all-${locale}`],
+  };
+  const firstPage = await wpFetchCollection<WPCategory[]>(ENDPOINT, {
+    params: { ...params, page: 1 },
+    ...cacheOptions,
+  });
+  const remainingPages = await Promise.all(
+    Array.from({ length: Math.max(0, firstPage.totalPages - 1) }, (_, index) =>
+      wpFetch<WPCategory[]>(ENDPOINT, {
+        params: { ...params, page: index + 2 },
+        ...cacheOptions,
+      }),
+    ),
+  );
+
+  return [firstPage.data, ...remainingPages].flat().map(normalizeCategory);
 }
 
 /** Lấy ID chuyên mục gốc cùng toàn bộ chuyên mục con ở mọi cấp. */
@@ -243,19 +277,27 @@ async function buildCategoryTreeIds(
   rootId: number,
   locale: Locale = 'vi',
 ): Promise<number[]> {
+  const allCategories = await fetchAllCategories(locale);
+  const childrenByParent = new Map<number, WPCategory[]>();
+
+  for (const category of allCategories) {
+    const siblings = childrenByParent.get(category.parent) ?? [];
+    siblings.push(category);
+    childrenByParent.set(category.parent, siblings);
+  }
+
   const categoryIds = new Set<number>([rootId]);
   let parentIds = [rootId];
 
   while (parentIds.length > 0) {
-    const childGroups = await Promise.all(
-      parentIds.map((parentId) => getChildCategories(parentId, locale)),
-    );
     const nextParentIds: number[] = [];
 
-    for (const child of childGroups.flat()) {
-      if (categoryIds.has(child.id)) continue;
-      categoryIds.add(child.id);
-      nextParentIds.push(child.id);
+    for (const parentId of parentIds) {
+      for (const child of childrenByParent.get(parentId) ?? []) {
+        if (categoryIds.has(child.id)) continue;
+        categoryIds.add(child.id);
+        nextParentIds.push(child.id);
+      }
     }
 
     parentIds = nextParentIds;
@@ -266,7 +308,9 @@ async function buildCategoryTreeIds(
 
 const getCachedCategoryTreeIds = unstable_cache(
   buildCategoryTreeIds,
-  ['wordpress-category-tree-ids-v1'],
+  // Bump the key whenever tree-building semantics change. Older versions may
+  // contain incomplete trees produced while WordPress was temporarily slow.
+  ['wordpress-category-tree-ids-v3'],
   {
     revalidate: REVALIDATE_CATEGORIES,
     tags: [CACHE_TAGS.CATEGORIES],
@@ -360,11 +404,12 @@ export async function getCategorySidebar(
   params: CategorySidebarParams,
   locale: Locale = 'vi',
 ): Promise<CategorySidebarData | null> {
-  const url = new URL('/wp-json/acw/v1/sidebar', WP_SITE_URL);
-  url.searchParams.set('lang', locale);
-  if (params.postId) url.searchParams.set('post_id', String(params.postId));
-  if (params.categoryId) url.searchParams.set('category_id', String(params.categoryId));
-  if (params.categorySlug) url.searchParams.set('category_slug', params.categorySlug);
+  const url = buildWordPressRestUrl(WP_API_URL, '/acw/v1/sidebar', {
+    lang: locale,
+    post_id: params.postId,
+    category_id: params.categoryId,
+    category_slug: params.categorySlug,
+  });
 
   try {
     const data = await coalesce(`category-sidebar:${url.toString()}`, async () => {

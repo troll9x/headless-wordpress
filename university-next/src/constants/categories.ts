@@ -42,6 +42,15 @@ export const CATEGORY_SLUGS = {
   FEATURE_ALUMNI: ['cuu-sinh-vien', 'alumni'],
 } as const;
 
+/**
+ * Term IDs of the legacy homepage news branch. The headless CMS migration
+ * clones the WordPress database, so these relationships remain stable.
+ */
+export const HOMEPAGE_NEWS_CATEGORY_IDS = {
+  vi: [1826, 2178, 1858, 1828, 1912],
+  en: [3248],
+} as const;
+
 /** Matches the WordPress `posts_per_page` setting used by the archive template. */
 export const CATEGORY_POSTS_PER_PAGE = 10;
 

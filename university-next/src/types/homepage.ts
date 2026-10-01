@@ -1,5 +1,6 @@
 import type { WPPost, WPPage } from './wordpress';
 import type { HomeMediaGalleryData } from '@/lib/wordpress/media-gallery';
+import type { SiteStaticImage } from '@/lib/wordpress/site-static-image';
 
 export interface HeroData {
   title: string | null;
@@ -10,6 +11,19 @@ export interface HeroData {
   ctaUrl: string | null;
   secondaryCtaText: string | null;
   secondaryCtaUrl: string | null;
+}
+
+export interface HeroSlide {
+  id: string;
+  kind: 'image' | 'video';
+  src: string;
+  mobileSrc: string | null;
+  posterUrl: string | null;
+  alt: string;
+  title: string | null;
+  linkUrl: string | null;
+  linkTarget: '_self' | '_blank';
+  mimeType: string | null;
 }
 
 export interface SiteStatistic {
@@ -44,6 +58,8 @@ export interface PartnerLogo {
 
 export interface HomepageData {
   heroPage: WPPage | null;
+  heroSlides: HeroSlide[];
+  staticImage: SiteStaticImage | null;
   announcements: WPPost[];
   news: WPPost[];
   events: WPPost[];
