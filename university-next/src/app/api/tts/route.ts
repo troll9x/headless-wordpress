@@ -7,6 +7,7 @@ import {
   VIETTEL_TTS_WITHOUT_FILTER,
   TTS_RATE_LIMIT_MAX,
   TTS_RATE_LIMIT_WINDOW_SECONDS,
+  TRUSTED_CLIENT_IP_HEADER,
 } from '@/config/env/server';
 import { consumeRateLimit, getClientIp } from '@/lib/security/rate-limit';
 import { stripHtml } from '@/lib/utils/html';
@@ -19,6 +20,7 @@ export const runtime = 'nodejs';
 const MAX_CHUNK_LENGTH = 4_500;
 const MAX_CACHE_ENTRIES = 100;
 const CACHE_TTL_MS = 6 * 60 * 60 * 1_000;
+const MAX_REQUEST_BODY_BYTES = 4_096;
 
 interface CachedAudio {
   audio: ArrayBuffer;
@@ -95,7 +97,7 @@ function audioResponse(entry: CachedAudio, chunkIndex: number, chunkCount: numbe
 export async function POST(request: Request) {
   const rateLimit = consumeRateLimit(
     'tts',
-    getClientIp(request),
+    getClientIp(request, TRUSTED_CLIENT_IP_HEADER),
     TTS_RATE_LIMIT_MAX,
     TTS_RATE_LIMIT_WINDOW_SECONDS * 1_000,
   );
@@ -124,7 +126,27 @@ export async function POST(request: Request) {
 
   let body: { postId?: unknown; postType?: unknown; locale?: unknown; chunkIndex?: unknown };
   try {
-    body = await request.json();
+    const declaredLength = Number(request.headers.get('content-length'));
+    if (declaredLength > MAX_REQUEST_BODY_BYTES) return jsonError('Request body is too large.', 413);
+    const reader = request.body?.getReader();
+    if (!reader) return jsonError('Invalid JSON body.', 400);
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > MAX_REQUEST_BODY_BYTES) {
+        await reader.cancel();
+        return jsonError('Request body is too large.', 413);
+      }
+      chunks.push(value);
+    }
+    const parsed: unknown = JSON.parse(Buffer.concat(chunks.map((chunk) => Buffer.from(chunk))).toString('utf8'));
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return jsonError('Invalid JSON body.', 400);
+    }
+    body = parsed;
   } catch {
     return jsonError('Dữ liệu gửi lên không phải JSON hợp lệ.', 400);
   }

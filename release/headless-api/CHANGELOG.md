@@ -1,5 +1,10 @@
 # Nhật ký thay đổi
 
+## [2.0.7] - 2026-10-03
+### Bảo mật và hiệu năng
+- Xác thực HMAC cho định danh người tìm kiếm do frontend chuyển tiếp; request không có chữ ký hợp lệ vẫn giới hạn theo `REMOTE_ADDR`.
+- Dọn các bộ đếm giới hạn tốc độ đã hết hạn trong `wp_options` bằng WP-Cron theo giờ.
+
 ## [2.0.6] - 2026-10-01
 ### Bổ sung
 - Cho phép công khai options page chuyên biệt `tlu_site_favicon` để frontend đọc cấu hình favicon; các options page khác vẫn bị chặn mặc định.

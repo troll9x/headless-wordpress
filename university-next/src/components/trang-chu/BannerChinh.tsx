@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import { A11y, Autoplay, Pagination } from 'swiper/modules';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import type { Swiper as SwiperInstance } from 'swiper';
@@ -57,10 +58,12 @@ function SlideMedia({ slide, priority }: { slide: HeroSlide; priority: boolean }
   return (
     <picture>
       {slide.mobileSrc && <source media="(max-width: 767px)" srcSet={slide.mobileSrc} />}
-      <img
+      <Image
         src={slide.src}
         alt={slide.alt}
         className={styles.media}
+        fill
+        sizes="100vw"
         fetchPriority={priority ? 'high' : 'auto'}
         loading={priority ? 'eager' : 'lazy'}
       />

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { connection } from 'next/server';
 import './globals.css';
 import '@/styles/site-font.css';
 import Header from '@/components/layout/Header';
@@ -56,6 +57,8 @@ function faviconDescriptor(favicon: SiteFavicon) {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
+  // Favicon is managed in WordPress; do not depend on the CMS during builds.
+  await connection();
   const favicon = await getSiteFavicon().catch(() => null);
 
   if (!favicon) return baseMetadata;
@@ -74,6 +77,8 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Global chrome is CMS-driven but should only be fetched at request time.
+  await connection();
   const [logos, footer, social] = await Promise.all([
     getSiteLogos().catch(() => null),
     getSiteFooter().catch(() => null),

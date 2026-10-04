@@ -64,11 +64,7 @@ const nextConfig: NextConfig = {
   },
   images: {
     // The active WordPress media host is loaded from .env.local above.
-    // tlu.edu.vn currently serves a certificate chain that Node's image
-    // optimizer cannot verify (UNABLE_TO_VERIFY_LEAF_SIGNATURE). Deliver the
-    // original WordPress image URL directly to the browser until that chain is
-    // fixed on the origin server.
-    unoptimized: true,
+    // Keep remotePatterns narrow so Next can generate responsive variants.
     remotePatterns: [
       {
         protocol: wordpressUrl.protocol === "https:" ? "https" : "http",

@@ -1,4 +1,7 @@
 import { searchHeadlessSite } from '@/lib/wordpress/headless-search';
+import { headers } from 'next/headers';
+import { getClientIp } from '@/lib/security/rate-limit';
+import { TRUSTED_CLIENT_IP_HEADER } from '@/config/env/server';
 import type { Locale } from '@/types/ngon-ngu';
 
 export interface SiteSearchItem {
@@ -24,7 +27,8 @@ export async function searchSite(
   const cleanQuery = query.trim().replace(/\s+/g, ' ').slice(0, 120);
   if (!cleanQuery) return { items: [], total: 0, totalPages: 0 };
 
-  const result = await searchHeadlessSite(cleanQuery, locale, page, perPage);
+  const clientIp = getClientIp({ headers: await headers() }, TRUSTED_CLIENT_IP_HEADER);
+  const result = await searchHeadlessSite(cleanQuery, locale, page, perPage, clientIp);
 
   return {
     items: result.items.map((item) => ({

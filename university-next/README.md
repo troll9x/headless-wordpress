@@ -2,6 +2,16 @@
 
 Nền tảng website Trường Đại học Thủy lợi được xây dựng bằng Next.js và sử dụng WordPress làm hệ quản trị nội dung headless. Sản phẩm cung cấp trải nghiệm web Việt/Anh, giữ cấu trúc permalink của website hiện hữu và tách hoàn toàn lớp trình bày khỏi WordPress.
 
+## Cập nhật gần đây (04/10/2026)
+
+- Căn lại topbar, logo, ô tìm kiếm và menu; kiểm tra giao diện desktop/mobile không tràn ngang.
+- Gia cố tìm kiếm và TTS: chỉ tin IP do reverse proxy ghi đè, ký HMAC định danh tìm kiếm chuyển sang WordPress, giới hạn kích thước request TTS và dọn bộ đếm rate limit hết hạn trong plugin Headless API 2.0.7. Hai phía cần cấu hình cùng `SEARCH_PROXY_SECRET`/`TLU_HEADLESS_SEARCH_PROXY_SECRET` khi triển khai.
+- Nâng và khóa Next.js cùng `eslint-config-next` ở bản vá `16.3.8`; bật Image Optimization cho ảnh WordPress và banner LCP với `srcset` responsive. Các dữ liệu favicon/logo/footer do CMS cung cấp chỉ được lấy khi có request, để production build không bị chặn nếu CMS tạm thời không phản hồi.
+- Mở rộng sitemap cho bài viết, trang, chuyên mục, tài liệu, tổ chức và taxonomy tài liệu; chặn canonical Rank Math trỏ về `localhost` hoặc origin CMS.
+- Đã qua lint, typecheck, production build và audit dependency production. Kết quả đo endpoint, ảnh, TLS, responsive và các giới hạn còn lại ở [báo cáo P2](../docs/nextjs-audit/p2-results.md).
+
+**Trước khi deploy:** đặt `NEXT_PUBLIC_SITE_URL` thành origin thực của frontend Next.js rồi build lại; không dùng origin CMS. Việc đo SQL WordPress và thử bản vá trên staging còn chờ URL/quyền truy cập staging. Bản build local không thay thế kiểm thử staging.
+
 ## Tổng quan sản phẩm
 
 TLU Headless Web phục vụ ba nhóm nhu cầu chính:
@@ -52,10 +62,10 @@ WordPress là nguồn dữ liệu và nơi biên tập. Next.js chịu trách nh
 
 ## Công nghệ
 
-- Next.js 16 App Router.
+- Next.js 16.3.8 App Router.
 - React 19 và TypeScript strict.
 - Tailwind CSS 4.
-- WordPress REST API và Headless API schema `4.7`.
+- WordPress REST API và Headless API schema `4.8`.
 - Polylang, ACF Pro và Rank Math.
 - Viettel AI Text-to-Speech.
 - Font Awesome, Swiper và `react-countup`.
@@ -146,11 +156,15 @@ VIETTEL_TTS_SPEED=1
 VIETTEL_TTS_WITHOUT_FILTER=false
 TTS_RATE_LIMIT_MAX=30
 TTS_RATE_LIMIT_WINDOW_SECONDS=60
+TRUSTED_CLIENT_IP_HEADER=x-real-ip
+SEARCH_PROXY_SECRET=
 
 REVALIDATION_SECRET=
 REVALIDATION_TIMESTAMP_TOLERANCE_SECONDS=300
 REVALIDATION_MAX_BODY_BYTES=262144
 ```
+
+`TRUSTED_CLIENT_IP_HEADER=x-real-ip` is safe only when Node listens on a private interface and the reverse proxy **overwrites** `X-Real-IP` with the actual client address. Without this setting, TTS and search use one shared `unknown` identity rather than trusting caller-supplied forwarding headers. Configure a separate 32+ character `SEARCH_PROXY_SECRET` in Next.js and the identical `TLU_HEADLESS_SEARCH_PROXY_SECRET` constant in WordPress `wp-config.php`; the search endpoint verifies a short-lived HMAC before using the frontend's pseudonymous client identity. Deploy both sides together. The secret must not be prefixed with `NEXT_PUBLIC_`.
 
 Không commit token, secret, Application Password hoặc file `.env.local`.
 
@@ -274,12 +288,14 @@ location / {
     proxy_http_version 1.1;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-For $remote_addr;
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_buffering off;
     proxy_read_timeout 300s;
 }
 ```
+
+At the edge, strip any inbound `X-Real-IP` and set it to `$remote_addr` as shown. If Cloudflare or another load balancer sits ahead of Nginx, first configure Nginx `set_real_ip_from` for only its documented source CIDRs and `real_ip_header`, then use the verified `$remote_addr`. Do not expose port 3000 directly. The Node TTS limiter is process-local; multi-instance deployments also need a shared edge limit for `/api/tts`: define `limit_req_zone $binary_remote_addr zone=tlu_tts:10m rate=20r/m;` in Nginx's `http` block, then use `limit_req zone=tlu_tts burst=10 nodelay;` and `limit_req_status 429;` in a dedicated `/api/tts` proxy location with the same headers as above. An application restart resets local counters. Keep search and TTS endpoints out of public proxy caches that could mix identities.
 
 Sau khi đổi bất kỳ biến `NEXT_PUBLIC_*` nào, phải build lại và restart Node Project.
 
@@ -290,7 +306,7 @@ Sau khi đổi bất kỳ biến `NEXT_PUBLIC_*` nào, phải build lại và re
 - Rate limit TTS mặc định cũng nằm trong bộ nhớ tiến trình.
 - Một instance `next start` phù hợp cho triển khai ban đầu trên aaPanel.
 - Với nhiều instance, cần cache/replay store dùng chung và cơ chế đồng bộ revalidation.
-- `next.config.ts` hiện để ảnh WordPress ở chế độ `unoptimized`. Chỉ bật Image Optimization sau khi chuỗi chứng chỉ TLS của WordPress được Node.js xác minh ổn định.
+- Image Optimization đã bật cho các thành phần dùng `next/image`, bao gồm banner trang chủ với `sizes="100vw"`; TLS của origin WordPress phải được Node.js xác minh trên chính máy staging/production. CMS hiện chưa cung cấp ảnh banner riêng cho mobile; cần bổ sung biến thể phù hợp và kiểm tra LCP trên thiết bị thực.
 
 ## Xử lý sự cố
 

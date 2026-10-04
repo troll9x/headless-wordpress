@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { searchHeadlessSite } from '@/lib/wordpress/headless-search';
+import { getClientIp } from '@/lib/security/rate-limit';
+import { TRUSTED_CLIENT_IP_HEADER } from '@/config/env/server';
 import type { Locale } from '@/types/ngon-ngu';
 
 const MIN_QUERY_LENGTH = 2;
@@ -25,7 +27,9 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const result = await searchHeadlessSite(query, locale, 1, limit);
+    const result = await searchHeadlessSite(
+      query, locale, 1, limit, getClientIp(request, TRUSTED_CLIENT_IP_HEADER),
+    );
     return NextResponse.json(
       {
         items: result.items.map((item) => ({

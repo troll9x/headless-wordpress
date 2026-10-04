@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import { connection } from 'next/server';
+import { unstable_cache } from 'next/cache';
 import { getPostsByCategories, getFirstPageBySlug } from '@/lib/api/homepage';
 import { enrichPostsWithHeadlessAcf, getPostSummaries } from '@/lib/wordpress/posts';
 import {
@@ -22,6 +23,7 @@ import type { Locale } from '@/types/ngon-ngu';
 import { stripHtml } from '@/lib/utils/html';
 import type { WPApiError, WPPage, WPPost, WPMedia } from '@/types/wordpress';
 import type { HomepageData, HeroData, SiteStatistic } from '@/types/homepage';
+import { CACHE_TAGS, REVALIDATE_POSTS } from '@/config/env/constants';
 
 // This deadline includes time spent waiting for a WordPress request slot.
 // CMS responses can take 2-5 seconds, so 12 seconds caused cold homepage
@@ -106,13 +108,9 @@ async function getLatestPostByCategoryCandidates(
   return null;
 }
 
-export const getFullHomepageData = cache(async function getFullHomepageData(
+async function loadHomepageData(
   locale: Locale = 'vi'
 ): Promise<HomepageData> {
-  // Keep production builds independent from live WordPress latency while
-  // preserving the existing data-cache revalidation settings at runtime.
-  await connection();
-
   const [
     heroPage,
     heroSlides,
@@ -182,6 +180,19 @@ export const getFullHomepageData = cache(async function getFullHomepageData(
     moments: compactPosts(moments),
     momentGallery,
   };
+}
+
+// Reuse the assembled snapshot across requests instead of awaiting all CMS
+// integrations on every render. Broad tags keep webhook invalidation working.
+const getCachedHomepageData = unstable_cache(loadHomepageData, ['homepage-v1'], {
+  revalidate: REVALIDATE_POSTS,
+  tags: [CACHE_TAGS.POSTS, CACHE_TAGS.PAGES, CACHE_TAGS.CATEGORIES, CACHE_TAGS.MEDIA],
+});
+
+export const getFullHomepageData = cache(async (locale: Locale = 'vi'): Promise<HomepageData> => {
+  // Production builds must not depend on WordPress being reachable.
+  await connection();
+  return getCachedHomepageData(locale);
 });
 
 function compactMedia(media: WPMedia): WPMedia {

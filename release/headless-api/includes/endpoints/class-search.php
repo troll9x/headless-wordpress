@@ -108,7 +108,7 @@ class Search {
 
 	private function enforce_rate_limit( \WP_REST_Request $request, string $bucket, int $default_limit ): ?\WP_REST_Response {
 		$limit = (int) apply_filters( 'headless_api_' . $bucket . '_rate_limit', $default_limit );
-		$state = $this->limiter->consume( $request, $bucket, $limit, 60 );
+		$state = $this->limiter->consume( $request, $bucket, $limit, 60, $this->verified_proxy_identity( $request ) );
 		if ( $state['allowed'] ) {
 			return null;
 		}
@@ -123,6 +123,25 @@ class Search {
 		$response->header( 'RateLimit-Reset', (string) $state['reset'] );
 
 		return $response;
+	}
+
+	/** Use the frontend's client identity only when a short-lived HMAC proves its origin. */
+	private function verified_proxy_identity( \WP_REST_Request $request ): ?string {
+		$secret = defined( 'TLU_HEADLESS_SEARCH_PROXY_SECRET' ) ? (string) TLU_HEADLESS_SEARCH_PROXY_SECRET : '';
+		if ( strlen( $secret ) < 32 ) {
+			return null;
+		}
+		$client = (string) $request->get_header( 'x-headless-search-client' );
+		$timestamp = (string) $request->get_header( 'x-headless-search-timestamp' );
+		$signature = (string) $request->get_header( 'x-headless-search-signature' );
+		if ( ! preg_match( '/^[a-f0-9]{64}$/', $client ) || ! preg_match( '/^[0-9]{10}$/', $timestamp ) || ! preg_match( '/^[a-f0-9]{64}$/', $signature ) ) {
+			return null;
+		}
+		if ( abs( time() - (int) $timestamp ) > 60 ) {
+			return null;
+		}
+		$expected = hash_hmac( 'sha256', 'search-client:' . $timestamp . ':' . $client, $secret );
+		return hash_equals( $expected, $signature ) ? 'proxy:' . $client : null;
 	}
 
 }

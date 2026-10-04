@@ -18,7 +18,7 @@
     "@fortawesome/free-brands-svg-icons": "^7.3.1",
     "@fortawesome/free-solid-svg-icons": "^7.3.1",
     "@fortawesome/react-fontawesome": "^3.5.0",
-    "next": "^16.3.4",
+    "next": "16.3.8",
     "react": "^19.2.8",
     "react-countup": "^6.5.3",
     "react-dom": "^19.2.8",
@@ -32,7 +32,7 @@
     "@types/react-dom": "^19.2.7",
     "@types/sanitize-html": "^2.16.1",
     "eslint": "^9.39.5",
-    "eslint-config-next": "^16.3.4",
+    "eslint-config-next": "16.3.8",
     "tailwindcss": "^4.3.3",
     "typescript": "^5"
   }

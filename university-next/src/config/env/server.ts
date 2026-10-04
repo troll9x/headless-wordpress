@@ -96,6 +96,18 @@ export const TTS_RATE_LIMIT_WINDOW_SECONDS = boundedInteger(
   3_600,
 );
 
+/** Set only when the edge proxy overwrites X-Real-IP and Node is not public. */
+export const TRUSTED_CLIENT_IP_HEADER = optionalEnv('TRUSTED_CLIENT_IP_HEADER', '').trim().toLowerCase();
+if (TRUSTED_CLIENT_IP_HEADER && TRUSTED_CLIENT_IP_HEADER !== 'x-real-ip') {
+  throw new Error('TRUSTED_CLIENT_IP_HEADER must be x-real-ip or empty.');
+}
+
+/** Shared only with the WordPress search endpoint, never sent to browsers. */
+export const SEARCH_PROXY_SECRET = optionalEnv('SEARCH_PROXY_SECRET', '').trim();
+if (SEARCH_PROXY_SECRET && SEARCH_PROXY_SECRET.length < 32) {
+  throw new Error('SEARCH_PROXY_SECRET must have at least 32 characters.');
+}
+
 /** Shared HMAC secret used only by the WordPress revalidation webhook. */
 export const REVALIDATION_SECRET = optionalEnv('REVALIDATION_SECRET', '').trim();
 export const REVALIDATION_TIMESTAMP_TOLERANCE_SECONDS = boundedInteger(

@@ -9,6 +9,7 @@ use TLU_Headless_API\Cache\TransientCache;
 use TLU_Headless_API\Integrations\RevalidationHooksIntegration;
 use TLU_Headless_API\Integrations\RestHttpIntegration;
 use TLU_Headless_API\Integrations\CacheInvalidationIntegration;
+use TLU_Headless_API\Services\RateLimiter;
 
 /**
  * Điểm khởi động plugin — Singleton.
@@ -39,6 +40,10 @@ class Plugin {
 	}
 
 	private function init_hooks(): void {
+		add_action( RateLimiter::CLEANUP_HOOK, [ new RateLimiter(), 'cleanup_expired' ] );
+		if ( ! wp_next_scheduled( RateLimiter::CLEANUP_HOOK ) ) {
+			wp_schedule_event( time() + HOUR_IN_SECONDS, 'hourly', RateLimiter::CLEANUP_HOOK );
+		}
 		add_action( 'rest_api_init', [ $this, 'register_rest_routes' ] );
 		add_filter( 'headless_api_allowed_options_pages', [ $this, 'allow_public_options_pages' ] );
 

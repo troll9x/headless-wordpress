@@ -63,6 +63,19 @@ function mediaUrl(media: HeadlessSeoMedia | string | null | undefined): string |
   return media?.url || undefined;
 }
 
+function frontendCanonical(candidate: string | undefined, fallback: string): string {
+  if (!candidate?.trim()) return fallback;
+  try {
+    const fallbackUrl = new URL(fallback);
+    const candidateUrl = new URL(candidate.trim(), fallbackUrl);
+    // WordPress may still emit localhost or CMS-host canonicals. Never publish
+    // those on the public headless site; its route-level URL is authoritative.
+    return candidateUrl.origin === fallbackUrl.origin ? candidateUrl.toString() : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 function getRobots(seo: HeadlessSeoData): Metadata['robots'] | undefined {
   if (!seo.robots) return undefined;
 
@@ -124,7 +137,7 @@ export function generateHeadlessMetadata(
 ): Metadata {
   const title = headlessSeo?.title?.trim() || fallback.title;
   const description = headlessSeo?.description?.trim() || fallback.description;
-  const canonical = headlessSeo?.canonical?.trim() || fallback.canonical;
+  const canonical = frontendCanonical(headlessSeo?.canonical, fallback.canonical);
   const ogImage = mediaUrl(headlessSeo?.open_graph?.image) || fallback.imageUrl;
   const headlessOgImage = headlessSeo?.open_graph?.image;
 

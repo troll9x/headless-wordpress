@@ -32,10 +32,10 @@ export default function NavShell({ primaryItemsVi, primaryItemsEn, logos }: NavS
       <Topbar onMenuOpen={openMobile} mobileOpen={mobileOpen} logos={logos} />
 
       <nav
-        className="relative z-10 hidden h-12 bg-[#0118d8] min-[1025px]:block"
+        className="relative z-10 hidden h-10 bg-[#0118d8] min-[1025px]:block"
         aria-label={locale === 'en' ? 'Main navigation' : 'Điều hướng chính'}
       >
-        <div className="mx-auto flex h-full max-w-[1400px] items-center px-5 xl:px-8">
+        <div className="mx-auto flex h-full max-w-[1270px] items-center">
           <MainMenu items={primaryItems} pathname={pathname} />
         </div>
       </nav>

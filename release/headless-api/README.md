@@ -15,6 +15,14 @@ Nếu một bản cũ từng được cài dưới tên thư mục khác, khi k�
 
 ## Cấu hình bảo mật
 
+For per-visitor search quotas through the Next.js proxy, set a dedicated secret of at least 32 characters in `wp-config.php`:
+
+```php
+define( 'TLU_HEADLESS_SEARCH_PROXY_SECRET', 'replace-with-a-random-32-plus-character-secret' );
+```
+
+Set the identical value as `SEARCH_PROXY_SECRET` on Next.js, and configure its trusted reverse-proxy client IP header. Requests without a valid, recent HMAC continue to use WordPress `REMOTE_ADDR` for the existing public search quota. The plugin schedules hourly WP-Cron cleanup of expired database fallback rate-limit rows; ensure WP-Cron is running (or trigger it with a real cron job).
+
 - Thêm từng origin của frontend trên trình duyệt tại **Headless API → Cài đặt → Tên miền được phép**; mỗi dòng một origin, ví dụ: `https://app.example.com`.
 - Endpoint công khai dùng danh sách này cho CORS. Các route đặc quyền (`preview-token`, `revalidation` và `cache`) cần một allowlist riêng, khai báo rõ ràng:
 
@@ -139,4 +147,4 @@ API cho template `taxonomy-loai-tai-lieu.php`:
 
 ## Phiên bản
 
-Phiên bản plugin hiện tại: **2.0.6**. Phiên bản schema API: **4.8**.
+Phiên bản plugin hiện tại: **2.0.7**. Phiên bản schema API: **4.8**.

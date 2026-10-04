@@ -1,3 +1,5 @@
+import { isIP } from 'node:net';
+
 interface RateLimitEntry {
   count: number;
   resetAt: number;
@@ -51,18 +53,11 @@ export function consumeRateLimit(
   };
 }
 
-export function getClientIp(request: Request): string {
-  const directHeaders = [
-    'cf-connecting-ip',
-    'x-vercel-forwarded-for',
-    'x-real-ip',
-  ];
-  for (const name of directHeaders) {
-    const value = request.headers.get(name)?.trim();
-    if (value) return value.slice(0, 64);
-  }
-
-  const forwarded = request.headers.get('x-forwarded-for');
-  const first = forwarded?.split(',')[0]?.trim();
-  return first ? first.slice(0, 64) : 'unknown';
+export function getClientIp(request: Pick<Request, 'headers'>, trustedHeader: string): string {
+  // Only a header overwritten by the site's own reverse proxy is trustworthy.
+  // Never fall back to X-Forwarded-For or Cloudflare/Vercel headers from callers.
+  if (trustedHeader !== 'x-real-ip') return 'unknown';
+  const value = request.headers.get(trustedHeader)?.trim() ?? '';
+  if (!value || value.includes(',')) return 'unknown';
+  return isIP(value) ? value : 'unknown';
 }

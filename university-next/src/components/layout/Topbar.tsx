@@ -21,11 +21,11 @@ export default function Topbar({ onMenuOpen, mobileOpen, logos }: TopbarProps) {
 
   return (
     <div className="relative z-40 bg-white">
-      <div className="mx-auto flex h-[76px] max-w-[1400px] items-center justify-between gap-2 px-4 sm:h-[88px] sm:gap-4 sm:px-6 min-[1025px]:h-[100px] min-[1025px]:px-8">
+      <div className="mx-auto flex h-[76px] max-w-[1270px] items-center justify-between gap-2 px-4 sm:h-[88px] sm:gap-4 sm:px-6 min-[1025px]:h-[100px] min-[1025px]:px-0">
         {logo && (
           <Link
             href={isEnglish ? '/en' : '/'}
-            className="relative block h-[48px] w-[220px] max-w-[calc(100vw-150px)] flex-none sm:h-[65px] sm:w-[300px] min-[1025px]:h-[78px] min-[1025px]:w-[360px]"
+            className="relative block h-[48px] w-[220px] max-w-[calc(100vw-150px)] flex-none sm:h-[65px] sm:w-[300px] min-[1025px]:h-[100px] min-[1025px]:w-[350px]"
           >
             <Image
               src={logo.url}
@@ -33,7 +33,7 @@ export default function Topbar({ onMenuOpen, mobileOpen, logos }: TopbarProps) {
               fill
               priority
               className="object-contain object-left"
-              sizes="(min-width: 1025px) 360px, (min-width: 640px) 300px, 220px"
+              sizes="(min-width: 1025px) 350px, (min-width: 640px) 300px, 220px"
             />
           </Link>
         )}

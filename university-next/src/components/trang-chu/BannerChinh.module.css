@@ -8,9 +8,14 @@
 .swiper,
 .slide,
 .mediaLink,
-.mediaLink picture {
+.root picture {
   display: block;
   width: 100%;
+}
+
+.root picture {
+  position: relative;
+  aspect-ratio: 2.5 / 1;
 }
 
 .slide {
@@ -40,6 +45,10 @@
 }
 
 @media (max-width: 767px) {
+  .root picture {
+    aspect-ratio: 16 / 9;
+  }
+
   .media {
     aspect-ratio: 16 / 9;
   }

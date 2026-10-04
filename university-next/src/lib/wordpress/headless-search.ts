@@ -1,4 +1,5 @@
-import { WP_API_URL, WP_SITE_URL } from '@/config/env/server';
+import { WP_API_URL, WP_SITE_URL, SEARCH_PROXY_SECRET } from '@/config/env/server';
+import { signedSearchHeaders } from '@/lib/security/search-proxy';
 import { buildWordPressRestUrl } from '@/lib/wordpress/url';
 import type { Locale } from '@/types/ngon-ngu';
 
@@ -53,6 +54,7 @@ export async function searchHeadlessSite(
   locale: Locale,
   page = 1,
   perPage = 10,
+  clientIp = 'unknown',
 ): Promise<HeadlessSearchResult> {
   const cleanQuery = query.trim().replace(/\s+/g, ' ').slice(0, 120);
   if (cleanQuery.length < 2) return { items: [], hasMore: false };
@@ -71,7 +73,7 @@ export async function searchHeadlessSite(
 
   try {
     const response = await fetch(endpoint, {
-      headers: { Accept: 'application/json' },
+      headers: { Accept: 'application/json', ...signedSearchHeaders(clientIp, SEARCH_PROXY_SECRET) },
       next: { revalidate: 60 },
       signal: timeoutController.signal,
     });
