@@ -274,7 +274,7 @@ GitHub Actions chạy cùng các kiểm tra trong [CI workflow](../.github/workf
 
 ### aaPanel
 
-Trước khi chuyển domain production, dựng và kiểm duyệt bản thử theo [hướng dẫn staging trên aaPanel](../docs/deployment/staging-aapanel.md).
+Trước khi chuyển domain production, dựng và kiểm duyệt bản thử theo [hướng dẫn staging trên aaPanel](../docs/deployment/staging-aapanel.md). Có thể [preview riêng frontend tại `*.nguyenhongson.vn`](../docs/deployment/frontend-preview-aapanel.md) với CMS chính ở chế độ đọc; cách đó chưa thay thế kiểm thử plugin/SQL/tải trên WordPress staging.
 
 1. Cài Nginx và Node.js LTS trong aaPanel.
 2. Clone repository vào `/www/wwwroot/headless-wordpress`.

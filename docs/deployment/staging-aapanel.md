@@ -1,6 +1,6 @@
 # Dựng staging TLU trên aaPanel
 
-Staging là môi trường thử tách khỏi website thật. Tài liệu này là hướng dẫn, **không phải lệnh đã được chạy**. Giữ `tlu.edu.vn` phục vụ website hiện tại cho tới khi mọi cổng kiểm duyệt đạt. Đề xuất hai hostname riêng: `stage.tlu.edu.vn` (Next.js) và `cms-stage.tlu.edu.vn` (bản sao WordPress); thay bằng hostname thực được đội DNS phê duyệt.
+Staging là môi trường thử tách khỏi website thật. Tài liệu này là hướng dẫn, **không phải lệnh đã được chạy**. Giữ `tlu.edu.vn` phục vụ website hiện tại cho tới khi mọi cổng kiểm duyệt đạt. Đề xuất hai hostname riêng: `stage.tlu.edu.vn` (Next.js) và `cms-stage.tlu.edu.vn` (bản sao WordPress); thay bằng hostname thực được đội DNS phê duyệt. Nếu chỉ muốn thử frontend tại `*.nguyenhongson.vn` và đọc CMS chính, dùng [hướng dẫn preview frontend](frontend-preview-aapanel.md); phương án đó không thay thế bước kiểm thử backend tách biệt.
 
 ## 0. Kiểm kê và xác nhận phạm vi
 
