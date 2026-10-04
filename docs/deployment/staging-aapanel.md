@@ -11,6 +11,9 @@ Staging là môi trường thử tách khỏi website thật. Tài liệu này l
 ## 1. Tạo DNS, TLS và giới hạn truy cập
 
 1. Tạo hai subdomain staging trỏ đến máy được chọn và cấp chứng chỉ TLS cho cả hai trong aaPanel.
+   - Trong aaPanel, vào **Website → PHP Project → Add site** cho `cms-stage.tlu.edu.vn`. Chọn **webroot mới**, PHP phù hợp và tạo **database mới**; đối chiếu tên DB sau đó trong **Databases → MySQL**. Không chọn webroot hoặc DB đang phục vụ `cms.tlu.edu.vn`. Xem [PHP Project](https://www.aapanel.com/docs/Function/php.html) và [MySQL](https://www.aapanel.com/docs/Function/MySQL.html).
+   - Vào **Website → Node.js Project → Add project** cho frontend staging. Chọn path release riêng, lệnh chạy `start`, Node LTS được phê duyệt, user `www`, cổng riêng (ví dụ `3001`), rồi gắn domain và bật mapping/reverse proxy. Tên menu có thể là **Node Project** ở bản aaPanel cũ. Xem [Node.js Project](https://www.aapanel.com/docs/Function/Node.html).
+   - Ở cài đặt của từng site/domain, cấp SSL và bật HTTPS. Xác nhận mapping của Node trỏ đúng cổng staging, không trỏ sang cổng production.
 2. Tạo hai website/site riêng, webroot và log riêng. Chặn truy cập công khai vào frontend staging bằng VPN/IP allowlist hoặc HTTP Basic Auth. Thêm `X-Robots-Tag: noindex, nofollow` làm lớp phụ; chỉ `robots.txt` không đủ để tránh index.
 3. WordPress staging cũng phải giới hạn truy cập. Nếu CMS dùng Basic Auth, cần ngoại lệ được kiểm soát cho request máy chủ Next.js đến REST/media; `next/image` tải media từ phía Node và không tự chuyển tiếp thông tin Basic Auth của trình duyệt. Không mở toàn bộ CMS công khai chỉ để sửa lỗi ảnh.
 4. Node staging chỉ nghe `127.0.0.1` trên cổng riêng (ví dụ `3001`). Reverse proxy phải **ghi đè** `X-Real-IP`; không chuyển nguyên header do client tự gửi. Không mở cổng Node ra Internet.
