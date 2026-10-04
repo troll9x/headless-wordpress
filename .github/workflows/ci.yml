@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [local-full-work]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      # CI builds must not require live WordPress or production secrets.
+      NEXT_PUBLIC_WP_BASE_URL: https://cms.example.invalid
+      NEXT_PUBLIC_SITE_URL: https://frontend.example.invalid
+      NEXT_PUBLIC_SITE_NAME: TLU CI
+      WP_API_URL: https://cms.example.invalid/index.php?rest_route=/wp/v2
+      WP_SITE_URL: https://cms.example.invalid
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: university-next/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci --prefix university-next
+      - name: Lint
+        run: npm --prefix university-next run lint
+      - name: Typecheck
+        run: npm --prefix university-next run typecheck
+      - name: Security unit tests
+        run: node --test scripts/test-p1-security.mjs
+      - name: Audit production dependencies
+        run: npm audit --prefix university-next --omit=dev --audit-level=high
+      - name: Reject critical development dependency advisories
+        run: npm audit --prefix university-next --audit-level=critical
+      - name: Production build without CMS access
+        run: npm --prefix university-next run build
+
+  wordpress:
+    name: WordPress plugin checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Ensure PHP CLI is available
+        run: |
+          if ! command -v php >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y php-cli
+          fi
+          php -v
+      - name: Lint all plugin PHP files
+        run: rg --files release/headless-api -g '*.php' | xargs -r -n1 php -l
+      - name: Run isolated plugin tests
+        run: |
+          php scripts/test-headless-api-hooks.php
+          php scripts/test-headless-response-cache.php
+          php scripts/test-priority-posts-endpoint.php
+          php scripts/test-p1-search-proxy.php
+          php scripts/test-p1-rate-limit-cleanup.php
+      - name: Check release ZIP integrity
+        run: unzip -t release/headless-api.zip
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITLEAKS_ENABLE_COMMENTS: 'false'
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: 'false'

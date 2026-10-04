@@ -266,6 +266,8 @@ npm run typecheck
 npm run build
 ```
 
+GitHub Actions chạy cùng các kiểm tra trong [CI workflow](../.github/workflows/ci.yml) trên mỗi pull request và mỗi lần push lên `local-full-work`: build với origin giả lập (không gọi CMS thật), test bảo mật Node, test/lint plugin PHP, kiểm tra ZIP, audit dependency và quét secret. CI **không triển khai**. Chỉ coi commit đủ điều kiện sang staging khi cả ba job `Frontend checks`, `WordPress plugin checks` và `Secret scan` đều xanh; cấu hình chúng thành required status checks của nhánh phát hành.
+
 ## Triển khai production
 
 Ứng dụng phải được triển khai dưới dạng Node.js server; không dùng static export vì project có Server Components, API routes, ISR và on-demand revalidation.
