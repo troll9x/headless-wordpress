@@ -1,4 +1,4 @@
-import { LEGACY_WP_SITE_URL, WP_API_URL, WP_SITE_URL } from '@/config/env/server';
+import { WP_API_URL, WP_SITE_URL } from '@/config/env/server';
 import { buildWordPressRestUrl } from '@/lib/wordpress/url';
 import { CACHE_TAGS, REVALIDATE_POSTS } from '@/constants/api';
 import { getPostSummaries } from '@/lib/wordpress/posts';
@@ -7,7 +7,9 @@ import type { WPPost } from '@/types/wordpress';
 
 export type PostPriorityLabel = 'hot' | 'new';
 
-const PRIORITY_ADAPTER_TIMEOUT_MS = 3_000;
+// The homepage starts many CMS requests together; leave enough time for this
+// small priority response without exceeding the homepage's 30-second budget.
+const PRIORITY_ADAPTER_TIMEOUT_MS = 12_000;
 
 interface PostPrioritySelection {
   id: number | null;
@@ -47,11 +49,6 @@ function parsePostId(value: string): number | null {
 
   const id = Number.parseInt(match[1], 10);
   return Number.isSafeInteger(id) && id > 0 ? id : null;
-}
-
-function readAttribute(block: string, name: string): string {
-  const match = block.match(new RegExp(`${name}=["']([^"']*)["']`, 'i'));
-  return (match?.[1] ?? '').replace(/&amp;/gi, '&');
 }
 
 function normalizeApiItems(data: PriorityApiResponse | PriorityApiItem[]): PostPrioritySelection[] {
@@ -96,57 +93,6 @@ async function getPriorityApiSelection(locale: Locale): Promise<PostPrioritySele
   }
 }
 
-/**
- * Read only the public HOT/NEW links rendered by the legacy homepage shortcode.
- * This keeps the new frontend working while the dedicated REST adapter is being deployed.
- */
-export function parseLegacyPrioritySelection(html: string): PostPrioritySelection[] {
-  const marker = html.search(/<div\b[^>]*class=["'][^"']*\bfeatured-slides-layout\b[^"']*["'][^>]*>/i);
-  if (marker < 0) return [];
-
-  const sectionEnd = html.indexOf('</section>', marker);
-  const segment = html.slice(marker, sectionEnd > marker ? sectionEnd : marker + 150_000);
-  const selections: PostPrioritySelection[] = [];
-  const seen = new Set<string>();
-  const anchorPattern = /<a\b([^>]*)>([\s\S]*?)<\/a>/gi;
-  let match: RegExpExecArray | null;
-
-  while ((match = anchorPattern.exec(segment)) !== null) {
-    const labelMatch = match[2].match(/(?:^|\/)\s*(hot|new)\.gif(?:[?"'])/i);
-    if (!labelMatch) continue;
-
-    const link = readAttribute(match[1], 'href');
-    const key = normalizePermalink(link);
-    if (!link || seen.has(key)) continue;
-
-    seen.add(key);
-    selections.push({
-      id: parsePostId(link),
-      link,
-      label: labelMatch[1].toLowerCase() as PostPriorityLabel,
-      order: selections.length + 1,
-      expireDate: null,
-    });
-  }
-
-  return selections;
-}
-
-async function getLegacyPrioritySelection(locale: Locale): Promise<PostPrioritySelection[]> {
-  const path = locale === 'en' ? '/en/' : '/';
-
-  try {
-    const response = await fetch(new URL(path, LEGACY_WP_SITE_URL), {
-      headers: { Accept: 'text/html,application/xhtml+xml' },
-      next: { revalidate: REVALIDATE_POSTS, tags: [CACHE_TAGS.POSTS, `post-priority-legacy-${locale}`] },
-      signal: AbortSignal.timeout(PRIORITY_ADAPTER_TIMEOUT_MS),
-    });
-    return response.ok ? parseLegacyPrioritySelection(await response.text()) : [];
-  } catch {
-    return [];
-  }
-}
-
 function matchesSelection(post: WPPost, selection: PostPrioritySelection): boolean {
   return selection.id === post.id || (
     Boolean(selection.link) && normalizePermalink(selection.link) === normalizePermalink(post.link)
@@ -167,15 +113,13 @@ export async function applyHomepagePostPriorities(
   posts: WPPost[] | Promise<WPPost[]>,
   locale: Locale,
 ): Promise<WPPost[]> {
-  // Category discovery and the optional priority adapters are independent.
-  // Run them together so a slow/missing adapter cannot consume the entire
-  // homepage fallback budget after the normal post query has completed.
-  const [resolvedPosts, apiSelection, legacySelection] = await Promise.all([
+  // Category discovery and the priority API are independent.
+  const [resolvedPosts, apiSelection] = await Promise.all([
     posts,
     getPriorityApiSelection(locale),
-    getLegacyPrioritySelection(locale),
   ]);
-  const selections = apiSelection ?? legacySelection;
+  // Keep the ordinary news feed when the optional priority API is unavailable.
+  const selections = apiSelection ?? [];
   if (selections.length === 0) return resolvedPosts;
 
   const currentIds = new Set(resolvedPosts.map((post) => post.id));
