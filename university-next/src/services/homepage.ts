@@ -4,7 +4,7 @@ import { unstable_cache } from 'next/cache';
 import { getPostsByCategories, getFirstPageBySlug } from '@/lib/api/homepage';
 import { enrichPostsWithHeadlessAcf, getPostSummaries } from '@/lib/wordpress/posts';
 import {
-  getCategoryBySlug,
+  getCategoriesBySlugs,
   getCategoryTreeIds,
 } from '@/lib/wordpress/categories';
 import { getFacultySliderItems } from '@/lib/wordpress/faculties';
@@ -82,9 +82,8 @@ async function getLatestPostByCategoryCandidates(
   locale: Locale,
   includeChildren = false,
 ) {
-  for (const slug of slugs) {
-    const category = await getCategoryBySlug(slug, locale).catch(() => null);
-    if (!category) continue;
+  const categories = await getCategoriesBySlugs(slugs, locale).catch(() => []);
+  for (const category of categories) {
 
     const categoryIds = includeChildren
       ? await getCategoryTreeIds(category.id, locale)

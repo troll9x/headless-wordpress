@@ -77,6 +77,28 @@ export async function getCategoryBySlug(
   return categories[0] ? normalizeCategory(categories[0]) : null;
 }
 
+/** Fetch fallback category slugs in one REST request, preserving caller priority. */
+export async function getCategoriesBySlugs(
+  slugs: readonly string[],
+  locale: Locale = 'vi',
+): Promise<WPCategory[]> {
+  if (slugs.length === 0) return [];
+
+  const categories = await wpFetch<WPCategory[]>(ENDPOINT, {
+    params: { slug: [...slugs], lang: locale, per_page: 100 },
+    revalidate: REVALIDATE_CATEGORIES,
+    tags: [CACHE_TAGS.CATEGORIES, ...slugs.map((slug) => `category-${slug}-${locale}`)],
+  });
+  const bySlug = new Map<string, WPCategory>(
+    categories.map((category): [string, WPCategory] => [category.slug, normalizeCategory(category)]),
+  );
+
+  return slugs.flatMap((slug) => {
+    const category = bySlug.get(slug);
+    return category ? [category] : [];
+  });
+}
+
 async function getHeadlessCategoryTerm(
   slug: string,
   locale: Locale,

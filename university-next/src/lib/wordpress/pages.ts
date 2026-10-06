@@ -18,6 +18,28 @@ export async function getPageBySlug(
   return pages[0] ?? null;
 }
 
+/** Fetch fallback page slugs in one REST request, preserving caller priority. */
+export async function getPagesBySlugs(
+  slugs: readonly string[],
+  locale: Locale = 'vi',
+): Promise<WPPage[]> {
+  if (slugs.length === 0) return [];
+
+  const pages = await wpFetch<WPPage[]>(ENDPOINT, {
+    params: { slug: [...slugs], _embed: 1, lang: locale, per_page: 100 },
+    revalidate: REVALIDATE_PAGES,
+    tags: [CACHE_TAGS.PAGES],
+  });
+  const bySlug = new Map<string, WPPage>(
+    pages.map((page): [string, WPPage] => [page.slug, page]),
+  );
+
+  return slugs.flatMap((slug) => {
+    const page = bySlug.get(slug);
+    return page ? [page] : [];
+  });
+}
+
 /** Fetch a page by ID. */
 export async function getPageById(
   id: number,

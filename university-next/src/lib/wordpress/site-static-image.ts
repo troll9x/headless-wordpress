@@ -6,7 +6,8 @@ import { buildWordPressRestUrl } from '@/lib/wordpress/url';
 import type { Locale } from '@/types/ngon-ngu';
 
 const STATIC_IMAGE_OPTIONS_KEY = 'tlu_site_img';
-const STATIC_IMAGE_REQUEST_TIMEOUT_MS = 6_000;
+// The homepage's concurrent CMS requests push this options endpoint past 6 s.
+const STATIC_IMAGE_REQUEST_TIMEOUT_MS = 12_000;
 const IMAGE_EXTENSION = /\.(?:avif|gif|jpe?g|png|svg|webp)(?:[?#].*)?$/i;
 const FIELD_BY_LOCALE: Record<Locale, 'anh_tinh_vi' | 'anh_tinh_en'> = {
   vi: 'anh_tinh_vi',
