@@ -450,6 +450,18 @@ async function getHeadlessDocumentTaxonomyData(
     }
   }
 
+  const apiReportsDocuments = (firstPage.category?.count ?? 0) > 0
+    || firstPage.groups.some((group) => (
+      (group.category?.count ?? 0) > 0 || (group.pagination?.total ?? 0) > 0
+    ));
+  const archiveHasDocuments = [...groupById.values()].some((group) => group.documents.length > 0);
+  if (apiReportsDocuments && !archiveHasDocuments) {
+    // The CMS currently has at least one taxonomy whose Headless archive
+    // reports an empty WP_Query while core REST still returns published items.
+    // Use the established REST path rather than rendering a false empty state.
+    return null;
+  }
+
   const category = toDocumentTerm(firstPage.category);
   const bannerImage = firstPage.banner?.image;
   return {
