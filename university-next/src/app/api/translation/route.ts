@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { buildPostUrl } from '@/constants/duong-dan';
 import { WP_API_URL } from '@/config/env/server';
 import { wpFetchUrl } from '@/lib/wordpress/client';
+import { WordPressApiError } from '@/lib/wordpress/errors';
 import { buildWordPressRestUrl } from '@/lib/wordpress/url';
 import type { Locale } from '@/types/ngon-ngu';
 
@@ -40,7 +41,11 @@ export async function GET(request: NextRequest) {
       ) },
       { headers: { 'Cache-Control': 'private, max-age=60' } },
     );
-  } catch {
+  } catch (error) {
+    if (error instanceof WordPressApiError && error.status === 404) {
+      return NextResponse.json({ error: 'No translated article is available.' }, { status: 404 });
+    }
+
     return NextResponse.json({ error: 'Translation lookup is temporarily unavailable.' }, { status: 503 });
   }
 }
