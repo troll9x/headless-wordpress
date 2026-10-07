@@ -1,4 +1,4 @@
-import { WP_API_URL, WP_SITE_URL } from '@/config/env/server';
+import { LEGACY_WP_SITE_URL, WP_API_URL } from '@/config/env/server';
 import { CACHE_TAGS, REVALIDATE_MEDIA } from '@/constants/api';
 import { getPageBySlug } from '@/lib/wordpress/pages';
 import { buildWordPressRestUrl, type WordPressQueryParams } from '@/lib/wordpress/url';
@@ -159,7 +159,7 @@ function parseLegacyHomeSelection(html: string): LegacyHomeSelection | null {
 
 async function getLegacyHomeSelection(): Promise<LegacyHomeSelection | null> {
   try {
-    const response = await fetch(new URL('/', WP_SITE_URL), {
+    const response = await fetch(new URL('/', LEGACY_WP_SITE_URL), {
       headers: { Accept: 'text/html,application/xhtml+xml' },
       next: { revalidate: REVALIDATE_MEDIA, tags: [CACHE_TAGS.MEDIA, 'media-gallery-home-legacy'] },
       signal: AbortSignal.timeout(10_000),

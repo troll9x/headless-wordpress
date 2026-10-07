@@ -69,6 +69,20 @@ function extractFirstPanel(html: string, ids: string[]): string {
   return '';
 }
 
+/** Read tab panels from the legacy page-builder shortcode stored by WordPress. */
+function extractShortcodeTabs(html: string): string[] {
+  const tabs: string[] = [];
+  const pattern = /\[tab\b[^\]]*\]([\s\S]*?)\[\/tab\s*\]/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(html)) !== null) {
+    const content = match[1].trim();
+    if (content) tabs.push(content);
+  }
+
+  return tabs;
+}
+
 function cleanCmsHtml(html: string, locale: Locale): string {
   let cleaned = html
     .replace(/<(script|style|noscript)\b[^>]*>[\s\S]*?<\/\1>/gi, '')
@@ -101,18 +115,19 @@ export async function getMissionStrategyContent(
   if (!page) return null;
 
   const html = page.content.rendered;
+  const shortcodeTabs = extractShortcodeTabs(html);
   const overviewHtml = extractFirstPanel(
     html,
     locale === 'en'
       ? ['tab_mission---vision---core-values']
       : ['tab_sứ-mạng---tầm-nhìn---giá-trị-cốt-lõi', 'tab_su-mang---tam-nhin---gia-tri-cot-loi'],
-  );
+  ) || shortcodeTabs[0] || '';
   const strategyHtml = extractFirstPanel(
     html,
     locale === 'en'
       ? ['tab_development-strategy']
       : ['tab_chiến-lược-phát-triển', 'tab_chien-luoc-phat-trien'],
-  );
+  ) || shortcodeTabs[1] || '';
 
   if (!overviewHtml || !strategyHtml) return null;
 
