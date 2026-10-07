@@ -1,19 +1,23 @@
 import type { Metadata } from 'next';
 import { getFullHomepageData, extractHeroData } from '@/services/homepage';
+import { getFirstPageBySlug } from '@/lib/api/homepage';
+import { PAGE_SLUGS } from '@/constants/categories';
 import { FRONTEND_URL } from '@/constants/api';
 import { generateHeadlessMetadata } from '@/lib/seo/metadata';
 import { getHeadlessSeoById } from '@/lib/wordpress/seo';
 import TrangChu from '@/components/trang-chu/TrangChu';
 
 export async function generateMetadata(): Promise<Metadata> {
-  const data = await getFullHomepageData('en');
-  const hero = extractHeroData(data.heroPage);
+  // Metadata needs only the hero page; loading every homepage section here
+  // doubles the cold CMS fan-out before the page itself renders.
+  const heroPage = await getFirstPageBySlug(PAGE_SLUGS.HERO, 'en');
+  const hero = extractHeroData(heroPage);
 
   const title = 'Home';
   const description = hero.subtitle ?? 'Science – Practice – Innovation';
   const canonical = `${FRONTEND_URL}/en`;
-  const seo = data.heroPage
-    ? await getHeadlessSeoById(data.heroPage.id, 'en')
+  const seo = heroPage
+    ? await getHeadlessSeoById(heroPage.id, 'en')
     : null;
 
   return generateHeadlessMetadata(seo, {
