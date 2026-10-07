@@ -34,13 +34,9 @@ type Props = {
   searchParams: Promise<{ page?: string }>;
 };
 
-// Cache public route output and regenerate it periodically. Empty params means
-// dynamic paths are generated on first visit and then served from the ISR cache.
-export const revalidate = 60;
-export const dynamicParams = true;
-export function generateStaticParams(): Array<{ path: string[] }> {
-  return [];
-}
+// This catch-all resolves arbitrary WordPress paths and category pagination
+// from request-time searchParams. Do not opt it into on-demand static generation;
+// WordPress fetches retain their own revalidation cache.
 
 interface PermalinkRequest {
   slug: string;
