@@ -80,9 +80,53 @@ const inlineOptions: sanitizeHtml.IOptions = {
   enforceHtmlBoundary: true,
 };
 
+function resolveMediaUrl(value: string, mediaBaseUrl: string): string {
+  const url = value.trim();
+  if (!url || /^(?:[a-z][a-z\d+.-]*:|\/\/|#)/i.test(url)) return value;
+
+  try {
+    return new URL(url, mediaBaseUrl).toString();
+  } catch {
+    return value;
+  }
+}
+
+function resolveMediaSrcset(value: string, mediaBaseUrl: string): string {
+  return value.split(',').map((candidate) => {
+    const [url, ...descriptors] = candidate.trim().split(/\s+/);
+    if (!url) return candidate;
+    return [resolveMediaUrl(url, mediaBaseUrl), ...descriptors].join(' ');
+  }).join(', ');
+}
+
 /** Sanitize trusted-editor CMS markup against an explicit HTML allowlist. */
-export function sanitizeCmsHtml(value: string): string {
-  return sanitizeHtml(value, cmsOptions);
+export function sanitizeCmsHtml(value: string, mediaBaseUrl?: string): string {
+  const options = mediaBaseUrl
+    ? {
+        ...cmsOptions,
+        transformTags: {
+          ...cmsOptions.transformTags,
+          img: (_tagName: string, attribs: Record<string, string>) => ({
+            tagName: 'img',
+            attribs: {
+              ...attribs,
+              ...(attribs.src ? { src: resolveMediaUrl(attribs.src, mediaBaseUrl) } : {}),
+              ...(attribs.srcset ? { srcset: resolveMediaSrcset(attribs.srcset, mediaBaseUrl) } : {}),
+            },
+          }),
+          source: (_tagName: string, attribs: Record<string, string>) => ({
+            tagName: 'source',
+            attribs: {
+              ...attribs,
+              ...(attribs.src ? { src: resolveMediaUrl(attribs.src, mediaBaseUrl) } : {}),
+              ...(attribs.srcset ? { srcset: resolveMediaSrcset(attribs.srcset, mediaBaseUrl) } : {}),
+            },
+          }),
+        },
+      }
+    : cmsOptions;
+
+  return sanitizeHtml(value, options);
 }
 
 /** Sanitize short labels/search highlights while rejecting links and media. */

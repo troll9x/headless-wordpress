@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { sanitizeCmsHtml, sanitizeInlineHtml } from '@/lib/security/html';
+import { LEGACY_WP_SITE_URL } from '@/config/env/server';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faChartLine,
@@ -266,7 +267,7 @@ export default function ChiTietBaiViet({
             <div
               id="article-readable-content"
               className={ARTICLE_BODY_CLASSES}
-              dangerouslySetInnerHTML={{ __html: sanitizeCmsHtml(post.content.rendered) }}
+              dangerouslySetInnerHTML={{ __html: sanitizeCmsHtml(post.content.rendered, LEGACY_WP_SITE_URL) }}
             />
           </section>
 

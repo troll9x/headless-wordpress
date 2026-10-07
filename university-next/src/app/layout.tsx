@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
-import { headers } from 'next/headers';
-import { connection } from 'next/server';
+import Script from 'next/script';
 import './globals.css';
 import '@/styles/site-font.css';
 import Header from '@/components/layout/Header';
@@ -59,7 +58,6 @@ function faviconDescriptor(favicon: SiteFavicon) {
 
 export async function generateMetadata(): Promise<Metadata> {
   // Favicon is managed in WordPress; do not depend on the CMS during builds.
-  await connection();
   const favicon = await getSiteFavicon().catch(() => null);
 
   if (!favicon) return baseMetadata;
@@ -78,11 +76,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const routeLocale = (await headers()).get('x-tlu-route-locale');
-  const documentLanguage = routeLocale === 'en' ? 'en' : 'vi';
-
-  // Global chrome is CMS-driven but should only be fetched at request time.
-  await connection();
+  // These CMS requests opt into time-based caching in their data fetchers.
   const [logos, footer, social] = await Promise.all([
     getSiteLogos().catch(() => null),
     getSiteFooter().catch(() => null),
@@ -90,7 +84,14 @@ export default async function RootLayout({
   ]);
 
   return (
-    <html lang={documentLanguage} className="h-full antialiased">
+    <html lang="vi" className="h-full antialiased" suppressHydrationWarning>
+      <Script
+        id="set-document-language"
+        strategy="beforeInteractive"
+        dangerouslySetInnerHTML={{
+          __html: "document.documentElement.lang = /^\\/en(?:\\/|$)/.test(location.pathname) ? 'en' : 'vi';",
+        }}
+      />
       <body className="flex min-h-full flex-col bg-white">
         <DocumentLanguage />
         <Header logos={logos} />

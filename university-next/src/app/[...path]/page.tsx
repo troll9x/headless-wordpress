@@ -34,6 +34,14 @@ type Props = {
   searchParams: Promise<{ page?: string }>;
 };
 
+// Cache public route output and regenerate it periodically. Empty params means
+// dynamic paths are generated on first visit and then served from the ISR cache.
+export const revalidate = 60;
+export const dynamicParams = true;
+export function generateStaticParams(): Array<{ path: string[] }> {
+  return [];
+}
+
 interface PermalinkRequest {
   slug: string;
   locale: Locale;
@@ -66,7 +74,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const request = resolvePermalinkRequest((await params).path);
   if (!request) notFound();
 
-  const category = await getCategoryBySlug(request.slug, request.locale).catch(() => null);
+  const isPostIdPath = /-\d+$/.test(request.slug);
+  const seoId = isPostIdPath
+    ? Number.parseInt(request.slug.match(/-(\d+)$/)?.[1] ?? '', 10)
+    : null;
+  const headlessSeoPromise = seoId && Number.isSafeInteger(seoId) && seoId > 0
+    ? getHeadlessSeoById(seoId, request.locale)
+    : null;
+  const category = isPostIdPath
+    ? null
+    : await getCategoryBySlug(request.slug, request.locale).catch(() => null);
   if (category) {
     const isEn = request.locale === 'en';
     return {
@@ -92,7 +109,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const targetLocale: Locale = request.locale === 'vi' ? 'en' : 'vi';
   const translatedUrl = getTranslatedPostUrl(post, targetLocale);
-  const headlessSeo = await getHeadlessSeoById(post.id, request.locale);
+  const headlessSeo = await (headlessSeoPromise ?? getHeadlessSeoById(post.id, request.locale));
 
   return generateHeadlessMetadata(headlessSeo, {
     title,
@@ -176,7 +193,7 @@ async function renderPost(
 ) {
   const [pageData, sidebar, categoryBanner] = await Promise.all([
     getPostPageData(post, locale),
-    getCategorySidebar({ postId: post.id }, locale),
+    getCategorySidebar({ categoryId: post.categories[0] }, locale),
     getPostCategoryBanner(post, locale),
   ]);
 
@@ -198,7 +215,10 @@ export default async function WordPressPermalinkPage({ params, searchParams }: P
   const request = resolvePermalinkRequest((await params).path);
   if (!request) notFound();
 
-  const category = await getCategoryBySlug(request.slug, request.locale).catch(() => null);
+  const isPostIdPath = /-\d+$/.test(request.slug);
+  const category = isPostIdPath
+    ? null
+    : await getCategoryBySlug(request.slug, request.locale).catch(() => null);
   if (category) {
     return renderCategory(category, request, parsePage((await searchParams).page));
   }

@@ -9,7 +9,6 @@ import type { Locale } from '@/types/ngon-ngu';
 import type {
   CategoryBannerData,
   CategorySidebarData,
-  CategorySidebarItem,
   CategorySidebarTermItem,
   WPCategory,
   WPPost,
@@ -242,30 +241,6 @@ async function resolveSidebarCategory(
   return null;
 }
 
-async function fetchChildCategories(parentId: number, locale: Locale): Promise<WPCategory[]> {
-  const categories = await wpFetch<WPCategory[]>(ENDPOINT, {
-    params: {
-      parent: parentId,
-      per_page: 100,
-      hide_empty: false,
-      orderby: 'name',
-      order: 'asc',
-      lang: locale,
-    },
-    revalidate: REVALIDATE_CATEGORIES,
-    tags: [CACHE_TAGS.CATEGORIES, `category-children-${parentId}-${locale}`],
-  });
-  return categories.map(normalizeCategory);
-}
-
-async function getChildCategories(parentId: number, locale: Locale): Promise<WPCategory[]> {
-  try {
-    return await fetchChildCategories(parentId, locale);
-  } catch {
-    return [];
-  }
-}
-
 async function fetchAllCategories(locale: Locale): Promise<WPCategory[]> {
   const params = {
     per_page: 100,
@@ -293,6 +268,15 @@ async function fetchAllCategories(locale: Locale): Promise<WPCategory[]> {
 
   return [firstPage.data, ...remainingPages].flat().map(normalizeCategory);
 }
+
+const getCachedAllCategories = unstable_cache(
+  fetchAllCategories,
+  ['wordpress-all-categories-v1'],
+  {
+    revalidate: REVALIDATE_CATEGORIES,
+    tags: [CACHE_TAGS.CATEGORIES],
+  },
+);
 
 /** Lấy ID chuyên mục gốc cùng toàn bộ chuyên mục con ở mọi cấp. */
 async function buildCategoryTreeIds(
@@ -359,53 +343,33 @@ function toSidebarTerm(category: WPCategory, children: CategorySidebarTermItem[]
   };
 }
 
-function normalizeSidebarItem(item: CategorySidebarItem): CategorySidebarItem {
-  if (item.type === 'term') {
-    return {
-      ...item,
-      name: stripHtml(item.name),
-      children: item.children.map(normalizeSidebarItem),
-    };
-  }
-
-  return {
-    ...item,
-    label: stripHtml(item.label),
-    children: item.children.map(normalizeSidebarItem),
-  };
-}
-
-function normalizeSidebarData(data: CategorySidebarData): CategorySidebarData {
-  return {
-    ...data,
-    root: { ...data.root, name: stripHtml(data.root.name) },
-    items: data.items.map(normalizeSidebarItem),
-  };
-}
-
 async function getFallbackCategorySidebar(
   params: CategorySidebarParams,
   locale: Locale,
 ): Promise<CategorySidebarData | null> {
-  const current = await resolveSidebarCategory(params, locale);
+  const allCategories = await getCachedAllCategories(locale).catch(() => []);
+  const categoriesById = new Map(allCategories.map((category) => [category.id, category]));
+  const current = params.categoryId
+    ? categoriesById.get(params.categoryId) ?? null
+    : params.categorySlug
+      ? allCategories.find((category) => category.slug === params.categorySlug) ?? null
+      : await resolveSidebarCategory(params, locale);
   if (!current) return null;
 
   let root = current;
   const visited = new Set<number>();
   while (root.parent > 0 && !visited.has(root.parent)) {
     visited.add(root.id);
-    const parent = await getCategoryById(root.parent, locale);
+    const parent = categoriesById.get(root.parent);
     if (!parent) break;
     root = parent;
   }
 
-  const firstLevel = await getChildCategories(root.id, locale);
-  const items = await Promise.all(
-    firstLevel.map(async (category) => {
-      const children = await getChildCategories(category.id, locale);
-      return toSidebarTerm(category, children.map((child) => toSidebarTerm(child, [])));
-    }),
-  );
+  const firstLevel = allCategories.filter((category) => category.parent === root.id);
+  const items = firstLevel.map((category) => {
+    const children = allCategories.filter((child) => child.parent === category.id);
+    return toSidebarTerm(category, children.map((child) => toSidebarTerm(child, [])));
+  });
 
   return {
     root: {
@@ -419,39 +383,13 @@ async function getFallbackCategorySidebar(
 }
 
 /**
- * Fetch the configured Auto Category Widget tree from the companion REST route.
- * Returns null while the WordPress Code Snippet endpoint is not installed.
+ * Build the sidebar from the cached WordPress taxonomy. The optional ACW route
+ * is not registered on the current CMS and its per-post 404 added a blocking
+ * network request before this same fallback could be returned.
  */
 export async function getCategorySidebar(
   params: CategorySidebarParams,
   locale: Locale = 'vi',
 ): Promise<CategorySidebarData | null> {
-  const url = buildWordPressRestUrl(WP_API_URL, '/acw/v1/sidebar', {
-    lang: locale,
-    post_id: params.postId,
-    category_id: params.categoryId,
-    category_slug: params.categorySlug,
-  });
-
-  try {
-    const data = await coalesce(`category-sidebar:${url.toString()}`, async () => {
-      const response = await fetch(url, {
-        headers: { Accept: 'application/json' },
-        next: {
-          revalidate: REVALIDATE_CATEGORIES,
-          tags: [CACHE_TAGS.CATEGORIES, `category-sidebar-${locale}`],
-        },
-        signal: AbortSignal.timeout(10_000),
-      });
-
-      if (!response.ok) return null;
-      return (await response.json()) as CategorySidebarData;
-    });
-
-    if (data?.root && Array.isArray(data.items)) return normalizeSidebarData(data);
-  } catch {
-    // Fall through to the core taxonomy fallback below.
-  }
-
   return getFallbackCategorySidebar(params, locale);
 }

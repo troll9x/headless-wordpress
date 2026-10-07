@@ -154,21 +154,20 @@ export async function getPostByPermalinkPath(
   const requestedSlug = normalizedPath.split('/').at(-1) ?? '';
   if (!requestedSlug) return null;
 
+  const idMatch = requestedSlug.match(/-(\d+)$/);
+  if (idMatch) {
+    const postId = Number.parseInt(idMatch[1], 10);
+    if (!Number.isSafeInteger(postId) || postId <= 0) return null;
+
+    const post = await getPostById(postId, locale);
+    return post?.type === 'post' ? post : null;
+  }
+
   const directPost = await getPostBySlug(requestedSlug, locale).catch(() => null);
   if (directPost && normalizePermalinkPath(directPost.link) === normalizedPath) {
     return directPost;
   }
-
-  const idMatch = requestedSlug.match(/-(\d+)$/);
-  if (!idMatch) return null;
-
-  const postId = Number.parseInt(idMatch[1], 10);
-  if (!Number.isSafeInteger(postId) || postId <= 0) return null;
-
-  const post = await getPostById(postId, locale);
-  if (!post || post.type !== 'post') return null;
-
-  return post;
+  return null;
 }
 
 interface HeadlessPostDetails {
