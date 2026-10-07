@@ -18,6 +18,7 @@ import {
 } from '@/lib/wordpress/categories';
 import {
   enrichPostsWithHeadlessAcf,
+  getPostSummariesPage,
   getPostByPermalinkPath,
   getPostPageData,
   getPostsPage,
@@ -47,6 +48,25 @@ interface PermalinkRequest {
 function parsePage(value?: string): number {
   const page = Number.parseInt(value ?? '1', 10);
   return Number.isInteger(page) && page > 0 ? page : 1;
+}
+
+async function getCategoryPostsPage(
+  params: Record<string, unknown>,
+  locale: Locale,
+  categorySlug: string,
+): Promise<Awaited<ReturnType<typeof getPostsPage>>> {
+  try {
+    return await getPostsPage(params, locale);
+  } catch (error) {
+    console.warn(`[category-archive] Full post fetch failed for ${categorySlug}; retrying summaries.`, error);
+  }
+
+  try {
+    return await getPostSummariesPage(params, locale);
+  } catch (error) {
+    console.error(`[category-archive] Summary fetch failed for ${categorySlug}; rendering an empty archive.`, error);
+    return { posts: [], total: 0, totalPages: 1 };
+  }
 }
 
 function resolvePermalinkRequest(path: string[]): PermalinkRequest | null {
@@ -142,7 +162,13 @@ async function renderCategory(
   const isRecruitment = category.id === 85 || category.slug === 'thong-tin-tuyen-dung';
   // WordPress category archives include descendant terms. Core REST only
   // filters the exact IDs supplied, so expand the tree explicitly.
-  const categoryIds = await getCategoryTreeIds(category.id, request.locale);
+  let categoryIds: number[];
+  try {
+    categoryIds = await getCategoryTreeIds(category.id, request.locale);
+  } catch (error) {
+    console.warn(`[category-archive] Category tree fetch failed for ${category.slug}; using its root term only.`, error);
+    categoryIds = [category.id];
+  }
   const query = {
     categories: categoryIds,
     per_page: CATEGORY_POSTS_PER_PAGE,
@@ -151,7 +177,7 @@ async function renderCategory(
   };
 
   const [firstPage, sidebar] = await Promise.all([
-    getPostsPage({ ...query, page: 1 }, request.locale),
+    getCategoryPostsPage({ ...query, page: 1 }, request.locale, category.slug),
     categoryUsesFullWidthLayout(category.slug)
       ? Promise.resolve(null)
       : getCategorySidebar({ categoryId: category.id }, request.locale),
@@ -162,7 +188,7 @@ async function renderCategory(
 
   const requestedPage = currentPage === 1
     ? firstPage
-    : await getPostsPage({ ...query, page: currentPage }, request.locale);
+    : await getCategoryPostsPage({ ...query, page: currentPage }, request.locale, category.slug);
   const posts = isRecruitment
     ? await enrichPostsWithHeadlessAcf(requestedPage.posts, request.locale)
     : requestedPage.posts;

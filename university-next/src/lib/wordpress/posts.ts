@@ -120,6 +120,29 @@ export async function getPostsPage(
   };
 }
 
+/** Lightweight archive fallback that avoids fetching full article bodies. */
+export async function getPostSummariesPage(
+  params: Record<string, unknown> = {},
+  locale: Locale = 'vi',
+): Promise<PostsPage> {
+  const result = await wpFetchCollection<WPPost[]>(ENDPOINT, {
+    params: {
+      _embed: 1,
+      _fields: POST_SUMMARY_FIELDS,
+      lang: locale,
+      ...params,
+    },
+    revalidate: REVALIDATE_POSTS,
+    tags: [CACHE_TAGS.POSTS, `post-summaries-${locale}`],
+  });
+
+  return {
+    posts: result.data,
+    total: result.total,
+    totalPages: result.totalPages,
+  };
+}
+
 function normalizePermalinkPath(value: string): string {
   let pathname = value;
 

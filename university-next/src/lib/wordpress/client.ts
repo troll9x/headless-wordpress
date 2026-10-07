@@ -36,6 +36,12 @@ const MAX_CONCURRENT_WORDPRESS_REQUESTS = 6;
 let activeWordPressRequests = 0;
 const wordpressRequestQueue: Array<() => void> = [];
 
+function getEndpointLabel(url: URL): string {
+  // With index.php?rest_route=..., pathname alone hides which API timed out.
+  // Keep query values out of logs because some endpoints contain search terms.
+  return url.searchParams.get('rest_route') ?? url.pathname;
+}
+
 async function withWordPressRequestSlot<T>(request: () => Promise<T>): Promise<T> {
   if (activeWordPressRequests >= MAX_CONCURRENT_WORDPRESS_REQUESTS) {
     await new Promise<void>((resolve) => wordpressRequestQueue.push(resolve));
@@ -166,7 +172,7 @@ async function executeWpPayloadNow<T>(
       const parsedError = parseWordPressRestError(payload);
 
       throw new WordPressApiError({
-        endpoint: url.pathname,
+        endpoint: getEndpointLabel(url),
         status: response.status,
         code: parsedError.code,
         message:
@@ -178,7 +184,7 @@ async function executeWpPayloadNow<T>(
     const payload = await parseJsonSafely(response);
     if (payload === undefined || payload === null) {
       throw new WordPressResponseError(
-        url.pathname,
+        getEndpointLabel(url),
         'WordPress API returned an empty or invalid JSON response.',
       );
     }
@@ -191,7 +197,7 @@ async function executeWpPayloadNow<T>(
 
     const isTimeout = timeoutController.signal.aborted && !signal?.aborted;
     throw new WordPressResponseError(
-      url.pathname,
+      getEndpointLabel(url),
       isTimeout
         ? 'WordPress API request timed out.'
         : 'WordPress API request could not be completed.',
