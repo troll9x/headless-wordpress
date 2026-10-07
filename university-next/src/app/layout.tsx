@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { connection } from 'next/server';
 import './globals.css';
 import '@/styles/site-font.css';
@@ -77,6 +78,9 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const routeLocale = (await headers()).get('x-tlu-route-locale');
+  const documentLanguage = routeLocale === 'en' ? 'en' : 'vi';
+
   // Global chrome is CMS-driven but should only be fetched at request time.
   await connection();
   const [logos, footer, social] = await Promise.all([
@@ -86,7 +90,7 @@ export default async function RootLayout({
   ]);
 
   return (
-    <html lang="vi" className="h-full antialiased">
+    <html lang={documentLanguage} className="h-full antialiased">
       <body className="flex min-h-full flex-col bg-white">
         <DocumentLanguage />
         <Header logos={logos} />

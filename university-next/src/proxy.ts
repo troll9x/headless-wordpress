@@ -14,13 +14,19 @@ function normalizePath(pathname: string): string {
 export function proxy(request: NextRequest) {
   const source = normalizePath(request.nextUrl.pathname);
   const target = redirectMap[source];
-  if (!target || !target.startsWith('/') || target.startsWith('//')) {
-    return NextResponse.next();
+  if (target && target.startsWith('/') && !target.startsWith('//')) {
+    const destination = new URL(target, request.url);
+    destination.search = request.nextUrl.search;
+    return NextResponse.redirect(destination, 308);
   }
 
-  const destination = new URL(target, request.url);
-  destination.search = request.nextUrl.search;
-  return NextResponse.redirect(destination, 308);
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set(
+    'x-tlu-route-locale',
+    source === '/en' || source.startsWith('/en/') ? 'en' : 'vi',
+  );
+
+  return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
 export const config = {
