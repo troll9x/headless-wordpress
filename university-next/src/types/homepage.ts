@@ -57,6 +57,8 @@ export interface PartnerLogo {
 }
 
 export interface HomepageData {
+  /** Section integrations that fell back during this request. */
+  loadErrors: string[];
   heroPage: WPPage | null;
   heroSlides: HeroSlide[];
   staticImage: SiteStaticImage | null;

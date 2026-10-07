@@ -22,18 +22,28 @@ export const ROUTES = {
   },
 } as const satisfies Record<Locale, Record<string, string>>;
 
-/**
- * Build a post URL for the given locale.
- *
- * Permalink Manager can expose a public path that differs from `post.slug`
- * (for example, by appending the post ID). Prefer that public pathname when
- * WordPress supplied it and keep the slug-only form as a safe fallback.
- */
+/** Build a plugin-independent article URL for the given locale. */
 export function buildPostUrl(
   slug: string,
   locale: Locale,
   wordpressLink?: string,
+  postId?: number,
+  canonicalPath?: string,
 ): string {
+  if (canonicalPath?.startsWith('/') && !canonicalPath.startsWith('//')) {
+    return canonicalPath.replace(/\/+$/, '') || '/';
+  }
+
+  // Keep frontend post routes independent from CMS permalink plugins.
+  const inferredId = postId ?? wordpressLink?.match(/-(\d+)\/?(?:[?#].*)?$/)?.[1];
+  const stableSlug = slug.trim().replace(/^\/+|\/+$/g, '');
+  if (stableSlug && inferredId) {
+    return locale === 'en'
+      ? `/en/${stableSlug}-${inferredId}`
+      : `/${stableSlug}-${inferredId}`;
+  }
+  if (stableSlug) return locale === 'en' ? `/en/${stableSlug}` : `/${stableSlug}`;
+
   if (wordpressLink) {
     try {
       const pathname = new URL(wordpressLink).pathname.replace(/\/+$/, '');

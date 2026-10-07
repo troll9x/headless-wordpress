@@ -77,7 +77,7 @@ export default function TheNoiBat({
       <div className="mx-auto grid max-w-[1400px] gap-12 px-4 sm:px-6 md:grid-cols-3 md:gap-6 lg:px-8">
         {GROUPS[locale].map((group) => {
           const post = posts[group.key];
-          const postHref = post ? buildPostUrl(post.slug, locale, post.link) : null;
+          const postHref = post ? buildPostUrl(post.slug, locale, post.link, post.id, post.canonical_path) : null;
           const media = post ? getFeaturedImage(post) : null;
 
           return (

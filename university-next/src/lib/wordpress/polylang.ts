@@ -24,9 +24,19 @@ export function getTranslationSlug(
 ): string | null {
   const raw = post as unknown as Record<string, unknown>;
 
-  // Polylang Pro: `translations` REST field
-  const translations = raw['translations'] as Record<string, string> | undefined;
-  if (translations?.[targetLocale]) return translations[targetLocale];
+  // The Headless API returns translation records; some WP REST installations
+  // expose Polylang's language-to-value map. Support either response shape.
+  const translations = raw['translations'];
+  if (Array.isArray(translations)) {
+    const translation = translations.find((item) =>
+      typeof item === 'object' && item !== null &&
+      (item as Record<string, unknown>).language === targetLocale,
+    ) as Record<string, unknown> | undefined;
+    if (typeof translation?.slug === 'string' && translation.slug) return translation.slug;
+  } else if (translations && typeof translations === 'object') {
+    const translatedSlug = (translations as Record<string, unknown>)[targetLocale];
+    if (typeof translatedSlug === 'string' && translatedSlug) return translatedSlug;
+  }
 
   // ACF fallback: `translation_en_slug` or `translation_vi_slug`
   const acf = (post.acf ?? {}) as Record<string, unknown>;
@@ -46,6 +56,16 @@ export function getTranslatedPostUrl(
   post: WPPost,
   targetLocale: Locale,
 ): string | null {
+  const rawTranslations = (post as unknown as Record<string, unknown>)['translations'];
+  if (Array.isArray(rawTranslations)) {
+    const translation = rawTranslations.find((item) =>
+      typeof item === 'object' && item !== null &&
+      (item as Record<string, unknown>).language === targetLocale,
+    ) as Record<string, unknown> | undefined;
+    if (typeof translation?.slug === 'string' && typeof translation.id === 'number') {
+      return buildPostUrl(translation.slug, targetLocale, undefined, translation.id);
+    }
+  }
   const slug = getTranslationSlug(post, targetLocale);
   return slug ? buildPostUrl(slug, targetLocale) : null;
 }

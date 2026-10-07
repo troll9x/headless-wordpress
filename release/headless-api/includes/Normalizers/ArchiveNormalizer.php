@@ -117,7 +117,10 @@ class ArchiveNormalizer implements NormalizerInterface {
 			'slug'           => $post->post_name,
 			'title'          => get_the_title( $post ),
 			'excerpt'        => wp_strip_all_tags( get_the_excerpt( $post ) ),
-			'link'           => $this->transformer->transform_navigation_url( get_permalink( $post ) ),
+			'link'           => 'post' === $post->post_type
+				? \TLU_Headless_API\Services\CanonicalUrlBuilder::post_url( $post )
+				: $this->transformer->transform_navigation_url( get_permalink( $post ) ),
+			'canonical_path' => 'post' === $post->post_type ? \TLU_Headless_API\Services\CanonicalUrlBuilder::post_path( $post ) : '',
 			'type'           => $post->post_type,
 			'date'           => $post->post_date,
 			'modified'       => $post->post_modified,

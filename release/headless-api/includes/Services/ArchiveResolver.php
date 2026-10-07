@@ -8,7 +8,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 use TLU_Headless_API\Contracts\Service;
 use TLU_Headless_API\Helpers\ContentVisibility;
 use TLU_Headless_API\Integrations\PolylangIntegration;
-use TLU_Headless_API\Integrations\PermalinkManagerIntegration;
 
 /**
  * ArchiveResolver resolves archive contexts by various selectors.
@@ -24,23 +23,19 @@ use TLU_Headless_API\Integrations\PermalinkManagerIntegration;
 final class ArchiveResolver implements Service {
 
 	private ?PolylangIntegration $polylang;
-	private ?PermalinkManagerIntegration $permalink_manager;
 	private ?UrlTransformer $url_transformer;
 
 	/**
 	 * Constructor.
 	 *
 	 * @param PolylangIntegration|null $polylang Optional Polylang integration.
-	 * @param PermalinkManagerIntegration|null $permalink_manager Optional Permalink Manager integration.
 	 * @param UrlTransformer|null $url_transformer Optional URL transformer.
 	 */
 	public function __construct(
 		?PolylangIntegration $polylang = null,
-		?PermalinkManagerIntegration $permalink_manager = null,
 		?UrlTransformer $url_transformer = null
 	) {
 		$this->polylang = $polylang ?? new PolylangIntegration();
-		$this->permalink_manager = $permalink_manager;
 		$this->url_transformer = $url_transformer ?? new UrlTransformer();
 	}
 

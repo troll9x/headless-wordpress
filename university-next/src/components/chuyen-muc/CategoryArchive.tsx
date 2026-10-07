@@ -78,7 +78,7 @@ function PostImage({
 }
 
 function PrimaryPost({ post, locale }: { post: WPPost; locale: Locale }) {
-  const href = buildPostUrl(post.slug, locale, post.link);
+  const href = buildPostUrl(post.slug, locale, post.link, post.id, post.canonical_path);
 
   return (
     <article className={`${blogArchiveStyles.primaryBox} group overflow-hidden bg-white`}>
@@ -113,7 +113,7 @@ function HorizontalPost({
   locale: Locale;
   compact?: boolean;
 }) {
-  const href = buildPostUrl(post.slug, locale, post.link);
+  const href = buildPostUrl(post.slug, locale, post.link, post.id, post.canonical_path);
 
   return (
     <article
@@ -180,7 +180,7 @@ function TitleOnlyLayout({ posts, locale }: { posts: WPPost[]; locale: Locale })
       {posts.map((post) => (
         <article key={post.id} className="px-5 py-5 transition-colors hover:bg-slate-50">
           <h2 className="text-lg font-semibold leading-snug text-[#0118d8] sm:text-xl">
-            <Link href={buildPostUrl(post.slug, locale, post.link)} className="hover:text-[#007cba]">
+            <Link href={buildPostUrl(post.slug, locale, post.link, post.id, post.canonical_path)} className="hover:text-[#007cba]">
               {stripHtml(post.title.rendered)}
             </Link>
           </h2>
@@ -200,7 +200,7 @@ function RecruitmentLayout({ posts, locale }: { posts: WPPost[]; locale: Locale 
   return (
     <div className={recruitmentListStyles.root}>
       {posts.map((post) => {
-        const href = buildPostUrl(post.slug, locale, post.link);
+        const href = buildPostUrl(post.slug, locale, post.link, post.id, post.canonical_path);
         const media = getFeaturedImage(post);
         const metadata = [
           [isEn ? 'Salary' : 'Mức lương', getAcfText(post, 'muc_luong')],

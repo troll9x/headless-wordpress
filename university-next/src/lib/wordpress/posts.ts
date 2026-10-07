@@ -17,6 +17,7 @@ const POST_SUMMARY_FIELDS = [
   'status',
   'type',
   'link',
+  'canonical_path',
   'title',
   'excerpt',
   'author',
@@ -141,10 +142,9 @@ function normalizePermalinkPath(value: string): string {
  * Resolve a public WordPress permalink to a post.
  *
  * The REST `slug` field is the database post_name and does not necessarily
- * match a Permalink Manager URI. TLU permalinks append `-{postId}`, so after a
- * normal slug lookup we resolve that ID and verify its canonical `post.link`.
- * The exact-path comparison prevents an arbitrary numeric suffix from serving
- * the wrong article.
+ * match a Permalink Manager URI. TLU public routes append `-{postId}`; this
+ * stable ID also allows legacy custom URLs ending in an ID to resolve after
+ * that plugin is removed. The route handler redirects aliases canonically.
  */
 export async function getPostByPermalinkPath(
   path: string,
@@ -168,7 +168,7 @@ export async function getPostByPermalinkPath(
   const post = await getPostById(postId, locale);
   if (!post || post.type !== 'post') return null;
 
-  return normalizePermalinkPath(post.link) === normalizedPath ? post : null;
+  return post;
 }
 
 interface HeadlessPostDetails {

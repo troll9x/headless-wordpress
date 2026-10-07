@@ -170,11 +170,12 @@ class Schema {
 			],
 
 			"$h/search" => [
-				'description' => 'Bridge giữ nguyên ranking và dữ liệu từ WPX FULLTEXT search.',
+				'description' => 'Search through WPX FULLTEXT, filter by Polylang language, and return stable frontend article paths.',
 				'params'      => [
 					[ 'name' => 'q',    'type' => 'string',  'required' => true,  'description' => 'Từ khóa, tối thiểu 2 ký tự.' ],
 					[ 'name' => 'per',  'type' => 'integer', 'required' => false, 'default' => 8 ],
 					[ 'name' => 'page', 'type' => 'integer', 'required' => false, 'default' => 1 ],
+					[ 'name' => 'lang', 'type' => 'string', 'required' => false, 'description' => 'Optional language slug: vi or en.' ],
 				],
 			],
 

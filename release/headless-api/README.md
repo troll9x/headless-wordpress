@@ -147,4 +147,8 @@ API cho template `taxonomy-loai-tai-lieu.php`:
 
 ## Phiên bản
 
-Phiên bản plugin hiện tại: **2.0.7**. Phiên bản schema API: **4.8**.
+Phiên bản plugin hiện tại: **2.0.8**. Phiên bản schema API: **4.9**.
+
+### Di trú URL khỏi Permalink Manager Pro
+
+Khi plugin Permalink Manager Pro còn hoạt động, chạy `wp headless-api snapshot-permalinks` để xem trước và `wp headless-api snapshot-permalinks --apply` để lưu đường dẫn hiện hành vào post meta. Sau đó dùng `wp headless-api export-permalink-redirects --file=/tmp/tlu-article-redirects.json` để xuất alias bài viết sang URL chuẩn. Chỉ tắt Permalink Manager sau khi đã kiểm tra đủ snapshot, redirect và route trên staging.

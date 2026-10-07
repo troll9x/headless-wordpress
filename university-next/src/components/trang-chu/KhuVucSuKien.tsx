@@ -265,7 +265,7 @@ function ScheduledEventsLayout({
 }) {
   const [primary, ...secondary] = events.slice(0, SCHEDULED_LAYOUT_LIMIT);
   const primaryImage = getFeaturedImage(primary.post);
-  const primaryHref = buildPostUrl(primary.post.slug, locale, primary.post.link);
+  const primaryHref = buildPostUrl(primary.post.slug, locale, primary.post.link, primary.post.id, primary.post.canonical_path);
   const primaryCategory = getFirstCategory(primary.post);
 
   return (
@@ -307,7 +307,7 @@ function ScheduledEventsLayout({
           style={{ gridTemplateRows: `repeat(${secondary.length}, minmax(0, 1fr))` }}
         >
           {secondary.map((event) => {
-            const href = buildPostUrl(event.post.slug, locale, event.post.link);
+            const href = buildPostUrl(event.post.slug, locale, event.post.link, event.post.id, event.post.canonical_path);
             const category = getFirstCategory(event.post);
 
             return (
@@ -438,7 +438,7 @@ function EventCardSlider({ posts, locale }: { posts: WPPost[]; locale: Locale })
               isEnglish ? 'en-US' : 'vi-VN',
             );
             const image = getFeaturedImage(post);
-            const href = buildPostUrl(post.slug, locale, post.link);
+            const href = buildPostUrl(post.slug, locale, post.link, post.id, post.canonical_path);
 
             return (
               <div

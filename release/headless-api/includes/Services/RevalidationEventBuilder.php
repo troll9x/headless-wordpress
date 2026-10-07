@@ -384,6 +384,12 @@ final class RevalidationEventBuilder {
 		if ( $current_path ) {
 			$paths[] = $current_path;
 		}
+		if ( 'post' === $post->post_type ) {
+			$canonical_path = $this->normalize_url_to_path( CanonicalUrlBuilder::post_url( $post ) );
+			if ( $canonical_path && $canonical_path !== $current_path ) {
+				$paths[] = $canonical_path;
+			}
+		}
 
 		// Thêm previous path nếu có
 		if ( isset( $context['previous_path'] ) && $context['previous_path'] !== $current_path ) {

@@ -134,7 +134,7 @@ function RelatedPosts({ posts, locale }: { posts: WPPost[]; locale: Locale }) {
       <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         {posts.map((relatedPost) => {
           const image = getFeaturedImage(relatedPost);
-          const href = buildPostUrl(relatedPost.slug, locale, relatedPost.link);
+          const href = buildPostUrl(relatedPost.slug, locale, relatedPost.link, relatedPost.id, relatedPost.canonical_path);
           const title = stripHtml(relatedPost.title.rendered);
 
           return (
@@ -320,7 +320,7 @@ export default function ChiTietBaiViet({
             <nav className="mt-8 grid gap-4 border-y border-slate-200 py-6 sm:grid-cols-2" aria-label="Article navigation">
               <div>
                 {previousPost && (
-                  <Link href={buildPostUrl(previousPost.slug, locale, previousPost.link)} className="group block">
+                  <Link href={buildPostUrl(previousPost.slug, locale, previousPost.link, previousPost.id, previousPost.canonical_path)} className="group block">
                     <span className="text-xs uppercase tracking-wide text-slate-500">
                       ← {isEn ? 'Previous article' : 'Bài trước'}
                     </span>
@@ -332,7 +332,7 @@ export default function ChiTietBaiViet({
               </div>
               <div className="text-left sm:text-right">
                 {nextPost && (
-                  <Link href={buildPostUrl(nextPost.slug, locale, nextPost.link)} className="group block">
+                  <Link href={buildPostUrl(nextPost.slug, locale, nextPost.link, nextPost.id, nextPost.canonical_path)} className="group block">
                     <span className="text-xs uppercase tracking-wide text-slate-500">
                       {isEn ? 'Next article' : 'Bài tiếp theo'} →
                     </span>

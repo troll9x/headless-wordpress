@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
+import { useState } from 'react';
 import './chuyen-ngon-ngu.css';
 
 /**
@@ -66,9 +67,33 @@ export default function ChuyenNgonNgu() {
   const pathname = usePathname();
   const router = useRouter();
   const isVietnamese = !pathname.startsWith('/en');
+  const [isSwitching, setIsSwitching] = useState(false);
 
-  function handleChange() {
-    const nextPath = isVietnamese ? getEnglishPath(pathname) : getVietnamesePath(pathname);
+  async function handleChange() {
+    if (isSwitching) return;
+    setIsSwitching(true);
+    const targetLocale = isVietnamese ? 'en' : 'vi';
+    const fallbackPath = isVietnamese ? getEnglishPath(pathname) : getVietnamesePath(pathname);
+    const articleId = pathname.split('/').at(-1)?.match(/-(\d+)$/)?.[1];
+    let nextPath = fallbackPath;
+
+    // Article translations have their own slugs. Resolve by stable ID through
+    // the Headless API instead of copying the current locale's slug.
+    if (articleId) {
+      try {
+        const response = await fetch(`/api/translation?id=${articleId}&lang=${targetLocale}`, {
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+        });
+        const payload = await response.json() as { path?: unknown };
+        nextPath = response.ok && typeof payload.path === 'string'
+          ? payload.path
+          : targetLocale === 'en' ? '/en' : '/';
+      } catch {
+        nextPath = targetLocale === 'en' ? '/en' : '/';
+      }
+    }
+
     const query = window.location.search.replace(/^\?/, '');
     const hash = window.location.hash;
     router.push(`${nextPath}${query ? `?${query}` : ''}${hash}`);
@@ -80,6 +105,7 @@ export default function ChuyenNgonNgu() {
         type="checkbox"
         checked={isVietnamese}
         onChange={handleChange}
+        disabled={isSwitching}
         aria-label={isVietnamese ? 'Chuyển sang tiếng Anh' : 'Switch to Vietnamese'}
       />
       <span className="track">

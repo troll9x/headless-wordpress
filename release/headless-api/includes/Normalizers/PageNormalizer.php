@@ -9,6 +9,7 @@ use TLU_Headless_API\Contracts\NormalizerInterface;
 use TLU_Headless_API\Integrations\AcfIntegration;
 use TLU_Headless_API\Integrations\PolylangIntegration;
 use TLU_Headless_API\Services\UrlTransformer;
+use TLU_Headless_API\Services\CanonicalUrlBuilder;
 
 /**
  * Xây dựng response đầy đủ của một trang (WP_Post) bao gồm ACF và SEO.
@@ -67,7 +68,10 @@ class PageNormalizer implements NormalizerInterface {
 			'title'          => get_the_title( $post ),
 			'excerpt'        => wp_strip_all_tags( get_the_excerpt( $post ) ),
 			'content'        => apply_filters( 'the_content', $post->post_content ),
-			'link'           => $this->transformer->transform_navigation_url( get_permalink( $post ) ),
+			'link'           => 'post' === $post->post_type
+				? CanonicalUrlBuilder::post_url( $post )
+				: $this->transformer->transform_navigation_url( get_permalink( $post ) ),
+			'canonical_path' => 'post' === $post->post_type ? CanonicalUrlBuilder::post_path( $post ) : '',
 			'type'           => $post->post_type,
 			'date'           => $post->post_date,
 			'modified'       => $post->post_modified,
@@ -91,7 +95,10 @@ class PageNormalizer implements NormalizerInterface {
 			'slug'           => $post->post_name,
 			'title'          => get_the_title( $post ),
 			'excerpt'        => wp_strip_all_tags( get_the_excerpt( $post ) ),
-			'link'           => $this->transformer->transform_navigation_url( get_permalink( $post ) ),
+			'link'           => 'post' === $post->post_type
+				? CanonicalUrlBuilder::post_url( $post )
+				: $this->transformer->transform_navigation_url( get_permalink( $post ) ),
+			'canonical_path' => 'post' === $post->post_type ? CanonicalUrlBuilder::post_path( $post ) : '',
 			'type'           => $post->post_type,
 			'date'           => $post->post_date,
 			'modified'       => $post->post_modified,
@@ -150,9 +157,13 @@ class PageNormalizer implements NormalizerInterface {
 
 		foreach ( $translations as $trans ) {
 			$result[] = [
+				'id'       => (int) $trans['id'],
+				'slug'     => (string) get_post_field( 'post_name', (int) $trans['id'] ),
 				'language' => $trans['language'],
 				'locale'   => $trans['locale'],
-				'url'      => $this->transformer->transform_navigation_url( $trans['url'] ),
+				'url'      => isset( $trans['id'], $trans['language'] ) && 'post' === get_post_type( (int) $trans['id'] )
+					? CanonicalUrlBuilder::post_url( get_post( (int) $trans['id'] ) )
+					: $this->transformer->transform_navigation_url( $trans['url'] ),
 			];
 		}
 

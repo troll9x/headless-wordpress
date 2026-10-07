@@ -1,5 +1,11 @@
 # Nhật ký thay đổi
 
+## [2.0.8] - 2026-10-07
+### Changed
+- Add locale-aware search filtering and return stable frontend article paths independent of Permalink Manager.
+- Include translation IDs/slugs and remove the Content Resolver's Permalink Manager dependency.
+- Bump API schema to 4.9.
+
 ## [2.0.7] - 2026-10-03
 ### Bảo mật và hiệu năng
 - Xác thực HMAC cho định danh người tìm kiếm do frontend chuyển tiếp; request không có chữ ký hợp lệ vẫn giới hạn theo `REMOTE_ADDR`.

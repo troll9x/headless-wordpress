@@ -14,7 +14,9 @@ export async function getPostsByCategories(
   locale: Locale = 'vi',
   includeChildren = false,
 ): Promise<WPPost[]> {
-  const categories = await getCategoriesBySlugs(slugs, locale).catch(() => []);
+  // Keep CMS errors distinct from a valid empty category so callers can
+  // retry/report degraded homepage sections instead of caching false empties.
+  const categories = await getCategoriesBySlugs(slugs, locale);
   for (const cat of categories) {
     const categoryIds = includeChildren
       ? await getCategoryTreeIds(cat.id, locale)
@@ -24,7 +26,7 @@ export async function getPostsByCategories(
       per_page: perPage,
       orderby: 'date',
       order: 'desc',
-    }, locale).catch(() => [] as WPPost[]);
+    }, locale);
     if (posts.length > 0) return posts;
   }
   return [];
@@ -38,6 +40,6 @@ export async function getFirstPageBySlug(
   slugs: readonly string[],
   locale: Locale = 'vi',
 ): Promise<WPPage | null> {
-  const pages = await getPagesBySlugs(slugs, locale).catch(() => []);
+  const pages = await getPagesBySlugs(slugs, locale);
   return pages[0] ?? null;
 }

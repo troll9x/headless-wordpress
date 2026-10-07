@@ -41,7 +41,7 @@ function ArticleImage({ post, sizes }: { post: WPPost; sizes: string }) {
 }
 
 function ArticleCard({ post, locale }: { post: WPPost; locale: Locale }) {
-  const href = buildPostUrl(post.slug, locale, post.link);
+  const href = buildPostUrl(post.slug, locale, post.link, post.id, post.canonical_path);
   const category = getCategory(post);
   return (
     <article className="group overflow-hidden rounded-md bg-white shadow-[0_2px_12px_rgba(15,23,42,0.12)]">
@@ -65,7 +65,7 @@ function ArticleList({ posts, locale }: { posts: WPPost[]; locale: Locale }) {
   return (
     <div className="divide-y divide-slate-200 rounded-md bg-slate-50 px-4">
       {posts.map((post) => {
-        const href = buildPostUrl(post.slug, locale, post.link);
+        const href = buildPostUrl(post.slug, locale, post.link, post.id, post.canonical_path);
         const category = getCategory(post);
         return (
           <article key={post.id} className="py-4 first:pt-4">

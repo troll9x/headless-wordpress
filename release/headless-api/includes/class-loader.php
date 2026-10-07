@@ -42,7 +42,6 @@ class Loader {
 
 		// ── 3. Integrations ───────────────────────────────────────────────────
 		$i = $base . 'Integrations/';
-require_once $i . 'PermalinkManagerIntegration.php';
 require_once $i . 'AcfIntegration.php';
 require_once $i . 'PolylangIntegration.php';
 require_once $i . 'RankMathIntegration.php';
@@ -51,6 +50,7 @@ require_once $i . 'PreviewLinkIntegration.php';
 
 		// ── 3.1. Share services used by Normalizers and Endpoints ─────────────────────────────
 		$s = $base . 'Services/';
+		require_once $s . 'CanonicalUrlBuilder.php';
 		require_once $s . 'UrlTransformer.php';
 		require_once $s . 'ContentTypeRegistry.php';
 		require_once $s . 'ContentResolver.php';

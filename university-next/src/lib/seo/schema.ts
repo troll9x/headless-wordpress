@@ -12,7 +12,7 @@ export function buildArticleSchema(post: WPPost, locale: Locale): object {
     headline: title,
     datePublished: post.date,
     dateModified: post.modified,
-    url: `${FRONTEND_URL}${buildPostUrl(post.slug, locale, post.link)}`,
+    url: `${FRONTEND_URL}${buildPostUrl(post.slug, locale, post.link, post.id, post.canonical_path)}`,
     publisher: {
       '@type': 'Organization',
       name: SITE_NAME,

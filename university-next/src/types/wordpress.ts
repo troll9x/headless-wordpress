@@ -144,6 +144,8 @@ export interface WPPost {
   status: string;
   type: string;
   link: string;
+  /** Stable public article route supplied by the Headless API migration. */
+  canonical_path?: string;
   title: WPRendered;
   content: WPRendered;
   excerpt: WPRendered;

@@ -176,7 +176,7 @@ function getSlideDelay(posts: WPPost[]): number {
 }
 
 function getPostHref(post: WPPost, locale: Locale): string {
-  return buildPostUrl(post.slug, locale, post.link);
+  return buildPostUrl(post.slug, locale, post.link, post.id, post.canonical_path);
 }
 
 function trimWords(value: string, limit: number): string {

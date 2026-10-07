@@ -29,6 +29,13 @@ export default function TrangChu({ data, locale }: TrangChuProps) {
 
   return (
     <div>
+      {data.loadErrors.length > 0 && (
+        <p role="status" className="mx-auto max-w-[1400px] px-4 py-2 text-sm text-amber-800 sm:px-6 lg:px-8">
+          {locale === 'en'
+            ? 'Some sections could not be refreshed. Please try again shortly.'
+            : 'Một số mục chưa tải được dữ liệu mới. Vui lòng thử tải lại sau ít phút.'}
+        </p>
+      )}
       {/* 1. Banner chính */}
       <BannerChinh data={hero} slides={data.heroSlides} locale={locale} />
 

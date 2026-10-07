@@ -45,6 +45,12 @@ class Plugin {
 			wp_schedule_event( time() + HOUR_IN_SECONDS, 'hourly', RateLimiter::CLEANUP_HOOK );
 		}
 		add_action( 'rest_api_init', [ $this, 'register_rest_routes' ] );
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			require_once TLU_HEADLESS_API_PATH . 'includes/cli/class-permalink-snapshot-command.php';
+			$command = new CLI\PermalinkSnapshotCommand();
+			\WP_CLI::add_command( 'headless-api snapshot-permalinks', [ $command, 'snapshot' ] );
+			\WP_CLI::add_command( 'headless-api export-permalink-redirects', [ $command, 'export_redirects' ] );
+		}
 		add_filter( 'headless_api_allowed_options_pages', [ $this, 'allow_public_options_pages' ] );
 
 		// Invalidation cache khi nội dung thay đổi.
@@ -78,6 +84,19 @@ class Plugin {
 	}
 
 	public function register_rest_routes(): void {
+		register_rest_field( 'post', 'canonical_path', [
+			'get_callback' => static function ( array $object ): string {
+				$post = get_post( (int) ( $object['id'] ?? 0 ) );
+				return $post instanceof \WP_Post
+					? Services\CanonicalUrlBuilder::post_path( $post )
+					: '';
+			},
+			'schema' => [
+				'description' => 'Stable frontend path independent of WordPress permalink filters.',
+				'type'        => 'string',
+				'context'     => [ 'view', 'edit' ],
+			],
+		] );
 		( new Rest_Service_Provider() )->register();
 	}
 

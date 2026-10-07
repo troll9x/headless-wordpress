@@ -1,6 +1,5 @@
 import { cache } from 'react';
 import { connection } from 'next/server';
-import { unstable_cache } from 'next/cache';
 import { getPostsByCategories, getFirstPageBySlug } from '@/lib/api/homepage';
 import { enrichPostsWithHeadlessAcf, getPostSummaries } from '@/lib/wordpress/posts';
 import {
@@ -23,7 +22,6 @@ import type { Locale } from '@/types/ngon-ngu';
 import { stripHtml } from '@/lib/utils/html';
 import type { WPApiError, WPPage, WPPost, WPMedia } from '@/types/wordpress';
 import type { HomepageData, HeroData, SiteStatistic } from '@/types/homepage';
-import { CACHE_TAGS, REVALIDATE_POSTS } from '@/config/env/constants';
 
 // This deadline includes time spent waiting for a WordPress request slot.
 // CMS responses can take 2-5 seconds, so 12 seconds caused cold homepage
@@ -35,6 +33,7 @@ function withHomepageFallback<T>(
   label: string,
   promise: Promise<T>,
   fallback: T,
+  loadErrors: string[],
 ): Promise<T> {
   return new Promise((resolve) => {
     let settled = false;
@@ -46,6 +45,7 @@ function withHomepageFallback<T>(
     };
     const timeoutId = setTimeout(() => {
       console.warn(`[homepage] ${label} timed out after ${HOMEPAGE_DATA_TIMEOUT_MS}ms.`);
+      loadErrors.push(label);
       finish(fallback);
     }, HOMEPAGE_DATA_TIMEOUT_MS);
 
@@ -53,7 +53,9 @@ function withHomepageFallback<T>(
     promise.then(
       finish,
       (error: unknown) => {
+        if (settled) return;
         console.warn(`[homepage] ${label} failed; using fallback.`, error);
+        loadErrors.push(label);
         finish(fallback);
       },
     );
@@ -82,7 +84,7 @@ async function getLatestPostByCategoryCandidates(
   locale: Locale,
   includeChildren = false,
 ) {
-  const categories = await getCategoriesBySlugs(slugs, locale).catch(() => []);
+  const categories = await getCategoriesBySlugs(slugs, locale);
   for (const category of categories) {
 
     const categoryIds = includeChildren
@@ -93,7 +95,7 @@ async function getLatestPostByCategoryCandidates(
       per_page: 1,
       orderby: 'date',
       order: 'desc',
-    }, locale).catch(() => []);
+    }, locale);
 
     if (posts[0]) {
       const media = posts[0]._embedded?.['wp:featuredmedia']?.[0];
@@ -110,6 +112,9 @@ async function getLatestPostByCategoryCandidates(
 async function loadHomepageData(
   locale: Locale = 'vi'
 ): Promise<HomepageData> {
+  const loadErrors: string[] = [];
+  const safe = <T,>(label: string, promise: Promise<T>, fallback: T) =>
+    withHomepageFallback(label, promise, fallback, loadErrors);
   const [
     heroPage,
     heroSlides,
@@ -130,34 +135,36 @@ async function loadHomepageData(
     moments,
     momentGallery,
   ] = await Promise.all([
-    withHomepageFallback('hero', getFirstPageBySlug(PAGE_SLUGS.HERO, locale), null),
-    withHomepageFallback('hero slides', getHeroSlides(locale), []),
+    safe('hero', getFirstPageBySlug(PAGE_SLUGS.HERO, locale), null),
+    safe('hero slides', getHeroSlides(locale), []),
     getSiteStaticImage(locale).catch((error: unknown) => {
       console.warn('[homepage] CMS static image unavailable; section omitted.', error);
+      loadErrors.push('static image');
       return null;
     }),
-    withHomepageFallback('announcements', getPostsByCategories(CATEGORY_SLUGS.ANNOUNCEMENTS, 8, locale), []),
+    safe('announcements', getPostsByCategories(CATEGORY_SLUGS.ANNOUNCEMENTS, 8, locale), []),
     // Match the WordPress shortcode and merge the selected HOT/NEW posts.
-    withHomepageFallback('news', getHomepageNews(locale), []),
+    safe('news', getHomepageNews(locale), []),
     // Bổ sung ACF từ Headless API vì /wp/v2 có thể không công khai lịch sự kiện.
-    withHomepageFallback('events', getHomepageEvents(locale), []),
-    withHomepageFallback('admissions', getFirstPageBySlug(PAGE_SLUGS.ADMISSIONS, locale), null),
-    withHomepageFallback('featured training', getLatestPostByCategoryCandidates(CATEGORY_SLUGS.FEATURE_TRAINING, locale, true), null),
-    withHomepageFallback('featured students', getLatestPostByCategoryCandidates(CATEGORY_SLUGS.FEATURE_STUDENTS, locale), null),
-    withHomepageFallback('featured alumni', getLatestPostByCategoryCandidates(CATEGORY_SLUGS.FEATURE_ALUMNI, locale), null),
-    withHomepageFallback('faculties', getFacultySliderItems(locale), []),
-    withHomepageFallback('partner logos', getPartnerLogos(locale), []),
-    withHomepageFallback('partners', getPostsByCategories(CATEGORY_SLUGS.PARTNERS, 12, locale), []),
-    withHomepageFallback('cooperation', getPostsByCategories(CATEGORY_SLUGS.COOPERATION, 6, locale, true), []),
-    withHomepageFallback('research', getPostsByCategories(CATEGORY_SLUGS.RESEARCH, 6, locale, true), []),
-    withHomepageFallback('community', getPostsByCategories(CATEGORY_SLUGS.COMMUNITY, 6, locale), []),
-    withHomepageFallback('moments', getPostsByCategories(CATEGORY_SLUGS.MOMENTS, 15, locale), []),
-    withHomepageFallback('media gallery', getHomeMediaGallery(locale), null),
+    safe('events', getHomepageEvents(locale), []),
+    safe('admissions', getFirstPageBySlug(PAGE_SLUGS.ADMISSIONS, locale), null),
+    safe('featured training', getLatestPostByCategoryCandidates(CATEGORY_SLUGS.FEATURE_TRAINING, locale, true), null),
+    safe('featured students', getLatestPostByCategoryCandidates(CATEGORY_SLUGS.FEATURE_STUDENTS, locale), null),
+    safe('featured alumni', getLatestPostByCategoryCandidates(CATEGORY_SLUGS.FEATURE_ALUMNI, locale), null),
+    safe('faculties', getFacultySliderItems(locale), []),
+    safe('partner logos', getPartnerLogos(locale), []),
+    safe('partners', getPostsByCategories(CATEGORY_SLUGS.PARTNERS, 12, locale), []),
+    safe('cooperation', getPostsByCategories(CATEGORY_SLUGS.COOPERATION, 6, locale, true), []),
+    safe('research', getPostsByCategories(CATEGORY_SLUGS.RESEARCH, 6, locale, true), []),
+    safe('community', getPostsByCategories(CATEGORY_SLUGS.COMMUNITY, 6, locale), []),
+    safe('moments', getPostsByCategories(CATEGORY_SLUGS.MOMENTS, 15, locale), []),
+    safe('media gallery', getHomeMediaGallery(locale), null),
   ]);
 
   const compactPosts = (posts: WPPost[]) => posts.map(compactHomepagePost);
 
   return {
+    loadErrors,
     heroPage,
     heroSlides,
     staticImage,
@@ -181,17 +188,12 @@ async function loadHomepageData(
   };
 }
 
-// Reuse the assembled snapshot across requests instead of awaiting all CMS
-// integrations on every render. Broad tags keep webhook invalidation working.
-const getCachedHomepageData = unstable_cache(loadHomepageData, ['homepage-v1'], {
-  revalidate: REVALIDATE_POSTS,
-  tags: [CACHE_TAGS.POSTS, CACHE_TAGS.PAGES, CACHE_TAGS.CATEGORIES, CACHE_TAGS.MEDIA],
-});
-
 export const getFullHomepageData = cache(async (locale: Locale = 'vi'): Promise<HomepageData> => {
-  // Production builds must not depend on WordPress being reachable.
+  // WordPress fetches already use tagged 60-second caching. Do not cache the
+  // assembled fallback arrays: a transient upstream error must not turn into
+  // a cached "no content" homepage for every visitor.
   await connection();
-  return getCachedHomepageData(locale);
+  return loadHomepageData(locale);
 });
 
 function compactMedia(media: WPMedia): WPMedia {
@@ -240,6 +242,7 @@ function compactHomepagePost(post: WPPost): WPPost {
     status: post.status ?? 'publish',
     type: post.type ?? 'post',
     link: post.link,
+    canonical_path: post.canonical_path,
     title: post.title,
     content: { rendered: '' },
     excerpt: post.excerpt ?? { rendered: '' },

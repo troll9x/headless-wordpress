@@ -11,6 +11,7 @@ type Entry = MetadataRoute.Sitemap[number];
 
 interface PublicItem {
   link?: string;
+  canonical_path?: string;
   modified?: string;
   status?: string;
   slug?: string;
@@ -48,7 +49,10 @@ function publicEntry(item: PublicItem): Entry | null {
   try {
     const source = new URL(item.link);
     if (source.origin !== wpOrigin || source.search || source.hash) return null;
-    const pathname = source.pathname.replace(/\/+$/, '') || '/';
+    const canonicalPath = item.canonical_path;
+    const pathname = canonicalPath?.startsWith('/') && !canonicalPath.startsWith('//')
+      ? canonicalPath.replace(/\/+$/, '') || '/'
+      : source.pathname.replace(/\/+$/, '') || '/';
     if (pathname.startsWith('/wp-') || pathname.startsWith('/index.php')) return null;
     const modified = item.modified ? new Date(item.modified) : null;
     return {
@@ -106,7 +110,7 @@ const getDynamicEntries = unstable_cache(async (): Promise<Entry[]> => {
   // small enough to include in full. This avoids flooding the CMS on a miss.
   const [posts, pages, categories, documents, members, terms] = await Promise.all([
     collection<PublicItem>('/posts', 10, CACHE_TAGS.POSTS, {
-      status: 'publish', _fields: 'link,modified,status',
+      status: 'publish', _fields: 'link,canonical_path,modified,status',
     }),
     collection<PublicItem>('/pages', 2, CACHE_TAGS.PAGES, {
       status: 'publish', _fields: 'link,modified,status',

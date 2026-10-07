@@ -26,7 +26,7 @@ export default function NewsCard({
   locale = 'vi',
 }: NewsCardProps) {
   const image = getFeaturedImage(post);
-  const href = buildPostUrl(post.slug, locale, post.link);
+  const href = buildPostUrl(post.slug, locale, post.link, post.id, post.canonical_path);
 
   if (variant === 'horizontal') {
     return (

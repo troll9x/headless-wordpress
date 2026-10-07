@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import ChiTietBaiViet from '@/components/bai-viet/ChiTietBaiViet';
 import CategoryArchive from '@/components/chuyen-muc/CategoryArchive';
 import CategoryBanner from '@/components/chuyen-muc/CategoryBanner';
@@ -88,7 +88,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const title = stripHtml(post.title.rendered);
   const description = stripHtml(post.excerpt.rendered || post.content.rendered).slice(0, 180);
-  const canonical = `${FRONTEND_URL}${buildPostUrl(post.slug, request.locale, post.link)}`;
+  const canonical = `${FRONTEND_URL}${buildPostUrl(post.slug, request.locale, post.link, post.id, post.canonical_path)}`;
 
   const targetLocale: Locale = request.locale === 'vi' ? 'en' : 'vi';
   const translatedUrl = getTranslatedPostUrl(post, targetLocale);
@@ -206,6 +206,10 @@ export default async function WordPressPermalinkPage({ params, searchParams }: P
   if (!request.isFlatContentPath) notFound();
   const post = await getPostByPermalinkPath((await params).path.join('/'), request.locale).catch(() => null);
   if (!post) notFound();
+
+  const canonicalPath = buildPostUrl(post.slug, request.locale, post.link, post.id, post.canonical_path);
+  const requestPath = `/${(await params).path.join('/')}`.replace(/\/$/, '');
+  if (requestPath !== canonicalPath.replace(/\/$/, '')) permanentRedirect(canonicalPath);
 
   return renderPost(post, request.locale);
 }

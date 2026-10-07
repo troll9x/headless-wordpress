@@ -50,7 +50,8 @@ class Search {
 		$result = $this->service->search(
 			$query,
 			(int) $request->get_param( 'per' ),
-			(int) $request->get_param( 'page' )
+			(int) $request->get_param( 'page' ),
+			(string) $request->get_param( 'lang' )
 		);
 
 		if ( is_wp_error( $result ) ) {
@@ -92,6 +93,12 @@ class Search {
 				'default'           => 1,
 				'sanitize_callback' => 'absint',
 				'validate_callback' => fn( $value ) => is_numeric( $value ) && (int) $value >= 1,
+			],
+			'lang' => [
+				'required'          => false,
+				'default'           => '',
+				'sanitize_callback' => fn( $value ) => in_array( (string) $value, [ 'vi', 'en' ], true ) ? (string) $value : '',
+				'validate_callback' => fn( $value ) => '' === $value || in_array( (string) $value, [ 'vi', 'en' ], true ),
 			],
 		];
 	}
