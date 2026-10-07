@@ -67,6 +67,12 @@ export interface WpCollectionResult<T> {
   totalPages: number;
 }
 
+export interface WpFetchUrlOptions {
+  revalidate?: number;
+  tags?: string[];
+  timeoutMs?: number;
+}
+
 interface WpPayloadResult<T> {
   data: T;
   response: Response;
@@ -214,39 +220,19 @@ async function executeWpPayloadNow<T>(
  */
 export async function wpFetchUrl<T>(
   fullUrl: string,
-  revalidate = REVALIDATE_POSTS,
+  options: number | WpFetchUrlOptions = REVALIDATE_POSTS,
 ): Promise<T> {
-  return coalesce(`wp-url:${fullUrl}:${revalidate}`, async () => {
-    const response = await fetch(fullUrl, {
-      next: { revalidate },
-      headers: { Accept: 'application/json' },
-      signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
-    });
+  const normalized = typeof options === 'number' ? { revalidate: options } : options;
+  const revalidate = normalized.revalidate ?? REVALIDATE_POSTS;
+  const tags = normalized.tags;
+  const timeoutMs = normalized.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const tagKey = tags?.slice().sort().join(',') ?? '';
+  const url = new URL(fullUrl);
+  const execute = () => executeWpPayload<T>(url, { revalidate, tags, timeoutMs })
+    .then((result) => result.data);
 
-    if (!response.ok) {
-      const payload = await parseJsonSafely(response);
-      const parsedError = parseWordPressRestError(payload);
-
-      throw new WordPressApiError({
-        endpoint: fullUrl,
-        status: response.status,
-        code: parsedError.code,
-        message:
-          parsedError.message ??
-          `WordPress API request failed with status ${response.status}.`,
-      });
-    }
-
-    const payload = await parseJsonSafely(response);
-    if (payload === undefined || payload === null) {
-      throw new WordPressResponseError(
-        fullUrl,
-        'WordPress API returned an empty or invalid JSON response.',
-      );
-    }
-
-    return payload as T;
-  });
+  if (revalidate === 0) return execute();
+  return coalesce(`wp-url:${url.toString()}:${revalidate}:${tagKey}`, execute);
 }
 
 async function parseJsonSafely(response: Response): Promise<unknown | undefined> {

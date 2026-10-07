@@ -1,7 +1,11 @@
 import { cache } from 'react';
 import { connection } from 'next/server';
 import { getPostsByCategories, getFirstPageBySlug } from '@/lib/api/homepage';
-import { enrichPostsWithHeadlessAcf, getPostSummaries } from '@/lib/wordpress/posts';
+import {
+  enrichPostsWithHeadlessAcf,
+  enrichPostsWithHeadlessArchiveAcf,
+  getPostSummaries,
+} from '@/lib/wordpress/posts';
 import {
   getCategoriesBySlugs,
   getCategoryTreeIds,
@@ -63,8 +67,23 @@ function withHomepageFallback<T>(
 }
 
 async function getHomepageEvents(locale: Locale) {
-  const posts = await getPostsByCategories(CATEGORY_SLUGS.EVENTS, 12, locale);
-  return enrichPostsWithHeadlessAcf(posts, locale);
+  const categories = await getCategoriesBySlugs(CATEGORY_SLUGS.EVENTS, locale);
+
+  for (const category of categories) {
+    const params = {
+      categories: [category.id],
+      per_page: 12,
+      orderby: 'date',
+      order: 'desc',
+    } as const;
+    const posts = await getPostSummaries(params, locale);
+    if (posts.length === 0) continue;
+
+    // Keep core REST's embedded image and term data while batch-loading ACF.
+    return enrichPostsWithHeadlessArchiveAcf(posts, 'category', category.slug, locale);
+  }
+
+  return [];
 }
 
 async function getHomepageNews(locale: Locale) {

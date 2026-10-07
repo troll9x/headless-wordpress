@@ -1,7 +1,7 @@
 import { WP_API_URL, WP_SITE_URL } from '@/config/env/server';
 import { CACHE_TAGS, REVALIDATE_CATEGORIES, REVALIDATE_POSTS } from '@/constants/api';
-import { wpFetch } from '@/lib/wordpress/client';
-import { buildWordPressRestUrl, buildWordPressUrl } from '@/lib/wordpress/url';
+import { wpFetch, wpFetchCollection, wpFetchUrl } from '@/lib/wordpress/client';
+import { buildWordPressRestUrl } from '@/lib/wordpress/url';
 import { stripHtml } from '@/lib/utils/html';
 import type { Locale } from '@/types/ngon-ngu';
 import type { WPApiError, WPMedia } from '@/types/wordpress';
@@ -58,6 +58,52 @@ interface HeadlessDocumentTerm extends Omit<DocumentTerm, 'parent' | 'acf'> {
 
 interface HeadlessPageDocumentDetails {
   acf?: Record<string, unknown>;
+}
+
+interface HeadlessDocumentArchiveTerm {
+  id: number;
+  count?: number;
+  description?: string;
+  link?: string;
+  name: string;
+  slug: string;
+  parent?: number;
+}
+
+interface HeadlessDocumentArchiveItem {
+  id: number;
+  slug: string;
+  title: string;
+  excerpt?: string;
+  symbol?: string;
+  issued_date_display?: string;
+  thumbnail?: {
+    id?: number | null;
+    url?: string;
+    alt?: string;
+    title?: string;
+    mime_type?: string;
+    width?: number | null;
+    height?: number | null;
+  };
+  detail_url?: string;
+  document_count?: number;
+  action?: { type?: string; url?: string };
+}
+
+interface HeadlessDocumentArchiveGroup {
+  category: HeadlessDocumentArchiveTerm;
+  items: HeadlessDocumentArchiveItem[];
+  pagination: { total: number };
+}
+
+interface HeadlessDocumentArchiveResponse {
+  category: HeadlessDocumentArchiveTerm;
+  ancestors: HeadlessDocumentArchiveTerm[];
+  banner?: {
+    image?: { url?: string; alt?: string; width?: number; height?: number };
+  } | null;
+  groups: HeadlessDocumentArchiveGroup[];
 }
 
 export interface DocumentFileMedia {
@@ -200,17 +246,11 @@ async function getHeadlessDocumentTerm(
   );
 
   try {
-    const response = await fetch(url, {
-      headers: { Accept: 'application/json' },
-      next: {
-        revalidate: REVALIDATE_CATEGORIES,
-        tags: [CACHE_TAGS.CATEGORIES, `document-term-${slug}-${locale}`],
-      },
-      signal: AbortSignal.timeout(8_000),
+    const payload = await wpFetchUrl<HeadlessDocumentTerm>(url.toString(), {
+      revalidate: REVALIDATE_CATEGORIES,
+      tags: [CACHE_TAGS.CATEGORIES, `document-term-${slug}-${locale}`],
+      timeoutMs: 8_000,
     });
-    if (!response.ok) return null;
-
-    const payload = await response.json() as HeadlessDocumentTerm;
     return payload && typeof payload.id === 'number' ? payload : null;
   } catch {
     return null;
@@ -260,16 +300,10 @@ async function enrichDocumentWithAcf(
   });
 
   try {
-    const response = await fetch(url, {
-      headers: { Accept: 'application/json' },
-      next: {
-        revalidate: REVALIDATE_POSTS,
-        tags: [CACHE_TAGS.POSTS, `document-${document.slug}-${locale}`],
-      },
+    const details = await wpFetchUrl<HeadlessPageDocumentDetails>(url.toString(), {
+      revalidate: REVALIDATE_POSTS,
+      tags: [CACHE_TAGS.POSTS, `document-${document.slug}-${locale}`],
     });
-    if (!response.ok) return document;
-
-    const details = await response.json() as HeadlessPageDocumentDetails;
     return details.acf ? { ...document, acf: details.acf } : document;
   } catch {
     return document;
@@ -281,7 +315,7 @@ async function getDocumentsByTerm(
   limit: number,
   locale: Locale,
 ): Promise<{ documents: WPDocument[]; total: number }> {
-  const url = buildWordPressUrl(WP_API_URL, DOCUMENT_ENDPOINT, {
+  const params = {
     'loai-tai-lieu': termId,
     per_page: limit,
     page: 1,
@@ -289,30 +323,152 @@ async function getDocumentsByTerm(
     order: 'desc',
     _embed: 1,
     lang: locale,
-  });
+  } as const;
 
   try {
-    const response = await fetch(url, {
-      headers: { Accept: 'application/json' },
-      next: {
-        revalidate: REVALIDATE_POSTS,
-        tags: [CACHE_TAGS.POSTS, `documents-term-${termId}-${locale}`],
-      },
+    const result = await wpFetchCollection<WPDocument[]>(DOCUMENT_ENDPOINT, {
+      params,
+      revalidate: REVALIDATE_POSTS,
+      tags: [CACHE_TAGS.POSTS, `documents-term-${termId}-${locale}`],
     });
-    if (!response.ok) return { documents: [], total: 0 };
-
-    const documents = await response.json() as WPDocument[];
-    const total = Number.parseInt(response.headers.get('x-wp-total') ?? '', 10);
 
     return {
       documents: await Promise.all(
-        documents.map((document) => enrichDocumentWithAcf(document, locale)),
+        result.data.map((document) => enrichDocumentWithAcf(document, locale)),
       ),
-      total: Number.isFinite(total) ? total : documents.length,
+      total: result.total || result.data.length,
     };
   } catch {
     return { documents: [], total: 0 };
   }
+}
+
+function toDocumentTerm(term: HeadlessDocumentArchiveTerm): DocumentTerm {
+  return {
+    id: term.id,
+    count: term.count ?? 0,
+    description: term.description ?? '',
+    link: term.link ?? '',
+    name: term.name,
+    slug: term.slug,
+    taxonomy: 'loai-tai-lieu',
+    parent: term.parent ?? 0,
+  };
+}
+
+function toDocumentArchiveItem(
+  item: HeadlessDocumentArchiveItem,
+  termId: number,
+): WPDocument {
+  const image = item.thumbnail;
+  const featuredMedia: WPMedia[] = image?.url ? [{
+    id: image.id ?? 0,
+    date: '',
+    slug: '',
+    status: 'inherit',
+    type: 'attachment',
+    link: image.url,
+    title: { rendered: image.title ?? '' },
+    author: 0,
+    source_url: image.url,
+    alt_text: image.alt ?? '',
+    media_type: 'image',
+    mime_type: image.mime_type ?? '',
+    media_details: {
+      width: image.width ?? 0,
+      height: image.height ?? 0,
+      file: '',
+      sizes: {},
+    },
+  }] : [];
+  const fileUrl = item.action?.type === 'file' ? item.action.url : '';
+  const hasSingleFile = Boolean(fileUrl && item.document_count === 1);
+
+  return {
+    id: item.id,
+    date: '',
+    date_gmt: '',
+    modified: '',
+    modified_gmt: '',
+    slug: item.slug,
+    status: 'publish',
+    type: 'tai-lieu',
+    link: item.detail_url ?? '',
+    title: { rendered: item.title },
+    featured_media: image?.id ?? 0,
+    parent: 0,
+    'loai-tai-lieu': [termId],
+    acf: {
+      ngay_ban_hanh: item.issued_date_display ?? '',
+      ky_hieu: item.symbol ?? '',
+      tai_len_tai_lieu: hasSingleFile ? [{ tai_lieu: fileUrl }] : [],
+    },
+    _embedded: { 'wp:featuredmedia': featuredMedia },
+  };
+}
+
+async function getHeadlessDocumentTaxonomyData(
+  slug: string,
+  limit: number,
+  locale: Locale,
+  termsById: Map<number, DocumentTerm>,
+): Promise<DocumentTaxonomyData | null> {
+  const pageCount = Math.ceil(limit / 24);
+  const pages = await Promise.all(Array.from({ length: pageCount }, async (_, index) => {
+    const url = buildWordPressRestUrl(
+      WP_API_URL,
+      `/headless/v1/documents/categories/${encodeURIComponent(slug)}`,
+      { lang: locale, page: index + 1, per_page: 24 },
+    );
+
+    return wpFetchUrl<HeadlessDocumentArchiveResponse>(url.toString(), {
+      revalidate: REVALIDATE_POSTS,
+      tags: [CACHE_TAGS.POSTS, `document-archive-${slug}-${locale}`],
+    });
+  }));
+  const firstPage = pages[0];
+  if (!firstPage || !Array.isArray(firstPage.groups)) return null;
+
+  const groupById = new Map<number, {
+    term: DocumentTerm;
+    documents: WPDocument[];
+    total: number;
+  }>();
+
+  for (const page of pages) {
+    if (!Array.isArray(page.groups)) return null;
+    for (const group of page.groups) {
+      if (!group?.category || !Array.isArray(group.items)) continue;
+      const term = termsById.get(group.category.id) ?? toDocumentTerm(group.category);
+      const current = groupById.get(term.id) ?? {
+        term,
+        documents: [],
+        total: group.pagination?.total ?? 0,
+      };
+      current.documents.push(...group.items.map((item) => toDocumentArchiveItem(item, term.id)));
+      groupById.set(term.id, current);
+    }
+  }
+
+  const category = toDocumentTerm(firstPage.category);
+  const bannerImage = firstPage.banner?.image;
+  return {
+    term: termsById.get(category.id) ?? category,
+    ancestors: firstPage.ancestors.map((ancestor) => (
+      termsById.get(ancestor.id) ?? toDocumentTerm(ancestor)
+    )),
+    banner: bannerImage?.url ? {
+      url: bannerImage.url,
+      alt: bannerImage.alt ?? category.name,
+      width: bannerImage.width || 2560,
+      height: bannerImage.height || 551,
+    } : await resolveDocumentBanner(termsById.get(category.id) ?? category, locale),
+    groups: [...groupById.values()].map((group) => ({
+      ...group,
+      termPath: buildTermPath(group.term, termsById),
+      documents: group.documents.slice(0, limit),
+    })),
+  };
 }
 
 export async function getDocumentTaxonomyData(
@@ -329,6 +485,13 @@ export async function getDocumentTaxonomyData(
   if (term.id !== root.id && !isDescendantOf(term, root.id, termsById)) return null;
 
   const limit = Math.min(96, Math.max(6, loadCount * 6));
+  try {
+    const archive = await getHeadlessDocumentTaxonomyData(slug, limit, locale, termsById);
+    if (archive) return archive;
+  } catch {
+    // Keep the core REST fallback below for older Headless API deployments.
+  }
+
   const descendants = allTerms.filter((candidate) => (
     candidate.id !== term.id && isDescendantOf(candidate, term.id, termsById)
   ));

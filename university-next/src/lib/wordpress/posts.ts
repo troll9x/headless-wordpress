@@ -206,6 +206,67 @@ interface HeadlessPostDetails {
   } | null;
 }
 
+interface HeadlessArchivePost {
+  id: number;
+  acf?: Record<string, unknown>;
+}
+
+interface HeadlessArchiveResponse {
+  posts?: HeadlessArchivePost[];
+}
+
+/** Fetch ACF for an entire category archive in one Headless API request. */
+export async function getHeadlessArchiveAcf(
+  taxonomy: string,
+  term: string,
+  locale: Locale = 'vi',
+  perPage = 12,
+): Promise<Map<number, Record<string, unknown>> | null> {
+  const url = buildWordPressRestUrl(WP_API_URL, '/headless/v1/archive', {
+    taxonomy,
+    term,
+    lang: locale,
+    page: 1,
+    per_page: perPage,
+  });
+
+  try {
+    const response = await wpFetchUrl<HeadlessArchiveResponse>(url.toString(), {
+      revalidate: REVALIDATE_POSTS,
+      tags: [CACHE_TAGS.POSTS, `archive-${taxonomy}-${term}-${locale}`],
+    });
+    if (!Array.isArray(response.posts)) return null;
+
+    return new Map(
+      response.posts.flatMap((post) => (
+        post.acf && typeof post.acf === 'object' && !Array.isArray(post.acf)
+          ? [[post.id, post.acf] as const]
+          : []
+      )),
+    );
+  } catch {
+    return null;
+  }
+}
+
+/** Prefer batch archive ACF and fall back to per-post details on older CMS plugins. */
+export async function enrichPostsWithHeadlessArchiveAcf(
+  posts: WPPost[],
+  taxonomy: string,
+  term: string,
+  locale: Locale = 'vi',
+): Promise<WPPost[]> {
+  if (posts.length === 0) return posts;
+
+  const archiveAcf = await getHeadlessArchiveAcf(taxonomy, term, locale, posts.length);
+  if (!archiveAcf) return enrichPostsWithHeadlessAcf(posts, locale);
+
+  return posts.map((post) => ({
+    ...post,
+    ...(archiveAcf.has(post.id) ? { acf: archiveAcf.get(post.id) } : {}),
+  }));
+}
+
 export interface PostPageData {
   post: WPPost;
   relatedPosts: WPPost[];

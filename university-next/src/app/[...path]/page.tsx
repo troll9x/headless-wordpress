@@ -17,7 +17,7 @@ import {
   getPostCategoryBanner,
 } from '@/lib/wordpress/categories';
 import {
-  enrichPostsWithHeadlessAcf,
+  enrichPostsWithHeadlessArchiveAcf,
   getPostSummariesPage,
   getPostByPermalinkPath,
   getPostPageData,
@@ -190,7 +190,12 @@ async function renderCategory(
     ? firstPage
     : await getCategoryPostsPage({ ...query, page: currentPage }, request.locale, category.slug);
   const posts = isRecruitment
-    ? await enrichPostsWithHeadlessAcf(requestedPage.posts, request.locale)
+    ? await enrichPostsWithHeadlessArchiveAcf(
+        requestedPage.posts,
+        'category',
+        category.slug,
+        request.locale,
+      )
     : requestedPage.posts;
 
   return (
