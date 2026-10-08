@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import DocumentTaxonomyArchive from '@/components/tai-lieu/DocumentTaxonomyArchive';
 import { getDocumentTaxonomyData } from '@/lib/wordpress/documents';
 import { stripHtml } from '@/lib/utils/html';
+import { sanitizeMetaDescription } from '@/lib/seo/metadata';
 
 type Props = {
   params: Promise<{ path?: string[] }>;
@@ -25,7 +26,9 @@ function loadCount(value?: string): number {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const request = resolveRequest((await params).path);
   const data = await getDocumentTaxonomyData(request.slug, 1, 'en').catch(() => null);
-  return { title: data ? stripHtml(data.term.name) : 'Documents' };
+  const title = data ? stripHtml(data.term.name) : 'Documents';
+  const description = sanitizeMetaDescription(data?.term.description, `Documents in the ${title} category.`);
+  return { title, description, openGraph: { description }, twitter: { card: 'summary', description } };
 }
 
 export default async function EnglishDocumentArchive({ params, searchParams }: Props) {

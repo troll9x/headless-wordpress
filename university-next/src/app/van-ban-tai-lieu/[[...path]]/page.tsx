@@ -4,6 +4,7 @@ import DocumentTaxonomyArchive from '@/components/tai-lieu/DocumentTaxonomyArchi
 import { FRONTEND_URL } from '@/constants/api';
 import { getDocumentTaxonomyData } from '@/lib/wordpress/documents';
 import { stripHtml } from '@/lib/utils/html';
+import { sanitizeMetaDescription } from '@/lib/seo/metadata';
 
 type Props = {
   params: Promise<{ path?: string[] }>;
@@ -31,9 +32,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!data) return { title: 'Không tìm thấy danh mục tài liệu' };
 
   const title = stripHtml(data.term.name);
+  const description = sanitizeMetaDescription(data.term.description, `Tài liệu thuộc danh mục ${title}.`);
   return {
     title,
-    description: data.term.description || `Tài liệu thuộc danh mục ${title}.`,
+    description,
+    openGraph: { description },
+    twitter: { card: 'summary', description },
     alternates: { canonical: `${FRONTEND_URL}${request.pathname}` },
   };
 }

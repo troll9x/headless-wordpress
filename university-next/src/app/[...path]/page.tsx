@@ -24,7 +24,7 @@ import {
   getPostsPage,
 } from '@/lib/wordpress/posts';
 import { getTranslatedPostUrl } from '@/lib/wordpress/polylang';
-import { generateHeadlessMetadata } from '@/lib/seo/metadata';
+import { generateHeadlessMetadata, sanitizeMetaDescription } from '@/lib/seo/metadata';
 import { getHeadlessSeoById } from '@/lib/wordpress/seo';
 import { stripHtml } from '@/lib/utils/html';
 import type { Locale } from '@/types/ngon-ngu';
@@ -102,13 +102,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     : await getCategoryBySlug(request.slug, request.locale).catch(() => null);
   if (category) {
     const isEn = request.locale === 'en';
+    const description = sanitizeMetaDescription(
+      category.description,
+      isEn
+        ? `Posts filed under ${category.name}.`
+        : `Các bài viết thuộc chuyên mục ${category.name}.`,
+    );
     return {
       title: category.name,
-      description:
-        category.description ||
-        (isEn
-          ? `Posts filed under ${category.name}.`
-          : `Các bài viết thuộc chuyên mục ${category.name}.`),
+      description,
+      twitter: { description },
+      openGraph: { description },
       alternates: {
         canonical: `${FRONTEND_URL}${buildCategoryUrl(category.slug, request.locale)}`,
       },

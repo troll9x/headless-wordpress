@@ -3,6 +3,7 @@ import Link from 'next/link';
 interface SectionTitleProps {
   title: string;
   href?: string;
+  prefetch?: boolean;
   linkText?: string;
   light?: boolean;
   className?: string;
@@ -11,6 +12,7 @@ interface SectionTitleProps {
 export default function SectionTitle({
   title,
   href,
+  prefetch,
   light = false,
   className = '',
 }: SectionTitleProps) {
@@ -21,7 +23,7 @@ export default function SectionTitle({
   return (
     <div className={`mb-8 text-center ${className}`}>
       {href ? (
-        <Link href={href} className={`${titleClass} transition-opacity hover:opacity-75`}>
+        <Link href={href} prefetch={prefetch} className={`${titleClass} transition-opacity hover:opacity-75`}>
           {title}
         </Link>
       ) : (

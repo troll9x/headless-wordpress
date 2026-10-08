@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import MediaLibrary from '@/components/media/MediaLibrary';
 import { getMediaGalleryCategories, getMediaGalleryCategory } from '@/lib/wordpress/media-gallery';
+import { sanitizeMetaDescription } from '@/lib/seo/metadata';
 
 type Props = {
   params: Promise<{ path?: string[] }>;
@@ -14,9 +15,10 @@ function pageNumber(value?: string): number {
 }
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const slug = (await params).path?.at(-1);
-  if (!slug) return { title: 'Media Library', description: 'Thuyloi University media library.' };
+  const description = sanitizeMetaDescription(slug ? `Photos and videos in the ${slug.replaceAll('-', ' ')} collection at Thuyloi University.` : 'Photos and videos from Thuyloi University.');
+  if (!slug) return { title: 'Media Library', description, openGraph: { description }, twitter: { card: 'summary', description } };
   const gallery = await getMediaGalleryCategory(slug, 'en', 1).catch(() => null);
-  return { title: gallery?.category.name || 'Media Library' };
+  return { title: gallery?.category.name || 'Media Library', description, openGraph: { description }, twitter: { card: 'summary', description } };
 }
 
 export default async function EnglishMediaPage({ params, searchParams }: Props) {

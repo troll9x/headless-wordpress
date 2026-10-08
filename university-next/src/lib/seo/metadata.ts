@@ -4,8 +4,36 @@ import type { HeadlessSeoData, HeadlessSeoMedia, SeoData } from '@/types/seo';
 import { getOgLocale } from '@/lib/i18n/locales';
 import { buildHreflangAlternates } from '@/lib/seo/hreflang';
 
+const UX_BUILDER_SHORTCODE = /\[(?:\/?(?:ux_[a-z0-9_-]+|section|row|col|block|gap|button|stack|grid)\b[^\]]*)\]/i;
+const SHORTCODE = /\[(?:\/?[a-z][a-z0-9_-]*)(?:\s[^\]]*)?\]/gi;
+
+/** Remove builder markup and HTML before a description reaches a meta tag. */
+export function sanitizeMetaDescription(value: string | null | undefined, fallback = ''): string {
+  const clean = (candidate: string) => {
+    if (UX_BUILDER_SHORTCODE.test(candidate)) return '';
+    return candidate
+      .replace(SHORTCODE, ' ')
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#0*39;/g, "'")
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&#(\d+);/g, (_match, code: string) => String.fromCharCode(Number(code)))
+      .replace(/&#x([\da-f]+);/gi, (_match, code: string) => String.fromCharCode(Number.parseInt(code, 16)))
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
+  const description = value?.trim() ? clean(value) : '';
+  if (description) return description;
+  return fallback.trim() ? clean(fallback) : '';
+}
+
 /** Generates Next.js Metadata for a page or article. */
 export function generatePageMetadata(seo: SeoData): Metadata {
+  const description = sanitizeMetaDescription(seo.description);
   const viUrl = seo.locale === 'vi' ? seo.canonical : seo.viUrl;
   const enUrl = seo.locale === 'en' ? seo.canonical : seo.enUrl;
   const hreflang =
@@ -21,7 +49,7 @@ export function generatePageMetadata(seo: SeoData): Metadata {
     url: seo.canonical,
     siteName: SITE_NAME,
     title: seo.title,
-    description: seo.description,
+    description,
     locale: getOgLocale(seo.locale),
     ...(imageEntry && { images: imageEntry }),
   };
@@ -38,12 +66,12 @@ export function generatePageMetadata(seo: SeoData): Metadata {
 
   return {
     title: seo.title,
-    description: seo.description,
+    description,
     openGraph,
     twitter: {
       card: seo.imageUrl ? 'summary_large_image' : 'summary',
       title: seo.title,
-      description: seo.description,
+      description,
       ...(seo.imageUrl && { images: [seo.imageUrl] }),
     },
     alternates: {
@@ -136,7 +164,8 @@ export function generateHeadlessMetadata(
   fallback: SeoData,
 ): Metadata {
   const title = headlessSeo?.title?.trim() || fallback.title;
-  const description = headlessSeo?.description?.trim() || fallback.description;
+  const fallbackDescription = sanitizeMetaDescription(fallback.description);
+  const description = sanitizeMetaDescription(headlessSeo?.description, fallbackDescription);
   const canonical = frontendCanonical(headlessSeo?.canonical, fallback.canonical);
   const ogImage = mediaUrl(headlessSeo?.open_graph?.image) || fallback.imageUrl;
   const headlessOgImage = headlessSeo?.open_graph?.image;
@@ -168,13 +197,13 @@ export function generateHeadlessMetadata(
     openGraph: {
       ...metadata.openGraph,
       title: headlessSeo?.open_graph?.title?.trim() || title,
-      description: headlessSeo?.open_graph?.description?.trim() || description,
+      description: sanitizeMetaDescription(headlessSeo?.open_graph?.description, description),
     },
     twitter: {
       ...metadata.twitter,
       card: twitterCard,
       title: headlessSeo?.twitter?.title?.trim() || title,
-      description: headlessSeo?.twitter?.description?.trim() || description,
+      description: sanitizeMetaDescription(headlessSeo?.twitter?.description, description),
       ...(twitterImage && { images: [twitterImage] }),
     },
   };

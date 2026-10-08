@@ -4,7 +4,7 @@ import { getFirstPageBySlug } from '@/lib/api/homepage';
 import { PAGE_SLUGS } from '@/constants/categories';
 import { FRONTEND_URL } from '@/constants/api';
 import { UNIVERSITY } from '@/constants/site';
-import { generateHeadlessMetadata } from '@/lib/seo/metadata';
+import { generateHeadlessMetadata, sanitizeMetaDescription } from '@/lib/seo/metadata';
 import { getHeadlessSeoById } from '@/lib/wordpress/seo';
 import TrangChu from '@/components/trang-chu/TrangChu';
 
@@ -14,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const heroPage = await getFirstPageBySlug(PAGE_SLUGS.HERO, 'vi');
   const hero = extractHeroData(heroPage);
 
-  const description = hero.subtitle ?? UNIVERSITY.tagline;
+  const description = sanitizeMetaDescription(hero.subtitle, UNIVERSITY.tagline);
   const canonical = FRONTEND_URL;
   const seo = heroPage
     ? await getHeadlessSeoById(heroPage.id, 'vi')

@@ -32,6 +32,7 @@ const baseMetadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
+    description: `Trang web chính thức của ${SITE_NAME}`,
   },
   robots: {
     index: true,

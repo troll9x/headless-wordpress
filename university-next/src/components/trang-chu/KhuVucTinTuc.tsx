@@ -224,6 +224,7 @@ function FeaturedPost({ post, locale, mobile = false }: { post: WPPost; locale: 
     <article className={mobile ? styles.mobileMainCard : styles.featuredCard}>
       <Link
         href={href}
+        prefetch={false}
         aria-hidden="true"
         tabIndex={-1}
         className={mobile ? styles.mobileMainImage : styles.featuredImage}
@@ -245,7 +246,7 @@ function FeaturedPost({ post, locale, mobile = false }: { post: WPPost; locale: 
       <div className={mobile ? styles.mobileMainContent : styles.featuredContent}>
         <CategoryName post={post} />
         <h3 className={mobile ? styles.mobileMainTitle : styles.featuredTitle}>
-          <Link href={href} className={mobile ? styles.mobileMainTitleLink : styles.featuredTitleLink}>
+          <Link href={href} prefetch={false} className={mobile ? styles.mobileMainTitleLink : styles.featuredTitleLink}>
             <span dangerouslySetInnerHTML={{ __html: sanitizeInlineHtml(post.title.rendered) }} />
             <PriorityIcon post={post} />
           </Link>
@@ -271,6 +272,7 @@ function SlidePost({ post, locale, mobile = false }: { post: WPPost; locale: Loc
     <article className={mobile ? styles.mobileSlidePost : styles.slidePost}>
       <Link
         href={href}
+        prefetch={false}
         aria-hidden="true"
         tabIndex={-1}
         className={mobile ? styles.mobileSlideImage : styles.slideImage}
@@ -291,7 +293,7 @@ function SlidePost({ post, locale, mobile = false }: { post: WPPost; locale: Loc
       <div className={mobile ? `${styles.mobileSlideContent} p-2` : styles.slideContent}>
         <CategoryName post={post} />
         <h3 className={mobile ? styles.mobileSlideTitle : styles.slideTitle}>
-          <Link href={href} className={mobile ? styles.mobileSlideTitleLink : styles.slideTitleLink}>
+          <Link href={href} prefetch={false} className={mobile ? styles.mobileSlideTitleLink : styles.slideTitleLink}>
             <span dangerouslySetInnerHTML={{ __html: sanitizeInlineHtml(post.title.rendered) }} />
             <PriorityIcon post={post} />
           </Link>
@@ -398,7 +400,7 @@ export default function KhuVucTinTuc({ posts, locale }: KhuVucTinTucProps) {
   if (!featured) {
     return (
       <div>
-        <SectionTitle title={sectionTitle} href={sectionHref} />
+        <SectionTitle title={sectionTitle} href={sectionHref} prefetch={false} />
         <p className="py-6 text-center text-sm text-slate-400">
           {locale === 'en' ? 'No news yet.' : 'Chưa có tin tức.'}
         </p>
@@ -408,7 +410,7 @@ export default function KhuVucTinTuc({ posts, locale }: KhuVucTinTucProps) {
 
   return (
     <div>
-      <SectionTitle title={sectionTitle} href={sectionHref} />
+      <SectionTitle title={sectionTitle} href={sectionHref} prefetch={false} />
       <div className={styles.root}>
         <div className={styles.desktop}>
           <FeaturedPost post={featured} locale={locale} />

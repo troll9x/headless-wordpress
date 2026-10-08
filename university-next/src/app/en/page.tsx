@@ -3,7 +3,7 @@ import { getFullHomepageData, extractHeroData } from '@/services/homepage';
 import { getFirstPageBySlug } from '@/lib/api/homepage';
 import { PAGE_SLUGS } from '@/constants/categories';
 import { FRONTEND_URL } from '@/constants/api';
-import { generateHeadlessMetadata } from '@/lib/seo/metadata';
+import { generateHeadlessMetadata, sanitizeMetaDescription } from '@/lib/seo/metadata';
 import { getHeadlessSeoById } from '@/lib/wordpress/seo';
 import TrangChu from '@/components/trang-chu/TrangChu';
 
@@ -14,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const hero = extractHeroData(heroPage);
 
   const title = 'Home';
-  const description = hero.subtitle ?? 'Science – Practice – Innovation';
+  const description = sanitizeMetaDescription(hero.subtitle, 'Science – Practice – Innovation');
   const canonical = `${FRONTEND_URL}/en`;
   const seo = heroPage
     ? await getHeadlessSeoById(heroPage.id, 'en')

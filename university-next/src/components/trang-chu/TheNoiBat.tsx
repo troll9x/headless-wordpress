@@ -82,10 +82,10 @@ export default function TheNoiBat({
 
           return (
             <div key={group.key}>
-              <SectionTitle title={group.title} href={group.href} className="!mb-4" />
+              <SectionTitle title={group.title} href={group.href} prefetch={false} className="!mb-4" />
               <article className="overflow-hidden rounded-md bg-white shadow-[0_2px_14px_rgba(15,23,42,0.12)]">
                 {postHref && media ? (
-                  <Link href={postHref} className="relative block aspect-[16/9] overflow-hidden">
+                  <Link href={postHref} prefetch={false} className="relative block aspect-[16/9] overflow-hidden">
                     <Image
                       src={media.source_url}
                       alt={media?.alt_text || group.title}
@@ -96,6 +96,7 @@ export default function TheNoiBat({
                   </Link>
                 ) : postHref ? (
                   <Link
+                    prefetch={false}
                     href={postHref}
                     className="block aspect-[16/9] bg-gradient-to-br from-blue-50 to-slate-100"
                     aria-label={stripHtml(post?.title.rendered ?? group.title)}
@@ -108,6 +109,7 @@ export default function TheNoiBat({
                   {post && postHref ? (
                     <>
                       <Link
+                        prefetch={false}
                         href={postHref}
                         className="line-clamp-2 text-sm font-medium leading-[1.45] text-slate-800 hover:text-[#0118d8]"
                       >

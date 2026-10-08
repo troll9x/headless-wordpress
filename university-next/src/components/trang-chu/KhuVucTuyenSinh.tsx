@@ -34,7 +34,7 @@ export default function KhuVucTuyenSinh({ page, locale }: { page: WPPage | null;
           <Image src={image?.source_url || FALLBACK_IMAGE} alt={image?.alt_text || (isEn ? 'Admissions at Thuyloi University' : 'Tuyển sinh Trường Đại học Thủy lợi')} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" />
         </div>
         <div>
-          <SectionTitle title={title} href={pageUrl} className="!mb-5 md:!text-left" />
+          <SectionTitle title={title} href={pageUrl} prefetch={false} className="!mb-5 md:!text-left" />
           {excerpt && <p className="text-base font-semibold leading-7 text-slate-700">{excerpt}{excerpt.length === 240 ? '…' : ''}</p>}
           <ul className="mt-5 space-y-3 text-base font-semibold text-[#0118d8]">
             {levels.map((label) => <li key={label} className="flex items-center gap-3"><span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#0118d8] text-[10px] text-white">›</span>{label}</li>)}

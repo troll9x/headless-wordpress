@@ -45,13 +45,13 @@ function ArticleCard({ post, locale }: { post: WPPost; locale: Locale }) {
   const category = getCategory(post);
   return (
     <article className="group overflow-hidden rounded-md bg-white shadow-[0_2px_12px_rgba(15,23,42,0.12)]">
-      <Link href={href} className="relative block aspect-[16/9] overflow-hidden bg-slate-100">
+      <Link href={href} prefetch={false} className="relative block aspect-[16/9] overflow-hidden bg-slate-100">
         <ArticleImage post={post} sizes="(max-width: 768px) 100vw, 26vw" />
       </Link>
       <div className="p-4">
         {category && <p className="mb-2 text-[11px] font-bold uppercase text-[#0118d8]">{category}</p>}
         <h3 className="line-clamp-3 text-[15px] font-semibold leading-[1.4] text-slate-800">
-          <Link href={href} className="transition-colors hover:text-[#0118d8]">
+          <Link href={href} prefetch={false} className="transition-colors hover:text-[#0118d8]">
             <span dangerouslySetInnerHTML={{ __html: sanitizeInlineHtml(post.title.rendered) }} />
           </Link>
         </h3>
@@ -71,7 +71,7 @@ function ArticleList({ posts, locale }: { posts: WPPost[]; locale: Locale }) {
           <article key={post.id} className="py-4 first:pt-4">
             {category && <p className="mb-1 text-[10px] font-bold uppercase text-[#0118d8]">{category}</p>}
             <h3 className="line-clamp-2 text-sm font-medium leading-[1.4] text-slate-800">
-              <Link href={href} className="hover:text-[#0118d8]"><span dangerouslySetInnerHTML={{ __html: sanitizeInlineHtml(post.title.rendered) }} /></Link>
+              <Link href={href} prefetch={false} className="hover:text-[#0118d8]"><span dangerouslySetInnerHTML={{ __html: sanitizeInlineHtml(post.title.rendered) }} /></Link>
             </h3>
             <time className="mt-2 block text-[10px] text-slate-500" dateTime={post.date}>{formatDateShort(post.date, locale)}</time>
           </article>
@@ -95,7 +95,7 @@ export default function CumTinTrangChu({ title, href, posts, locale, emptyText }
   return (
     <section className="bg-white py-12 sm:py-16" aria-label={title}>
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
-        <SectionTitle title={title} href={href} />
+        <SectionTitle title={title} href={href} prefetch={false} />
         {posts.length === 0 ? (
           <p className="py-6 text-center text-sm text-slate-500">{emptyText}</p>
         ) : (

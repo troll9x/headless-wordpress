@@ -271,7 +271,7 @@ function ScheduledEventsLayout({
   return (
     <div className={`mt-10 grid items-stretch gap-8 ${secondary.length > 0 ? 'lg:grid-cols-2' : 'mx-auto max-w-3xl'}`}>
       <article className="group h-full overflow-hidden rounded-[10px] bg-white shadow-[0_5px_20px_rgba(2,55,102,0.12)]">
-        <Link href={primaryHref} className="relative block aspect-[16/9] overflow-hidden bg-slate-100">
+        <Link href={primaryHref} prefetch={false} className="relative block aspect-[16/9] overflow-hidden bg-slate-100">
           {primaryImage ? (
             <Image
               src={primaryImage.source_url}
@@ -294,7 +294,7 @@ function ScheduledEventsLayout({
             </p>
           )}
           <h3 className="mt-2 text-xl font-bold text-[#0118d8] transition-colors group-hover:text-[#007cba] sm:text-2xl">
-            <Link href={primaryHref}>
+            <Link href={primaryHref} prefetch={false}>
               <span dangerouslySetInnerHTML={{ __html: sanitizeInlineHtml(primary.post.title.rendered) }} />
             </Link>
           </h3>
@@ -313,6 +313,7 @@ function ScheduledEventsLayout({
             return (
               <article key={event.post.id} className="h-full min-h-0">
                 <Link
+                  prefetch={false}
                   href={href}
                   className="group flex h-full items-center gap-4 rounded-[10px] bg-white p-3 shadow-[0_5px_16px_rgba(2,55,102,0.08)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_22px_rgba(2,55,102,0.14)] sm:gap-5 sm:p-4"
                 >
@@ -447,7 +448,7 @@ function EventCardSlider({ posts, locale }: { posts: WPPost[]; locale: Locale })
                 style={{ flexBasis: `${100 / visibleCount}%` }}
               >
                 <article className="group h-full overflow-hidden rounded-[10px] bg-white shadow-[0_5px_16px_rgba(2,55,102,0.05)] transition-all hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(2,55,102,0.14)]">
-                  <Link href={href} className="relative block aspect-video overflow-hidden bg-slate-100">
+                  <Link href={href} prefetch={false} className="relative block aspect-video overflow-hidden bg-slate-100">
                     {image ? (
                       <Image
                         src={image.source_url}
@@ -469,7 +470,7 @@ function EventCardSlider({ posts, locale }: { posts: WPPost[]; locale: Locale })
                   </Link>
                   <div className="p-4">
                     <h3 className="line-clamp-2 text-base font-semibold text-[#0118d8] transition-colors group-hover:text-[#2d2d2d]">
-                      <Link href={href}>
+                      <Link href={href} prefetch={false}>
                         <span dangerouslySetInnerHTML={{ __html: sanitizeInlineHtml(post.title.rendered) }} />
                       </Link>
                     </h3>
@@ -531,7 +532,7 @@ export default function KhuVucSuKien({ posts, locale }: KhuVucSuKienProps) {
   return (
     <section className="bg-white py-10 sm:py-12" aria-label={sectionTitle}>
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
-        <SectionTitle title={sectionTitle} href={sectionHref} />
+        <SectionTitle title={sectionTitle} href={sectionHref} prefetch={false} />
 
         {scheduledEvents.length > 0 ? (
           <ScheduledEventsLayout events={layoutEvents} locale={locale} />
