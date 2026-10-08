@@ -49,6 +49,87 @@ function isHeadlessSeoData(value: unknown): value is HeadlessSeoData {
   return typeof candidate.id === 'number' && typeof candidate.slug === 'string';
 }
 
+interface HomeSeoPayload {
+  vi?: { title?: unknown; description?: unknown };
+  en?: { title?: unknown; description?: unknown };
+}
+
+export interface HeadlessHomeSeoOverride {
+  title?: string;
+  description?: string;
+}
+
+/** Đọc cấu hình SEO trang chủ do biên tập viên nhập trong ACF Options Page. */
+export async function getHeadlessHomeSeo(
+  lang: 'vi' | 'en',
+): Promise<HeadlessHomeSeoOverride | null> {
+  const url = buildWordPressRestUrl(WP_API_URL, '/headless/v1/home-seo');
+
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: 'application/json' },
+      next: {
+        revalidate: REVALIDATE_POSTS,
+        tags: [CACHE_TAGS.POSTS, `seo-home-${lang}`],
+      },
+      signal: AbortSignal.timeout(SEO_TIMEOUT_MS),
+    });
+    if (!response.ok) return null;
+
+    const payload: unknown = await response.json();
+    if (!payload || typeof payload !== 'object') return null;
+
+    const localized = (payload as HomeSeoPayload)[lang];
+    if (!localized || typeof localized !== 'object') return null;
+
+    const title = typeof localized.title === 'string' ? localized.title.trim() : '';
+    const description = typeof localized.description === 'string'
+      ? localized.description.trim()
+      : '';
+    if (!title && !description) return null;
+
+    return { title, description };
+  } catch {
+    return null;
+  }
+}
+
+/** Các trường ACF đã nhập sẽ ưu tiên hơn trường tương ứng của Rank Math. */
+export function mergeHomeSeoOverride(
+  rankMathSeo: HeadlessSeoData | null,
+  homeSeo: HeadlessHomeSeoOverride | null,
+): Partial<HeadlessSeoData> | null {
+  if (!homeSeo) return rankMathSeo;
+
+  const title = homeSeo.title || rankMathSeo?.title;
+  const description = homeSeo.description || rankMathSeo?.description;
+
+  return {
+    ...rankMathSeo,
+    source: homeSeo.title ? 'acf' : rankMathSeo?.source,
+    ...(title ? { title } : {}),
+    ...(description ? { description } : {}),
+    ...(rankMathSeo?.open_graph || homeSeo.title || homeSeo.description
+      ? {
+          open_graph: {
+            ...rankMathSeo?.open_graph,
+            ...(homeSeo.title ? { title: homeSeo.title } : {}),
+            ...(homeSeo.description ? { description: homeSeo.description } : {}),
+          },
+        }
+      : {}),
+    ...(rankMathSeo?.twitter || homeSeo.title || homeSeo.description
+      ? {
+          twitter: {
+            ...rankMathSeo?.twitter,
+            ...(homeSeo.title ? { title: homeSeo.title } : {}),
+            ...(homeSeo.description ? { description: homeSeo.description } : {}),
+          },
+        }
+      : {}),
+  };
+}
+
 /**
  * Gets the normalized Rank Math metadata for a public WordPress object.
  *

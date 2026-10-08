@@ -5,7 +5,7 @@ import { PAGE_SLUGS } from '@/constants/categories';
 import { FRONTEND_URL } from '@/constants/api';
 import { UNIVERSITY } from '@/constants/site';
 import { generateHeadlessMetadata, sanitizeMetaDescription } from '@/lib/seo/metadata';
-import { getHeadlessSeoById } from '@/lib/wordpress/seo';
+import { getHeadlessHomeSeo, getHeadlessSeoById, mergeHomeSeoOverride } from '@/lib/wordpress/seo';
 import TrangChu from '@/components/trang-chu/TrangChu';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -16,9 +16,11 @@ export async function generateMetadata(): Promise<Metadata> {
 
   const description = sanitizeMetaDescription(hero.subtitle, UNIVERSITY.tagline);
   const canonical = FRONTEND_URL;
-  const seo = heroPage
-    ? await getHeadlessSeoById(heroPage.id, 'vi')
-    : null;
+  const [rankMathSeo, homeSeo] = await Promise.all([
+    heroPage ? getHeadlessSeoById(heroPage.id, 'vi') : Promise.resolve(null),
+    getHeadlessHomeSeo('vi'),
+  ]);
+  const seo = mergeHomeSeoOverride(rankMathSeo, homeSeo);
 
   return generateHeadlessMetadata(seo, {
     title: "Trang chủ",

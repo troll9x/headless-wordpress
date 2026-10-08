@@ -104,7 +104,7 @@ function frontendCanonical(candidate: string | undefined, fallback: string): str
   }
 }
 
-function getRobots(seo: HeadlessSeoData): Metadata['robots'] | undefined {
+function getRobots(seo: Pick<HeadlessSeoData, 'robots'>): Metadata['robots'] | undefined {
   if (!seo.robots) return undefined;
 
   const raw = Array.isArray(seo.robots) ? seo.robots : seo.robots.raw;
@@ -158,9 +158,9 @@ function getRobots(seo: HeadlessSeoData): Metadata['robots'] | undefined {
   };
 }
 
-/** Merges Rank Math output over safe route-level fallbacks. */
+/** Merges metadata from the Headless API or homepage ACF over safe fallbacks. */
 export function generateHeadlessMetadata(
-  headlessSeo: HeadlessSeoData | null,
+  headlessSeo: Partial<HeadlessSeoData> | null,
   fallback: SeoData,
 ): Metadata {
   const title = headlessSeo?.title?.trim() || fallback.title;
