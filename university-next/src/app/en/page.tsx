@@ -3,8 +3,8 @@ import { getFullHomepageData, extractHeroData } from '@/services/homepage';
 import { getFirstPageBySlug } from '@/lib/api/homepage';
 import { PAGE_SLUGS } from '@/constants/categories';
 import { FRONTEND_URL } from '@/constants/api';
-import { generateHeadlessMetadata, sanitizeMetaDescription } from '@/lib/seo/metadata';
-import { getHeadlessHomeSeo, getHeadlessSeoById, mergeHomeSeoOverride } from '@/lib/wordpress/seo';
+import { generateHeadlessMetadata } from '@/lib/seo/metadata';
+import { getHeadlessHomeSeo, mergeHomeSeoOverride } from '@/lib/wordpress/seo';
 import TrangChu from '@/components/trang-chu/TrangChu';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -13,14 +13,11 @@ export async function generateMetadata(): Promise<Metadata> {
   const heroPage = await getFirstPageBySlug(PAGE_SLUGS.HERO, 'en');
   const hero = extractHeroData(heroPage);
 
-  const title = 'Home';
-  const description = sanitizeMetaDescription(hero.subtitle, 'Science – Practice – Innovation');
+  const title = 'Thuyloi University';
+  const description = 'Thuyloi University is proud to be in cooperation with other universities, research institutes, businesses and corporations around the world. Varied';
   const canonical = `${FRONTEND_URL}/en`;
-  const [rankMathSeo, homeSeo] = await Promise.all([
-    heroPage ? getHeadlessSeoById(heroPage.id, 'en') : Promise.resolve(null),
-    getHeadlessHomeSeo('en'),
-  ]);
-  const seo = mergeHomeSeoOverride(rankMathSeo, homeSeo);
+  const homeSeo = await getHeadlessHomeSeo('en');
+  const seo = mergeHomeSeoOverride(null, homeSeo ?? { title, description });
 
   return generateHeadlessMetadata(seo, {
     title,

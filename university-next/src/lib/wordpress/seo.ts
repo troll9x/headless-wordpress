@@ -42,6 +42,7 @@ export function extractWpSeoMeta(post: WPPost | WPPage): WpSeoMeta {
 }
 
 const SEO_TIMEOUT_MS = 4_000;
+const HOME_SEO_TIMEOUT_MS = 1_500;
 
 function isHeadlessSeoData(value: unknown): value is HeadlessSeoData {
   if (!value || typeof value !== 'object') return false;
@@ -72,7 +73,7 @@ export async function getHeadlessHomeSeo(
         revalidate: REVALIDATE_POSTS,
         tags: [CACHE_TAGS.POSTS, `seo-home-${lang}`],
       },
-      signal: AbortSignal.timeout(SEO_TIMEOUT_MS),
+      signal: AbortSignal.timeout(HOME_SEO_TIMEOUT_MS),
     });
     if (!response.ok) return null;
 

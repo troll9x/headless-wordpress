@@ -190,7 +190,7 @@ export function generateHeadlessMetadata(
   return {
     ...metadata,
     title:
-      headlessSeo?.source === 'rank_math' && headlessSeo.title?.trim()
+      (headlessSeo?.source === 'rank_math' || headlessSeo?.source === 'acf') && headlessSeo.title?.trim()
         ? { absolute: title }
         : metadata.title,
     robots: headlessSeo ? getRobots(headlessSeo) : metadata.robots,

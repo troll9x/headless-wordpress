@@ -3,9 +3,8 @@ import { getFullHomepageData, extractHeroData } from '@/services/homepage';
 import { getFirstPageBySlug } from '@/lib/api/homepage';
 import { PAGE_SLUGS } from '@/constants/categories';
 import { FRONTEND_URL } from '@/constants/api';
-import { UNIVERSITY } from '@/constants/site';
-import { generateHeadlessMetadata, sanitizeMetaDescription } from '@/lib/seo/metadata';
-import { getHeadlessHomeSeo, getHeadlessSeoById, mergeHomeSeoOverride } from '@/lib/wordpress/seo';
+import { generateHeadlessMetadata } from '@/lib/seo/metadata';
+import { getHeadlessHomeSeo, mergeHomeSeoOverride } from '@/lib/wordpress/seo';
 import TrangChu from '@/components/trang-chu/TrangChu';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -14,16 +13,14 @@ export async function generateMetadata(): Promise<Metadata> {
   const heroPage = await getFirstPageBySlug(PAGE_SLUGS.HERO, 'vi');
   const hero = extractHeroData(heroPage);
 
-  const description = sanitizeMetaDescription(hero.subtitle, UNIVERSITY.tagline);
+  const title = 'Trường Đại học Thủy lợi';
+  const description = 'Trường Đại học Thủy lợi là một trường đại học công lập trực thuộc Bộ Nông nghiệp & Môi trường, trường hàng đầu trong việc đào tạo nguồn nhân lực chất lượng cao!';
   const canonical = FRONTEND_URL;
-  const [rankMathSeo, homeSeo] = await Promise.all([
-    heroPage ? getHeadlessSeoById(heroPage.id, 'vi') : Promise.resolve(null),
-    getHeadlessHomeSeo('vi'),
-  ]);
-  const seo = mergeHomeSeoOverride(rankMathSeo, homeSeo);
+  const homeSeo = await getHeadlessHomeSeo('vi');
+  const seo = mergeHomeSeoOverride(null, homeSeo ?? { title, description });
 
   return generateHeadlessMetadata(seo, {
-    title: "Trang chủ",
+    title,
     description,
     canonical,
     locale: 'vi',
