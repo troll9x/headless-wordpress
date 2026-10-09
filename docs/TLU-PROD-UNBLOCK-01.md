@@ -9,10 +9,10 @@
 
 | Component | Verified identity |
 |---|---|
-| Frontend repo | `troll9x/headless-wordpress`, branch `release/tlu-production-rc-2026-10-09`, current code commit `43d3b0e83a666f2e85407f29685cd3dbe2cbe936`. The current staging candidate includes the first-load CMS error handling fix. |
+| Frontend repo | `troll9x/headless-wordpress`, branch `release/tlu-production-rc-2026-10-09`, current code commit `3556876b6cb01977327c2616d84aedd6b6b45d1e`. Staging includes the first-load CMS error handling and search transient-retry fixes. |
 | Backend repo | `troll9x/Headless-API`, branch `release/tlu-headless-api-rc-2026-10-09`, commit `d6ffda9a128748fc95d58f620c5f788d2c5c03a8`. Kept separate from frontend; no CRM merge. |
 | Backend candidate | Headless API 2.0.9 / schema 4.9; ZIP SHA-256 `ddaba8ebbd53b473a428551f53b866db736bc00488efdbeba8f394242bc67f78`. This artifact is **not installed** on CMS. |
-| Staging | `https://dev.nguyenhongson.vn`, A record `103.149.253.223`, service `tlu-next-staging`, Node 22.22.2 / npm 10.9.7. Current systemd working directory `/www/wwwroot/dev.nguyenhongson.vn-app/rc/university-next-43d3b0e-rebuild/university-next`; a public no-cache request returns `X-TLU-Release: 43d3b0e`. The ordinary cached `/` response can still return `df5f93c`; cache was not purged. |
+| Staging | `https://dev.nguyenhongson.vn`, A record `103.149.253.223`, service `tlu-next-staging`, Node 22.22.2 / npm 10.9.7. Current systemd working directory `/www/wwwroot/dev.nguyenhongson.vn-app/rc/university-next-3556876/university-next`; smoke requests return `X-TLU-Release: 3556876`. The previous stale cached `/` observation has not been rechecked after this switch. |
 | CMS | `https://cms.tlu.edu.vn`; API reports Headless API 2.0.8 / schema 4.9. |
 | Public production | `https://tlu.edu.vn` remains the existing WordPress site. No production code, DNS, database, vhost, plugin or route was changed. |
 
@@ -131,3 +131,13 @@ Before the staging service was switched to `df5f93c`, its previous drop-in was s
 Production DNS, Nginx, Cloudflare, WordPress, CMS plugin and databases remain unchanged. No production release ID exists. Once all gates pass, the deployment sequence is: freeze content; verify final data delta and media; take and checksum DB/files/config backups; validate the isolated restore; deploy the exact tested frontend/backend artifacts; validate Nginx/SSL and CMS/admin/legacy routes; switch only `tlu.edu.vn`; smoke-test VI/EN homepage, article, category, search, media, SEO and redirects; monitor errors and latency for at least 30 minutes. Roll back the public route to the preserved WordPress origin for repeated critical 5xx, incorrect locale/content/media/admin/SEO, TLS failure, DB degradation, or repeated breach of the agreed latency/error budget. Do not restore a database for a frontend-only failure.
 
 **Current outcome:** Staging deployment and E2E correctness work are complete for the recorded frontend app release. The task is not production-ready. G3 fails and G4–G6 remain blocked; no production change has been made.
+
+## Search error follow-up — 2026-10-09
+
+The screenshot's Vietnamese live-search error was the frontend's generic response to an upstream search request failure. The exact transient failure was not reproduced: the query `Nguyễn Trung Việt` returned five results from the CMS endpoint, and eight consecutive calls to the staging proxy returned HTTP 200 (0.126–0.214 s). One direct uncached CMS request took 2.273 s, showing variable upstream latency but not proving it caused the screenshot.
+
+The frontend now retries one time after a network failure or HTTP 408/425/500/502/503/504, waits 200 ms between attempts, and passes request cancellation through to WordPress. It does not retry rate limits or other non-transient statuses. Source: `university-next/src/lib/wordpress/headless-search.ts` and `university-next/src/app/api/search/route.ts`.
+
+Release `3556876b6cb01977327c2616d84aedd6b6b45d1e` was pushed to the existing FE branch and deployed only to `dev.nguyenhongson.vn` by switching `tlu-next-staging`; a checksum-verified copy of the prior systemd override is at `/www/wwwroot/dev.nguyenhongson.vn-app/backups/20261009/TLU-search-fix/systemd/override.conf.before-3556876`. On staging, the API endpoint returned HTTP 200, release header `3556876`, and five matching results; public HTTPS search returned HTTP 200 in 0.175 s. The live UI after reload displayed five matching result links. The focused E2E `search API and search page respond` passed (1/1, 6.2 s).
+
+No controlled upstream fault injection was run, so the retry branch itself is verified by code review and build, not by a simulated 5xx. This change does not resolve the broader cold-latency gate or change the production NO-GO decision. Production, CMS, database and other services were not modified.
