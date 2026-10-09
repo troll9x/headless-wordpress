@@ -6,6 +6,17 @@ import type { Locale } from '@/types/ngon-ngu';
 const REQUEST_TIMEOUT_MS = 20_000;
 const MAX_TRANSIENT_RETRIES = 1;
 const TRANSIENT_RETRY_DELAY_MS = 200;
+const RETRYABLE_SEARCH_STATUSES = new Set([408, 425, 500, 502, 503, 504]);
+
+class SearchUpstreamError extends Error {
+  readonly status: number;
+
+  constructor(status: number) {
+    super(`WordPress search returned ${status}.`);
+    this.name = 'SearchUpstreamError';
+    this.status = status;
+  }
+}
 
 interface RawSearchItem {
   id?: unknown;
@@ -87,20 +98,21 @@ export async function searchHeadlessSite(
       });
       if (response.ok) break;
 
-      const retryableStatus = [408, 425, 500, 502, 503, 504].includes(response.status);
       if (
         signal?.aborted ||
-        !retryableStatus ||
+        !RETRYABLE_SEARCH_STATUSES.has(response.status) ||
         attempt >= MAX_TRANSIENT_RETRIES
       ) {
-        throw new Error(`WordPress search returned ${response.status}.`);
+        throw new SearchUpstreamError(response.status);
       }
     } catch (error) {
       if (signal?.aborted || attempt >= MAX_TRANSIENT_RETRIES) throw error;
       // Retry transient network errors once. Do not retry caller cancellation.
-      if (error instanceof Error && error.message.startsWith('WordPress search returned ')) {
-        const status = Number(error.message.match(/\d+$/)?.[0]);
-        if (![408, 425, 500, 502, 503, 504].includes(status)) throw error;
+      if (
+        error instanceof SearchUpstreamError &&
+        !RETRYABLE_SEARCH_STATUSES.has(error.status)
+      ) {
+        throw error;
       }
     } finally {
       clearTimeout(timeoutId);
