@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { notFound, permanentRedirect } from 'next/navigation';
-import ChiTietBaiViet from '@/components/bai-viet/ChiTietBaiViet';
+import ChiTietBaiViet, { ArticleRelatedNavigation } from '@/components/bai-viet/ChiTietBaiViet';
 import CategoryArchive from '@/components/chuyen-muc/CategoryArchive';
 import CategoryBanner from '@/components/chuyen-muc/CategoryBanner';
 import CategoryLanding from '@/components/chuyen-muc/CategoryLanding';
+import CategorySidebar from '@/components/chuyen-muc/CategorySidebar';
 import { FRONTEND_URL } from '@/constants/api';
 import { CATEGORY_POSTS_PER_PAGE } from '@/constants/categories';
 import { buildCategoryUrl, buildPostUrl } from '@/constants/duong-dan';
@@ -22,6 +24,7 @@ import {
   getPostByPermalinkPath,
   getPostPageData,
   getPostsPage,
+  postHasCategorySlug,
 } from '@/lib/wordpress/posts';
 import { getTranslatedPostUrl } from '@/lib/wordpress/polylang';
 import { generateHeadlessMetadata, sanitizeMetaDescription } from '@/lib/seo/metadata';
@@ -222,23 +225,61 @@ async function renderPost(
   post: NonNullable<Awaited<ReturnType<typeof getPostByPermalinkPath>>>,
   locale: Locale,
 ) {
-  const [pageData, sidebar, categoryBanner] = await Promise.all([
-    getPostPageData(post, locale),
-    getCategorySidebar({ categoryId: post.categories[0] }, locale),
-    getPostCategoryBanner(post, locale),
-  ]);
+  // Recruitment content needs ACF in the main article; retain the existing
+  // blocking path until its detail contract is separated from related posts.
+  if (postHasCategorySlug(post, 'thong-tin-tuyen-dung')) {
+    const [pageData, sidebar, categoryBanner] = await Promise.all([
+      getPostPageData(post, locale),
+      getCategorySidebar({ categoryId: post.categories[0] }, locale),
+      getPostCategoryBanner(post, locale),
+    ]);
+    return <ChiTietBaiViet post={pageData.post} locale={locale} sidebar={sidebar} relatedPosts={pageData.relatedPosts} previousPost={pageData.previousPost} nextPost={pageData.nextPost} categoryBanner={categoryBanner} />;
+  }
+
+  // Start secondary CMS calls together, then stream them below/around the
+  // already resolved article. A slow related query no longer blocks the body.
+  const relatedPromise = getPostPageData(post, locale).catch(() => ({
+    post, relatedPosts: [], previousPost: null, nextPost: null,
+  }));
+  const sidebarPromise = post.categories[0]
+    ? getCategorySidebar({ categoryId: post.categories[0] }, locale).catch(() => null)
+    : Promise.resolve(null);
+  const bannerPromise = getPostCategoryBanner(post, locale).catch(() => null);
 
   return (
     <ChiTietBaiViet
-      post={pageData.post}
+      post={post}
       locale={locale}
-      sidebar={sidebar}
-      relatedPosts={pageData.relatedPosts}
-      previousPost={pageData.previousPost}
-      nextPost={pageData.nextPost}
-      categoryBanner={categoryBanner}
+      relatedSlot={<Suspense fallback={null}><StreamRelated promise={relatedPromise} locale={locale} /></Suspense>}
+      sidebarSlot={post.categories[0] ? <Suspense fallback={null}><StreamSidebar promise={sidebarPromise} locale={locale} categoryId={post.categories[0]} /></Suspense> : undefined}
+      bannerSlot={<Suspense fallback={null}><StreamBanner promise={bannerPromise} /></Suspense>}
     />
   );
+}
+
+async function StreamRelated({ promise, locale }: {
+  promise: ReturnType<typeof getPostPageData>;
+  locale: Locale;
+}) {
+  const data = await promise;
+  return <ArticleRelatedNavigation previousPost={data.previousPost} nextPost={data.nextPost} relatedPosts={data.relatedPosts} locale={locale} />;
+}
+
+async function StreamSidebar({ promise, locale, categoryId }: {
+  promise: ReturnType<typeof getCategorySidebar>;
+  locale: Locale;
+  categoryId: number;
+}) {
+  const sidebar = await promise;
+  if (!sidebar) return null;
+  return <aside className="lg:sticky lg:top-[140px] lg:self-start"><CategorySidebar data={sidebar} locale={locale} currentCategoryId={categoryId} /></aside>;
+}
+
+async function StreamBanner({ promise }: {
+  promise: ReturnType<typeof getPostCategoryBanner>;
+}) {
+  const banner = await promise;
+  return banner ? <CategoryBanner banner={banner} /> : null;
 }
 
 /** Resolves flat Permalink Manager URLs and keeps legacy hierarchical category URLs working. */

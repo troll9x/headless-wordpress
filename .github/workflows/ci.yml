@@ -41,7 +41,7 @@ jobs:
       - name: Typecheck
         run: npm --prefix university-next run typecheck
       - name: Security unit tests
-        run: node --test scripts/test-p1-security.mjs
+        run: node --test scripts/test-p1-security.mjs scripts/test-home-seo-fallback.mjs
       - name: Audit production dependencies
         run: npm audit --prefix university-next --omit=dev --audit-level=high
       - name: Reject critical development dependency advisories
@@ -74,7 +74,9 @@ jobs:
           php scripts/test-p1-search-proxy.php
           php scripts/test-p1-rate-limit-cleanup.php
       - name: Check release ZIP integrity
-        run: unzip -t release/headless-api.zip
+        run: |
+          python3 scripts/verify-headless-release.py
+          unzip -t release/headless-api-2.0.9.zip
 
   secrets:
     name: Secret scan

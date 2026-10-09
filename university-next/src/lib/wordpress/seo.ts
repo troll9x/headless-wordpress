@@ -1,6 +1,9 @@
 import { WP_API_URL } from '@/config/env/server';
 import { CACHE_TAGS, REVALIDATE_POSTS } from '@/constants/api';
 import { buildWordPressRestUrl } from '@/lib/wordpress/url';
+import { parseHomeSeoOverride } from '@/lib/seo/home-override';
+import type { HeadlessHomeSeoOverride } from '@/lib/seo/home-override';
+export { mergeHomeSeoOverride } from '@/lib/seo/home-override';
 import type { HeadlessSeoData } from '@/types/seo';
 import type { WPPost, WPPage } from '@/types/wordpress';
 
@@ -50,16 +53,6 @@ function isHeadlessSeoData(value: unknown): value is HeadlessSeoData {
   return typeof candidate.id === 'number' && typeof candidate.slug === 'string';
 }
 
-interface HomeSeoPayload {
-  vi?: { title?: unknown; description?: unknown };
-  en?: { title?: unknown; description?: unknown };
-}
-
-export interface HeadlessHomeSeoOverride {
-  title?: string;
-  description?: string;
-}
-
 /** Đọc cấu hình SEO trang chủ do biên tập viên nhập trong ACF Options Page. */
 export async function getHeadlessHomeSeo(
   lang: 'vi' | 'en',
@@ -77,58 +70,10 @@ export async function getHeadlessHomeSeo(
     });
     if (!response.ok) return null;
 
-    const payload: unknown = await response.json();
-    if (!payload || typeof payload !== 'object') return null;
-
-    const localized = (payload as HomeSeoPayload)[lang];
-    if (!localized || typeof localized !== 'object') return null;
-
-    const title = typeof localized.title === 'string' ? localized.title.trim() : '';
-    const description = typeof localized.description === 'string'
-      ? localized.description.trim()
-      : '';
-    if (!title && !description) return null;
-
-    return { title, description };
+    return parseHomeSeoOverride(await response.json(), lang);
   } catch {
     return null;
   }
-}
-
-/** Các trường ACF đã nhập sẽ ưu tiên hơn trường tương ứng của Rank Math. */
-export function mergeHomeSeoOverride(
-  rankMathSeo: HeadlessSeoData | null,
-  homeSeo: HeadlessHomeSeoOverride | null,
-): Partial<HeadlessSeoData> | null {
-  if (!homeSeo) return rankMathSeo;
-
-  const title = homeSeo.title || rankMathSeo?.title;
-  const description = homeSeo.description || rankMathSeo?.description;
-
-  return {
-    ...rankMathSeo,
-    source: homeSeo.title ? 'acf' : rankMathSeo?.source,
-    ...(title ? { title } : {}),
-    ...(description ? { description } : {}),
-    ...(rankMathSeo?.open_graph || homeSeo.title || homeSeo.description
-      ? {
-          open_graph: {
-            ...rankMathSeo?.open_graph,
-            ...(homeSeo.title ? { title: homeSeo.title } : {}),
-            ...(homeSeo.description ? { description: homeSeo.description } : {}),
-          },
-        }
-      : {}),
-    ...(rankMathSeo?.twitter || homeSeo.title || homeSeo.description
-      ? {
-          twitter: {
-            ...rankMathSeo?.twitter,
-            ...(homeSeo.title ? { title: homeSeo.title } : {}),
-            ...(homeSeo.description ? { description: homeSeo.description } : {}),
-          },
-        }
-      : {}),
-  };
 }
 
 /**

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Script from 'next/script';
+import { headers } from 'next/headers';
 import './globals.css';
 import '@/styles/site-font.css';
 import Header from '@/components/layout/Header';
@@ -77,6 +77,9 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // The proxy sets this from the URL for every page request. Render the
+  // document language in the initial HTML; DocumentLanguage handles client navigation.
+  const locale = (await headers()).get('x-tlu-route-locale') === 'en' ? 'en' : 'vi';
   // These CMS requests opt into time-based caching in their data fetchers.
   const [logos, footer, social] = await Promise.all([
     getSiteLogos().catch(() => null),
@@ -85,14 +88,7 @@ export default async function RootLayout({
   ]);
 
   return (
-    <html lang="vi" className="h-full antialiased" suppressHydrationWarning>
-      <Script
-        id="set-document-language"
-        strategy="beforeInteractive"
-        dangerouslySetInnerHTML={{
-          __html: "document.documentElement.lang = /^\\/en(?:\\/|$)/.test(location.pathname) ? 'en' : 'vi';",
-        }}
-      />
+    <html lang={locale} className="h-full antialiased" suppressHydrationWarning>
       <body className="flex min-h-full flex-col bg-white">
         <DocumentLanguage />
         <Header logos={logos} />

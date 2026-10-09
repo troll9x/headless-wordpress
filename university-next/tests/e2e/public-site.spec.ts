@@ -1,0 +1,119 @@
+import { expect, test } from '@playwright/test';
+import legacyRedirects from '../../src/data/legacy-permalink-redirects.json';
+
+const articleEn = '/en/lecturers-from-thuyloi-university-granted-patent-for-new-measurement-method-49957';
+
+test('homepages render content and server language for VI/EN', async ({ page, request }) => {
+  for (const [path, lang] of [['/', 'vi'], ['/en', 'en']] as const) {
+    const response = await request.get(path);
+    expect(response.status()).toBe(200);
+    expect(await response.text()).toMatch(new RegExp(`<html[^>]+lang="${lang}"`));
+    await page.goto(path);
+    await expect(page.locator('main')).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('lang', lang);
+  }
+});
+
+test('VI and EN category pages retain an article listing or introduction', async ({ page }) => {
+  for (const path of ['/dao-tao', '/en/education']) {
+    const response = await page.goto(path);
+    expect(response?.status()).toBe(200);
+    await expect(page.locator('main').first()).toBeVisible();
+    await expect(page.locator('main').first()).not.toBeEmpty();
+  }
+});
+
+test('English article and Vietnamese article link open as articles', async ({ page }) => {
+  const enResponse = await page.goto(articleEn);
+  expect(enResponse?.status()).toBe(200);
+  await expect(page.locator('article h1')).toBeVisible();
+  await expect(page.locator('#article-readable-content')).not.toBeEmpty();
+
+  await page.goto('/');
+  const viPath = await page.locator('main a[href]').evaluateAll((links) =>
+    links.map((link) => link.getAttribute('href') || '')
+      .find((href) => /^\/(?!en\/)[^?#]+-\d+\/?$/.test(href)) || '',
+  );
+  expect(viPath, 'Homepage must expose a Vietnamese article URL').not.toBe('');
+  const viResponse = await page.goto(viPath);
+  expect(viResponse?.status()).toBe(200);
+  await expect(page.locator('article h1')).toBeVisible();
+});
+
+test('static mission pages and header navigation work', async ({ page }) => {
+  for (const path of ['/su-mang-muc-tieu-chien-luoc', '/en/mission-goals-strategy']) {
+    expect((await page.goto(path))?.status()).toBe(200);
+    await expect(page.locator('main').first()).not.toBeEmpty();
+  }
+  await expect(page.getByRole('navigation', { name: 'Main navigation' })).toBeVisible();
+});
+
+test('language switch on homepage reaches English and preserves correct document language', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('label.lang-ios-texttoggle').click();
+  await expect(page).toHaveURL(/\/en\/?$/);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+});
+
+test('homepage hero and gallery images render', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('main img').first()).toBeVisible();
+  await expect(page.locator('main img').first()).toHaveJSProperty('complete', true);
+  const moments = page.locator('section[aria-label="Khoảnh khắc TLU"]');
+  await expect(moments).toBeVisible();
+  await expect(moments.locator('button:has(img)')).toHaveCount(15);
+});
+
+test('search API and search page respond', async ({ request, page }) => {
+  const response = await request.get('/api/search?q=water&lang=en&limit=1');
+  expect(response.status()).toBe(200);
+  expect((await response.json()).items).toEqual(expect.any(Array));
+  expect((await page.goto('/en/search?q=water'))?.status()).toBe(200);
+  await expect(page.locator('main').first()).toBeVisible();
+});
+
+test('SEO metadata, robots and sitemap are coherent', async ({ page, request }) => {
+  await page.goto('/en');
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /\S/);
+  await expect(page.locator('meta[name="twitter:description"]')).toHaveAttribute('content', /\S/);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/en\/?$/);
+  await expect(page.locator('link[hreflang="vi"]')).toHaveCount(1);
+  await expect(page.locator('link[hreflang="en"]')).toHaveCount(1);
+  const robots = await request.get('/robots.txt');
+  expect(robots.status()).toBe(200);
+  expect(await robots.text()).toContain('/sitemap.xml');
+  const sitemap = await request.get('/sitemap.xml');
+  expect(sitemap.status()).toBe(200);
+  expect(await sitemap.text()).toContain('<urlset');
+});
+
+test('unknown path returns 404', async ({ request }) => {
+  expect((await request.get('/audit-missing-route-zz-999999999')).status()).toBe(404);
+});
+
+test('a known legacy permalink redirects to its canonical path', async ({ request }) => {
+  const [source, destination] = Object.entries(legacyRedirects)[0] ?? [];
+  expect(source).toBeTruthy();
+  expect(destination).toBeTruthy();
+  const response = await request.get(source, { maxRedirects: 0 });
+  expect(response.status()).toBe(308);
+  expect(new URL(response.headers().location, response.url()).pathname).toBe(destination);
+});
+
+test('desktop, tablet and mobile viewports have no document overflow', async ({ page }) => {
+  for (const width of [1440, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/');
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
+    expect(overflow, `Horizontal overflow at ${width}px`).toBe(false);
+  }
+});
+
+test('staging revalidation rejects unsigned requests', async ({ request }) => {
+  test.skip(!process.env.E2E_BASE_URL?.includes('dev.nguyenhongson.vn'), 'Only run this POST check on staging');
+  const response = await request.post('/api/revalidate', {
+    data: { invalidate: { paths: ['/'], tags: [] } },
+    headers: { 'Content-Type': 'application/json' },
+  });
+  expect([401, 503]).toContain(response.status());
+});

@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { sanitizeCmsHtml, sanitizeInlineHtml } from '@/lib/security/html';
 import { LEGACY_WP_SITE_URL } from '@/config/env/server';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -43,6 +44,9 @@ interface ChiTietBaiVietProps {
   previousPost?: WPPost | null;
   nextPost?: WPPost | null;
   categoryBanner?: CategoryBannerData | null;
+  relatedSlot?: ReactNode;
+  sidebarSlot?: ReactNode;
+  bannerSlot?: ReactNode;
 }
 
 const ARTICLE_BODY_CLASSES = [
@@ -164,6 +168,45 @@ function RelatedPosts({ posts, locale }: { posts: WPPost[]; locale: Locale }) {
   );
 }
 
+export function ArticleRelatedNavigation({
+  previousPost,
+  nextPost,
+  relatedPosts,
+  locale,
+}: {
+  previousPost?: WPPost | null;
+  nextPost?: WPPost | null;
+  relatedPosts: WPPost[];
+  locale: Locale;
+}) {
+  const isEn = locale === 'en';
+  return (
+    <>
+      {(previousPost || nextPost) && (
+        <nav className="mt-8 grid gap-4 border-y border-slate-200 py-6 sm:grid-cols-2" aria-label="Article navigation">
+          <div>
+            {previousPost && (
+              <Link href={buildPostUrl(previousPost.slug, locale, previousPost.link, previousPost.id, previousPost.canonical_path)} className="group block">
+                <span className="text-xs uppercase tracking-wide text-slate-500">← {isEn ? 'Previous article' : 'Bài trước'}</span>
+                <span className="mt-1 line-clamp-2 block font-semibold text-slate-900 group-hover:text-[#0118d8]">{stripHtml(previousPost.title.rendered)}</span>
+              </Link>
+            )}
+          </div>
+          <div className="text-left sm:text-right">
+            {nextPost && (
+              <Link href={buildPostUrl(nextPost.slug, locale, nextPost.link, nextPost.id, nextPost.canonical_path)} className="group block">
+                <span className="text-xs uppercase tracking-wide text-slate-500">{isEn ? 'Next article' : 'Bài tiếp theo'} →</span>
+                <span className="mt-1 line-clamp-2 block font-semibold text-slate-900 group-hover:text-[#0118d8]">{stripHtml(nextPost.title.rendered)}</span>
+              </Link>
+            )}
+          </div>
+        </nav>
+      )}
+      <RelatedPosts posts={relatedPosts} locale={locale} />
+    </>
+  );
+}
+
 /** Shared post detail renderer. Accepts server-fetched WordPress data. */
 export default function ChiTietBaiViet({
   post,
@@ -173,6 +216,9 @@ export default function ChiTietBaiViet({
   previousPost,
   nextPost,
   categoryBanner,
+  relatedSlot,
+  sidebarSlot,
+  bannerSlot,
 }: ChiTietBaiVietProps) {
   const terms = getTerms(post);
   const categories = terms.filter((term) => term.taxonomy === 'category');
@@ -187,7 +233,7 @@ export default function ChiTietBaiViet({
 
   return (
     <div className="min-h-screen bg-white">
-      {categoryBanner && <CategoryBanner banner={categoryBanner} />}
+      {bannerSlot ?? (categoryBanner && <CategoryBanner banner={categoryBanner} />)}
 
       <div className="border-b border-slate-100 bg-slate-50">
         <div className="mx-auto max-w-4xl px-4 py-3 sm:px-6 lg:px-8">
@@ -203,7 +249,7 @@ export default function ChiTietBaiViet({
 
       <main
         className={`mx-auto grid max-w-7xl gap-8 px-4 py-10 max-[640px]:pt-[10%] sm:px-6 lg:px-8 ${
-          sidebar ? 'lg:grid-cols-[minmax(0,1fr)_280px]' : ''
+          sidebar || sidebarSlot ? 'lg:grid-cols-[minmax(0,1fr)_280px]' : ''
         }`}
       >
         <article className="min-w-0">
@@ -317,36 +363,7 @@ export default function ChiTietBaiViet({
             </footer>
           )}
 
-          {(previousPost || nextPost) && (
-            <nav className="mt-8 grid gap-4 border-y border-slate-200 py-6 sm:grid-cols-2" aria-label="Article navigation">
-              <div>
-                {previousPost && (
-                  <Link href={buildPostUrl(previousPost.slug, locale, previousPost.link, previousPost.id, previousPost.canonical_path)} className="group block">
-                    <span className="text-xs uppercase tracking-wide text-slate-500">
-                      ← {isEn ? 'Previous article' : 'Bài trước'}
-                    </span>
-                    <span className="mt-1 line-clamp-2 block font-semibold text-slate-900 group-hover:text-[#0118d8]">
-                      {stripHtml(previousPost.title.rendered)}
-                    </span>
-                  </Link>
-                )}
-              </div>
-              <div className="text-left sm:text-right">
-                {nextPost && (
-                  <Link href={buildPostUrl(nextPost.slug, locale, nextPost.link, nextPost.id, nextPost.canonical_path)} className="group block">
-                    <span className="text-xs uppercase tracking-wide text-slate-500">
-                      {isEn ? 'Next article' : 'Bài tiếp theo'} →
-                    </span>
-                    <span className="mt-1 line-clamp-2 block font-semibold text-slate-900 group-hover:text-[#0118d8]">
-                      {stripHtml(nextPost.title.rendered)}
-                    </span>
-                  </Link>
-                )}
-              </div>
-            </nav>
-          )}
-
-          <RelatedPosts posts={relatedPosts} locale={locale} />
+          {relatedSlot ?? <ArticleRelatedNavigation previousPost={previousPost} nextPost={nextPost} relatedPosts={relatedPosts} locale={locale} />}
 
           {author && (
             <section className="mt-10 flex items-start gap-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -381,7 +398,7 @@ export default function ChiTietBaiViet({
           </div>
         </article>
 
-        {sidebar && (
+        {sidebarSlot ?? (sidebar && (
           <aside className="lg:sticky lg:top-[140px] lg:self-start">
             <CategorySidebar
               data={sidebar}
@@ -389,7 +406,7 @@ export default function ChiTietBaiViet({
               currentCategoryId={categories[0]?.id}
             />
           </aside>
-        )}
+        ))}
       </main>
     </div>
   );

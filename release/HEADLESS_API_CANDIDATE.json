@@ -1,0 +1,9 @@
+{
+  "repository": "troll9x/Headless-API",
+  "branch": "release/tlu-headless-api-rc-2026-10-09",
+  "commit": "57e718adca8a0a07286d8d51b2bc6a1e7742a5fa",
+  "plugin_version": "2.0.9",
+  "schema_version": "4.9",
+  "artifact": "headless-api-2.0.9.zip",
+  "sha256": "67c2acff25544da9163e39d9ebac1f77c92ec99e4e691c20c779f0e57e892a75"
+}

@@ -1,4 +1,20 @@
 import type { NextConfig } from "next";
+import { execFileSync } from "node:child_process";
+
+function releaseId(): string {
+  const configured = process.env.TLU_RELEASE_ID ?? process.env.GITHUB_SHA;
+  if (configured && /^[0-9a-f]{7,40}$/i.test(configured)) return configured.slice(0, 12);
+
+  try {
+    return execFileSync("git", ["rev-parse", "--short=12", "HEAD"], {
+      encoding: "utf8",
+      timeout: 2_000,
+      windowsHide: true,
+    }).trim();
+  } catch {
+    return "unversioned";
+  }
+}
 
 const isProduction = process.env.NODE_ENV === "production";
 const wordpressBaseUrl = process.env.NEXT_PUBLIC_WP_BASE_URL?.trim();
@@ -38,6 +54,7 @@ const contentSecurityPolicy = [
 ].filter(Boolean).join("; ");
 
 const securityHeaders = [
+  { key: "X-TLU-Release", value: releaseId() },
   { key: "Content-Security-Policy", value: contentSecurityPolicy },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Content-Type-Options", value: "nosniff" },
