@@ -16,6 +16,7 @@ import { getHomeMediaGallery } from '@/lib/wordpress/media-gallery';
 import { getHeroSlides } from '@/lib/wordpress/hero-slides';
 import { getSiteStaticImage } from '@/lib/wordpress/site-static-image';
 import { applyHomepagePostPriorities } from '@/lib/wordpress/post-priority';
+import { getHomepageContentSnapshot } from '@/lib/wordpress/homepage-snapshot';
 import {
   CATEGORY_SLUGS,
   HOMEPAGE_NEWS_CATEGORY_IDS,
@@ -134,6 +135,14 @@ async function loadHomepageData(
   const loadErrors: string[] = [];
   const safe = <T,>(label: string, promise: Promise<T>, fallback: T) =>
     withHomepageFallback(label, promise, fallback, loadErrors);
+  let snapshot = null;
+  try {
+    snapshot = await getHomepageContentSnapshot(locale);
+  } catch (error) {
+    // Keep the old route plan as a compatibility fallback while the CMS plugin
+    // rollout is staged. A failed snapshot is not itself a content failure.
+    console.warn('[homepage] snapshot unavailable; using legacy API requests.', error);
+  }
   const [
     heroPage,
     heroSlides,
@@ -154,29 +163,29 @@ async function loadHomepageData(
     moments,
     momentGallery,
   ] = await Promise.all([
-    safe('hero', getFirstPageBySlug(PAGE_SLUGS.HERO, locale), null),
+    snapshot ? Promise.resolve(snapshot.heroPage) : safe('hero', getFirstPageBySlug(PAGE_SLUGS.HERO, locale), null),
     safe('hero slides', getHeroSlides(locale), []),
     getSiteStaticImage(locale).catch((error: unknown) => {
       console.warn('[homepage] CMS static image unavailable; section omitted.', error);
       loadErrors.push('static image');
       return null;
     }),
-    safe('announcements', getPostsByCategories(CATEGORY_SLUGS.ANNOUNCEMENTS, 8, locale), []),
+    snapshot ? Promise.resolve(snapshot.announcements) : safe('announcements', getPostsByCategories(CATEGORY_SLUGS.ANNOUNCEMENTS, 8, locale), []),
     // Match the WordPress shortcode and merge the selected HOT/NEW posts.
-    safe('news', getHomepageNews(locale), []),
+    snapshot ? Promise.resolve(snapshot.news) : safe('news', getHomepageNews(locale), []),
     // Bổ sung ACF từ Headless API vì /wp/v2 có thể không công khai lịch sự kiện.
-    safe('events', getHomepageEvents(locale), []),
-    safe('admissions', getFirstPageBySlug(PAGE_SLUGS.ADMISSIONS, locale), null),
-    safe('featured training', getLatestPostByCategoryCandidates(CATEGORY_SLUGS.FEATURE_TRAINING, locale, true), null),
-    safe('featured students', getLatestPostByCategoryCandidates(CATEGORY_SLUGS.FEATURE_STUDENTS, locale), null),
-    safe('featured alumni', getLatestPostByCategoryCandidates(CATEGORY_SLUGS.FEATURE_ALUMNI, locale), null),
+    snapshot ? Promise.resolve(snapshot.events) : safe('events', getHomepageEvents(locale), []),
+    snapshot ? Promise.resolve(snapshot.admissionsPage) : safe('admissions', getFirstPageBySlug(PAGE_SLUGS.ADMISSIONS, locale), null),
+    snapshot ? Promise.resolve(snapshot.featurePosts.training) : safe('featured training', getLatestPostByCategoryCandidates(CATEGORY_SLUGS.FEATURE_TRAINING, locale, true), null),
+    snapshot ? Promise.resolve(snapshot.featurePosts.students) : safe('featured students', getLatestPostByCategoryCandidates(CATEGORY_SLUGS.FEATURE_STUDENTS, locale), null),
+    snapshot ? Promise.resolve(snapshot.featurePosts.alumni) : safe('featured alumni', getLatestPostByCategoryCandidates(CATEGORY_SLUGS.FEATURE_ALUMNI, locale), null),
     safe('faculties', getFacultySliderItems(locale), []),
     safe('partner logos', getPartnerLogos(locale), []),
-    safe('partners', getPostsByCategories(CATEGORY_SLUGS.PARTNERS, 12, locale), []),
-    safe('cooperation', getPostsByCategories(CATEGORY_SLUGS.COOPERATION, 6, locale, true), []),
-    safe('research', getPostsByCategories(CATEGORY_SLUGS.RESEARCH, 6, locale, true), []),
-    safe('community', getPostsByCategories(CATEGORY_SLUGS.COMMUNITY, 6, locale), []),
-    safe('moments', getPostsByCategories(CATEGORY_SLUGS.MOMENTS, 15, locale), []),
+    snapshot ? Promise.resolve(snapshot.partners) : safe('partners', getPostsByCategories(CATEGORY_SLUGS.PARTNERS, 12, locale), []),
+    snapshot ? Promise.resolve(snapshot.cooperation) : safe('cooperation', getPostsByCategories(CATEGORY_SLUGS.COOPERATION, 6, locale, true), []),
+    snapshot ? Promise.resolve(snapshot.research) : safe('research', getPostsByCategories(CATEGORY_SLUGS.RESEARCH, 6, locale, true), []),
+    snapshot ? Promise.resolve(snapshot.community) : safe('community', getPostsByCategories(CATEGORY_SLUGS.COMMUNITY, 6, locale), []),
+    snapshot ? Promise.resolve(snapshot.moments) : safe('moments', getPostsByCategories(CATEGORY_SLUGS.MOMENTS, 15, locale), []),
     safe('media gallery', getHomeMediaGallery(locale), null),
   ]);
 
