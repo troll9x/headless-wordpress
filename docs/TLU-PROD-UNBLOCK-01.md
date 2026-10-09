@@ -1,102 +1,114 @@
 # TLU-PROD-UNBLOCK-01 — staging investigation and release record
 
 **Updated:** 2026-10-09 (Asia/Saigon)  
-**Status:** In progress; staging patch not yet deployed; production cutover not run.  
-**Baseline report:** [`TLU_FINAL_GO_PRODUCTION_REPORT.md`](../TLU_FINAL_GO_PRODUCTION_REPORT.md)  
-**Task instructions:** [`prompt-tlu-dieu-tra-va-go-production.md`](../prompt-tlu-dieu-tra-va-go-production.md)
+**Current decision:** **NO-GO for production**. The staging frontend is updated and the critical E2E suite passed twice, but cold latency, CMS/data readiness, verified backups, restore rehearsal and production routing evidence are still incomplete.
+**Baseline:** [`TLU_FINAL_GO_PRODUCTION_REPORT.md`](../TLU_FINAL_GO_PRODUCTION_REPORT.md)
+**Execution requirements:** [`prompt-tlu-dieu-tra-va-go-production.md`](../prompt-tlu-dieu-tra-va-go-production.md)
 
-## Repository and runtime identity
+## Scope and repository identity
 
 | Component | Verified identity |
 |---|---|
-| Frontend | `troll9x/headless-wordpress`, branch `release/tlu-production-rc-2026-10-09`, local base `9e1b747520b22b836c12251c30acd48176ea117a`. The implementation commit for this task will be recorded after staging verification. |
-| Backend | `troll9x/Headless-API`, branch `release/tlu-headless-api-rc-2026-10-09`, commit `d6ffda9a128748fc95d58f620c5f788d2c5c03a8` (pushed). |
-| Backend candidate | Headless API 2.0.9 / schema 4.9. ZIP SHA-256 `ddaba8ebbd53b473a428551f53b866db736bc00488efdbeba8f394242bc67f78`. |
-| Staging runtime at investigation start | `dev.nguyenhongson.vn`, service `tlu-next-staging`, Node 22.22.2 / npm 10.9.7, active worktree `/www/wwwroot/dev.nguyenhongson.vn-app/rc/university-next`, release response header `X-TLU-Release: 394ee281e147`. |
-| CMS | `https://cms.tlu.edu.vn`; public API reported Headless API 2.0.8 / schema 4.9. Candidate 2.0.9 is not installed. |
-| Production | `https://tlu.edu.vn` remains the old WordPress site. No production writes, route changes, DB import, or cutover were made. |
+| Frontend repo | `troll9x/headless-wordpress`, branch `release/tlu-production-rc-2026-10-09`, HEAD before this task-record update `e051d3980abda3d2674719ffa8564bfaff391398`. Staging application build uses source commit `df5f93c12fd83db63e33a13e979af58aa1d99821`; later E2E-only commit `e051d3980abda3d2674719ffa8564bfaff391398` changes the optional-map test, not app code. |
+| Backend repo | `troll9x/Headless-API`, branch `release/tlu-headless-api-rc-2026-10-09`, commit `d6ffda9a128748fc95d58f620c5f788d2c5c03a8`. Kept separate from frontend; no CRM merge. |
+| Backend candidate | Headless API 2.0.9 / schema 4.9; ZIP SHA-256 `ddaba8ebbd53b473a428551f53b866db736bc00488efdbeba8f394242bc67f78`. This artifact is **not installed** on CMS. |
+| Staging | `https://dev.nguyenhongson.vn`, A record `103.149.253.223`, service `tlu-next-staging`, Node 22.22.2 / npm 10.9.7. Current systemd working directory `/www/wwwroot/dev.nguyenhongson.vn-app/rc/university-next-df5f93c/university-next`; public response marker `X-TLU-Release: df5f93c`. |
+| CMS | `https://cms.tlu.edu.vn`; API reports Headless API 2.0.8 / schema 4.9. |
+| Public production | `https://tlu.edu.vn` remains the existing WordPress site. No production code, DNS, database, vhost, plugin or route was changed. |
 
-The backend remains a separate repository. No CRM merge or combined repository operation was performed. The two existing untracked frontend files `.tmp-capture-har.mjs` and `prompt-tlu-dieu-tra-va-go-production.md` were preserved.
+Untracked `.tmp-capture-har.mjs` and the user-owned prompt file were preserved and not committed.
 
-## Findings, evidence, changes, and before/after
+## Findings, changes, and before/after evidence
 
-### English raw HTML / article 56787
+### VI/EN raw HTML and article 56787
 
-**Observed:** The historical report documented one `/en` raw HTML mismatch. It is not reproducible on the active staging release in the present investigation. The proxy in `university-next/src/proxy.ts` derives `x-tlu-route-locale` from the request path; the root layout reads that header and emits the `<html lang>` attribute. On staging, interleaved VI/EN requests with deliberately conflicting `Accept-Language` values returned HTTP 200, the same release header, `Cache-Control: private, no-cache, no-store`, and the expected raw `<html lang="vi">` or `<html lang="en">`. No response cache was observed that could mix the languages.
+The historical `/en` mismatch did not recur in the current staging run. Six concurrent raw-HTML requests alternate `/` and `/en` with conflicting `Accept-Language` headers. Both localized roots returned HTTP 200 and the language from the URL. The 15-test E2E suite includes this case and the Vietnamese article ending `56787`; both passed in two consecutive runs against the same staging release.
 
-**Regression coverage added:** Six concurrent raw-HTML requests alternate `/` and `/en` while sending opposing `Accept-Language` headers. The suite also covers the reported Vietnamese article `...-56787`. The concurrent locale test passed against the active staging release; the article rendered HTTP 200 in browser inspection. The earlier raw-language root cause remains **unconfirmed** because the original mismatch has not recurred and the old release is the only release currently deployed.
+`src/proxy.ts` sets `x-tlu-route-locale` from the URL, and `src/app/layout.tsx` uses that value for the server-rendered `<html lang>`. The evidence confirms the current behavior; it does not establish the cause of the old intermittent report, which remains **not reproduced**.
 
-**Status:** Current behavior **PASS on observed staging samples**; historical incident **NOT REPRODUCED**, not a proven source fix. The regression suite must be rerun against the new task release.
+### English article raw HTML, images, and browser requests
+
+**Confirmed implementation defect:** `sanitizeCmsHtml(value, mediaBaseUrl)` replaced the default image transform with a media-URL transform. The replacement resolved image URLs but failed to add `loading="lazy"` and `decoding="async"`. The article `Lecturers From Thuyloi University Granted Patent for New Measurement Method` returned body images without `loading`; a browser HAR showed 99 requests, 30.215 s to the `load` event and three `/Portals/` image requests failing with `net::ERR_TIMED_OUT`.
+
+**Fix:** The media-base image transform now both resolves `src`/`srcset` and adds lazy loading/async decoding when editors did not set those attributes. The partner Swiper Virtual module was missing `enabled: true`, so it mounted all 69 images; enabling it reduced the mounted slide image count to at most 20 in E2E. The footer map iframe is created only on demand/near the viewport, but the current CMS has no `url_map` value. The E2E test now verifies the actual optional configuration instead of waiting for a nonexistent map button. Positive map loading is **not tested** until the CMS supplies a valid URL.
+
+| Browser capture | Before | After release `df5f93c` | Result |
+|---|---:|---:|---|
+| English article | 99 requests; `load` 30.215 s; 3 legacy `/Portals/` image timeouts | 28 requests; DCL 193 ms; `load` 232 ms; last captured request 443 ms; no failed requests | Large improvement for the captured viewport. Below-fold `/Portals/` images are lazy and therefore their availability after scroll is still unverified. |
+| Vietnamese homepage | 81–84 requests, 104 `<img>` elements in earlier captures | 47 requests; DCL 352 ms; `load` 2.334 s; last captured request 23.717 s; encoded bytes 7,883,118 | Request count and initial load improved. Nine video requests were aborted as slides changed; the complete media experience and LCP remain unverified. |
+
+The after captures were single desktop-headless samples, not distributions. The HAR files are in the local temp directory and were not committed. Their script did not record LCP, so no LCP pass is claimed. CMS does not configure `url_map`, `footer_email` or the English footer address in the current options response; this is a content/configuration observation, not a frontend failure.
 
 ### Cold latency and request fan-out
 
-**Observed on existing staging release:**
+The homepage assembles 18 data branches in `src/services/homepage.ts`; the root layout separately requests logos, footer and social options. This fan-out depends on the remote CMS during a cold Next data cache. The page uses dynamic request headers for the URL locale, so the HTML itself is not served from a static page cache.
 
-- Frontend cold requests logged WordPress API 10-second timeouts, `AbortError`, and a timed-out `/wp/v2/categories` fetch while assembling the English homepage. The homepage service starts 18 data branches; `src/lib/wordpress/client.ts` limits requests to six concurrent and uses a 10-second per-request deadline. The homepage route and root layout remain request-dynamic, so a cold app cache has no rendered HTML fallback.
-- From the staging host, `/wp-json/headless/v1/health` returned HTTP 200; measured DNS 0.051 s, connect 0.232 s, TLS 0.474 s, TTFB 0.938 s. The first measured English all-categories request returned HTTP 200 with TTFB 4.158 s; the immediate repeat returned HTTP 200 with TTFB 3.825 s (N=2 only, not p50/p95). A read-only media search for the legacy image name timed out at 20.001 s with zero bytes. Thus TLS and basic host reachability work, while some CMS queries/media lookup are slow or stall.
-- A fresh Chromium context on an English article received the HTML in 0.120 s, DOMContentLoaded at 0.271 s, but the browser `load` event arrived at 30.215 s. The document generated 99 requests. Three images under `https://tlu.edu.vn/Portals/0/P9/VA/2025/` failed `net::ERR_TIMED_OUT` after 30 seconds. The article HTML had `lang="en"`; this is asset completion latency, not slow HTML response.
-- On the Vietnamese homepage, an observed warm run returned HTML in 0.173 s, DOMContentLoaded at 0.514 s, load at 2.200 s, with 81 browser requests and 104 `<img>` elements. A preceding first run loaded in 5.738 s. These are individual observations only, not the required 30-sample distributions.
-- Public HTML responses include `Cache-Control: private, no-cache, no-store`; the staging Nginx proxy cache was disabled. Therefore public edge cache is not masking slow cold SSR.
+During an early candidate check, two Next processes were running on staging ports 3001 and 3002 while tests were also hitting the same CMS. In that interval, six homepage branches logged their 30-second fallback deadlines. This was a test-induced concurrent load condition; it is not evidence of ordinary single-process CMS behavior. The temporary port-3002 process has since been stopped, leaving only the managed service on 3001.
 
-**Frontend changes in this task:**
+With the single managed service, the first E2E homepage navigation took 15.1 s and the next run took 1.6 s. The unknown-path route took 14.1 s, then 5.2 s. These are one cold/warm pair from Playwright, not HTML TTFB samples or p95. They still exceed the stated cold objective and vary materially. A fresh external CMS sample returned health in 2.273 s and schema in 2.003 s; the earlier all-categories query took 3.8–4.2 s in two samples. The exact cold homepage stall is **not isolated**; CMS query/DB/PHP-FPM queue metrics are unavailable.
 
-1. Virtualize the partner-logo Swiper slides so offscreen logos do not all mount as image elements.
-2. Do not create the Google Maps iframe until the footer is within 250 px of the viewport; retain a localized button to load it immediately.
-3. Set CMS rich-text images to `loading="lazy"` and `decoding="async"` when the editor did not already specify these attributes.
-4. Use `DOMContentLoaded` in E2E navigation where the test validates document/UI content. Full browser load, image failures, and LCP remain separately measured gates; these changes do not claim that inaccessible legacy images are repaired.
-
-**Before/after:** Source build, E2E, and browser request counts for the task release are pending staging deployment. The three legacy Portal images still require an asset/data remediation; lazy loading improves below-the-fold work but cannot repair the visible image URLs that time out.
+The captured homepage HAR loads in 2.334 s but has 23.717 s until the last request finishes, largely because video requests are aborted while the carousel changes. This illustrates why a fast DOM/load event alone is not a pass for all resources. No 30-sample/two-round benchmark, formal p50/p95, browser LCP, or concurrency profile has been completed. The cold-performance release gate **fails**.
 
 ### Backend release artifact reproducibility
 
-**Confirmed root cause:** Windows checkout converted plugin source files to CRLF while the existing ZIP contained a different mixed-line-ending representation. The original builder packaged raw working-tree bytes, so rebuilding the same backend commit changed the artifact checksum and failed to reproduce the pinned release.
+The backend builder previously packaged platform-dependent line endings. `tools/build_release.py` now canonicalizes CRLF to LF for both build and verification; the frontend mirror verifier uses the same normalization. Two builds of the same source produced 96 files and the exact SHA-256 in the manifest.
 
-**Change:** `tools/build_release.py` now canonicalizes CRLF to LF for both build and verification. The frontend mirror verifier applies the same canonical normalization. The backend release ZIP was built twice; both runs reported 96 files and SHA-256 `ddaba8ebbd53b473a428551f53b866db736bc00488efdbeba8f394242bc67f78`. Frontend `scripts/verify-headless-release.py` passes against the updated mirror. Backend commit `d6ffda9a128748fc95d58f620c5f788d2c5c03a8` was pushed to its own release branch.
-
-**Checks:** `php -l headless-api.php`, `php tests/gallery-selection.php`, `php tests/options-public-fields.php`, two consecutive release builds, and frontend mirror verification all pass. Runtime CMS compatibility is still unverified because the 2.0.9 plugin is not installed.
+Checks run: `php -l headless-api.php`, `php tests/gallery-selection.php`, `php tests/options-public-fields.php`, two release builds, and `python scripts/verify-headless-release.py` all passed. This resolves artifact reproducibility only; it does not prove CMS runtime compatibility.
 
 ## Database freshness, CMS compatibility, and backup state
 
-The CMS REST API currently identifies runtime plugin 2.0.8/schema 4.9. The CMS latest published post observed in the previous baseline was ID 57004 dated 2026-09-26; old production had ID 57290 dated 2026-10-09. This establishes that the CMS snapshot is stale relative to production. No DB copy, SQL write, content sync, migration, or destructive cache operation was run.
+Current read-only endpoints returned:
 
-ACF Pro 6.3.11, Polylang 3.8.10, Rank Math 1.0.279, WPCode Lite 2.3.9, Permalink Manager Pro 2.5.1.3, and inactive Redis Object Cache 3.0.0 were observed in CMS admin. Headless API response cache is enabled at TTL 300 seconds. The public all-categories endpoint works but took 3.8–4.2 seconds in two staging-host samples. A media search timed out. The exact DB state, PHP-FPM queue/pool, MariaDB recovery/read-only flags, slow SQL, disk I/O, and CMS host logs have not been inspected.
+- `GET /wp-json/headless/v1/health`: HTTP 200, Headless API `2.0.8`, 2.273 s from the workstation.
+- `GET /wp-json/tlu/v1/schema`: HTTP 200, schema `4.9`, plugin `2.0.8`, 2.003 s.
+- `GET /wp-json/headless/v1/options?key=tlu_site_footer`: HTTP 200; the current response has no `url_map`, footer email or English address.
 
-No restorable CMS/production DB+uploads backup or restore rehearsal has been evidenced. No synchronization between the old production WordPress DB and the separate headless CMS has been rehearsed. The candidate plugin was not installed because backup/restore and CMS host state are unverified.
+The earlier report compared CMS latest post ID `57004` dated 2026-09-26 with old production ID `57290` dated 2026-10-09. That is evidence the CMS snapshot is stale; the current source DB has not been compared. No database import, content sync, migration, or write test was run. No plugin was installed or changed.
 
-## Verification run and staging status
+The CMS admin previously showed ACF Pro 6.3.11, Polylang 3.8.10, Rank Math 1.0.279, WPCode Lite 2.3.9, Permalink Manager Pro 2.5.1.3 active, and Redis Object Cache 3.0.0 inactive. The Headless API response cache is enabled at TTL 300 seconds. The CMS host's MariaDB recovery/read-only state, PHP-FPM pool, slow SQL, disk I/O and logs remain unknown.
 
-| Check | Result |
+There is no checksum-verified DB + uploads backup or restore rehearsal evidence. The CMS plugin candidate was not installed because the backup and restore path are unverified. Staging frontend rollback files do not count as a CMS or production-data backup.
+
+## Staging verification
+
+| Check | Result and evidence |
 |---|---|
-| Frontend ESLint | PASS before the final E2E navigation-only adjustment; rerun on final commit. |
-| Frontend TypeScript | PASS before the final E2E navigation-only adjustment; rerun on final commit. |
-| Frontend production build | PASS with Next.js 16.3.8 and local `.env.local`; compile and TypeScript passed. Static generation completed in 87 seconds. Must repeat on staging Node 22.22.2 for the deploy artifact. |
-| E2E inventory | 15 tests discovered after adding locale concurrency, 56787, carousel, and lazy-media/map coverage. |
-| Full E2E on the old staging release | 9 passed / 4 timed out while `page.goto()` waited for `load`; article media failures were independently observed. This is not a pass and does not validate the task release. |
-| Task release staging deploy | NOT YET RUN. |
-| 30 cold + 30 warm samples, two rounds, and browser LCP | NOT YET RUN. |
-| Production CMS plugin 2.0.9 compatibility | BLOCKED / NOT TESTED. |
-| DB freshness/sync, DB health, backup and restore rehearsal | BLOCKED / NOT TESTED. |
-| Production config/cutover/rollback rehearsal | NOT RUN. |
+| Frontend branch and task commits | Branch `release/tlu-production-rc-2026-10-09`; app fix commit `df5f93c12fd83db63e33a13e979af58aa1d99821`; E2E config test commit `e051d3980abda3d2674719ffa8564bfaff391398`. Both pushed. |
+| Lint / TypeScript | PASS on current frontend HEAD: `npm run lint`, `npm run typecheck`. |
+| Frontend production build | PASS for app commit `df5f93c`, Next.js 16.3.8 / Turbopack, Node 22.22.2 on staging; compile, TypeScript, static generation and route output completed. Local production build also passed. |
+| Active staging identity | PASS: `tlu-next-staging` active with working directory above; public header `X-TLU-Release: df5f93c`; staging A record resolves to `103.149.253.223`. |
+| E2E run 1 | PASS 15/15 against `dev.nguyenhongson.vn` on release `df5f93c`. Includes interleaved VI/EN raw HTML, article 56787, language switch, images/carousel, search, SEO, 404, legacy redirect, responsive and unsigned revalidation. Total 59.8 s; homepage 15.1 s. |
+| E2E run 2 | PASS 15/15 against the same release. Total 24.0 s; homepage 1.6 s. This demonstrates correctness stability in these two runs, not the required latency budget. |
+| Article HAR | 28 requests, zero failed requests, load 232 ms, last captured request 443 ms; one run only. |
+| Homepage HAR | 47 requests, load 2.334 s, last captured request 23.717 s, 7.88 MB encoded, nine aborted video requests; one run only. |
+| TLS | PASS for the observed public HTTPS/API calls using normal certificate validation. No TLS bypass flags or insecure Node settings were used. Full origin/certificate-chain audit remains incomplete. |
+| Dependency audit | `npm audit` reports 5 high findings in the development lint/build toolchain (`@next/eslint-plugin-next`, `braces`, `eslint-config-next`, `fast-glob`, `micromatch`); `npm audit --omit=dev` reports 0. The suggested remediation changes the ESLint Next config version and was not forced. Track the dev-toolchain findings before release. |
+| 30 cold + 30 warm samples, two rounds and LCP | NOT RUN; G3 remains FAIL. |
+| CMS 2.0.9 compatibility / required ACF and Polylang data | BLOCKED / NOT TESTED. Runtime remains 2.0.8. |
+| Database freshness, health, sync and backup restore | BLOCKED / NOT TESTED. |
+| Production vhost/Cloudflare/routing and rollback rehearsal | BLOCKED / NOT RUN. Production was not changed. |
 
 ## Release gates
 
-| Gate | Current status | Evidence needed to clear |
+| Gate | Status | Evidence still required |
 |---|---|---|
-| G1 — correct FE/BE candidates and reproducible artifacts | PARTIAL | Backend artifact fixed and pushed; commit FE task release, update pin, and deploy verified task release. |
-| G2 — VI/EN raw HTML and critical flows | PARTIAL | Current release samples pass; run all 15 tests twice on the same deployed release, including conflicting-header concurrency and article 56787. |
-| G3 — TLS and performance budgets | FAIL / NOT TESTED | Legacy Portal images time out; category query 3.8–4.2 s; 30 cold and 30 warm samples for each required route/state, browser LCP, and bounded concurrency are outstanding. |
-| G4 — CMS/API compatibility | BLOCKED | Install/validate 2.0.9 only after restorable CMS backup; verify ACF, Polylang, SEO, options, menus, media/gallery 15, cache invalidation and existing snippets. |
-| G5 — latest content and data integrity | BLOCKED | Compare DBs and media inventories; rehearse a non-destructive sync with IDs/translations/metadata/media/SEO checksums. CMS is known stale. |
-| G6 — restore, cutover, observability, rollback | BLOCKED | Obtain and restore-test backups; inspect production Nginx/Cloudflare/TLS and health/logging; rehearse exact rollback without changing public production. |
+| G1 — correct repos/host/release and exact artifacts | PARTIAL | FE app commit is deployed to staging and backend ZIP reproducible. Final release pin/manifest and production artifact remain incomplete. |
+| G2 — locale SSR and critical flows | PASS for current staging tests | Two consecutive 15/15 E2E runs; historical mismatch cause remains unconfirmed. |
+| G3 — TLS and cold/warm performance | FAIL | Cold samples exceed budget; no 30-sample/two-round distributions, browser LCP, or media-after-scroll verification. |
+| G4 — CMS/API compatibility | BLOCKED | Verify plugin 2.0.8 versus 2.0.9 contract and required VI/EN fields; plugin runtime has not been upgraded or exercised on a restorable clone. |
+| G5 — latest data and integrity | BLOCKED | Current production/CMS DB comparison, media inventory and non-destructive sync rehearsal are absent; CMS snapshot is known stale. |
+| G6 — backups, restore, routing and rollback | BLOCKED | CMS/production backup + isolated restore, production Nginx/Cloudflare/SSL/admin checks, monitoring evidence and staging rollback rehearsal are absent. |
 
-## Exact access needed to continue blocked work
+## Access needed for blocked work
 
-The staging aaPanel terminal is available and was used for read-only checks. It does not expose the separate CMS/old-production database host. CMS admin browser access alone cannot establish MariaDB recovery/read-write state, take a consistent DB+uploads backup, inspect PHP-FPM/slow-query logs, or prove restore.
+The staging aaPanel terminal is available and was used only for the staging frontend. It is not proven to be the CMS database host. CMS admin/API access cannot establish MariaDB recovery/read-only state, provide a consistent DB + uploads backup, inspect PHP-FPM/slow-query logs, or prove a restore.
 
-To continue those gates, open the aaPanel terminal for the host serving `cms.tlu.edu.vn` (not the staging host) and leave an authenticated terminal ready. The next commands will be scoped read-only to that CMS install to identify its actual host/service, PHP-FPM and MariaDB state, and backups. Before any plugin install or database/content write, first create a checksum-verified DB + uploads + plugin/config backup and rehearse restore into an isolated directory/database. Production data-source access is separately required to compare latest production content and media. Do not paste passwords or keys into chat.
+To continue G4 and G6, make an authenticated aaPanel terminal available for the host that actually serves `cms.tlu.edu.vn` and confirm the CMS installation path. First actions there will be read-only host/DB/service inspection and a backup inventory. Before plugin installation or CMS writes, a checksum-verified DB + uploads + plugin/config backup and a successful restore to an isolated DB/path are required. To finish G5, make the old production WordPress data source available read-only so its current post/media state can be compared with the CMS snapshot. Do not paste credentials or keys into chat.
 
-## Cutover and rollback status
+## Staging rollback and production cutover
 
-Production DNS, vhosts, databases, content, plugin installation, and old WordPress remain unchanged. There is no production release ID. The staging release active at investigation start remains `394ee281e147`; after the task release is deployed, record its commit and observed response header here.
+Before the staging service was switched to `df5f93c`, its previous drop-in was saved at `/www/wwwroot/dev.nguyenhongson.vn-app/backups/20261009/TLU-PROD-UNBLOCK-01/systemd/override.conf.df5f93c-before`; the initial `394ee281e147` drop-in backup also remains in the same task backup area. The previous app worktree is preserved. Staging rollback is prepared but has not been rehearsed. Verify the backup copy and target paths before restoring the old drop-in, then restart only `tlu-next-staging.service` and confirm the expected old release marker.
 
-Cutover remains blocked until G1–G6 pass. When clear, preserve the old WordPress site and rollback route, freeze content edits, take a final verified backup, sync/compare content, switch the production route, then run VI/EN article/category/search/media and TLS smoke checks while watching 5xx, latency, PHP-FPM, DB and cache metrics. Roll back the frontend route to the preserved WordPress origin if critical routes return 5xx/404, raw locale/SEO is wrong, API/data mismatch appears, or the latency/error budget is exceeded. No DB restore is part of a frontend-only rollback.
+Production DNS, Nginx, Cloudflare, WordPress, CMS plugin and databases remain unchanged. No production release ID exists. Once all gates pass, the deployment sequence is: freeze content; verify final data delta and media; take and checksum DB/files/config backups; validate the isolated restore; deploy the exact tested frontend/backend artifacts; validate Nginx/SSL and CMS/admin/legacy routes; switch only `tlu.edu.vn`; smoke-test VI/EN homepage, article, category, search, media, SEO and redirects; monitor errors and latency for at least 30 minutes. Roll back the public route to the preserved WordPress origin for repeated critical 5xx, incorrect locale/content/media/admin/SEO, TLS failure, DB degradation, or repeated breach of the agreed latency/error budget. Do not restore a database for a frontend-only failure.
+
+**Current outcome:** Staging deployment and E2E correctness work are complete for the recorded frontend app release. The task is not production-ready. G3 fails and G4–G6 remain blocked; no production change has been made.
