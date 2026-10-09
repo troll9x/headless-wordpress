@@ -28,7 +28,12 @@ export async function GET(request: NextRequest) {
 
   try {
     const result = await searchHeadlessSite(
-      query, locale, 1, limit, getClientIp(request, TRUSTED_CLIENT_IP_HEADER),
+      query,
+      locale,
+      1,
+      limit,
+      getClientIp(request, TRUSTED_CLIENT_IP_HEADER),
+      request.signal,
     );
     return NextResponse.json(
       {
