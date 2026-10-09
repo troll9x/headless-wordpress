@@ -2,6 +2,7 @@ import { WP_API_URL, WP_SITE_URL } from '@/config/env/server';
 import { wpFetch, wpFetchCollection, wpFetchUrl } from '@/lib/wordpress/client';
 import { buildWordPressRestUrl } from '@/lib/wordpress/url';
 import { CACHE_TAGS, REVALIDATE_POSTS } from '@/constants/api';
+import { WordPressApiError } from '@/lib/wordpress/errors';
 import type { WPMedia, WPPost } from '@/types/wordpress';
 import type { Locale } from '@/types/ngon-ngu';
 
@@ -74,15 +75,11 @@ export async function getPostById(
   id: number,
   locale: Locale = 'vi',
 ): Promise<WPPost | null> {
-  try {
-    return await wpFetch<WPPost>(`${ENDPOINT}/${id}`, {
-      params: { _embed: 1, lang: locale },
-      revalidate: REVALIDATE_POSTS,
-      tags: [CACHE_TAGS.POSTS],
-    });
-  } catch {
-    return null;
-  }
+  return wpFetch<WPPost>(`${ENDPOINT}/${id}`, {
+    params: { _embed: 1, lang: locale },
+    revalidate: REVALIDATE_POSTS,
+    tags: [CACHE_TAGS.POSTS],
+  });
 }
 
 /** Lightweight post collection for cards/sliders; deliberately excludes full article content. */
@@ -182,11 +179,18 @@ export async function getPostByPermalinkPath(
     const postId = Number.parseInt(idMatch[1], 10);
     if (!Number.isSafeInteger(postId) || postId <= 0) return null;
 
-    const post = await getPostById(postId, locale);
-    return post?.type === 'post' ? post : null;
+    try {
+      const post = await getPostById(postId, locale);
+      return post?.type === 'post' ? post : null;
+    } catch (error) {
+      // A real missing post is a 404; upstream timeouts and 5xx must propagate
+      // so the route does not misreport a temporary CMS failure as missing content.
+      if (error instanceof WordPressApiError && error.status === 404) return null;
+      throw error;
+    }
   }
 
-  const directPost = await getPostBySlug(requestedSlug, locale).catch(() => null);
+  const directPost = await getPostBySlug(requestedSlug, locale);
   if (directPost && normalizePermalinkPath(directPost.link) === normalizedPath) {
     return directPost;
   }

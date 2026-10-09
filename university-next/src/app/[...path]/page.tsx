@@ -67,8 +67,8 @@ async function getCategoryPostsPage(
   try {
     return await getPostSummariesPage(params, locale);
   } catch (error) {
-    console.error(`[category-archive] Summary fetch failed for ${categorySlug}; rendering an empty archive.`, error);
-    return { posts: [], total: 0, totalPages: 1 };
+    console.error(`[category-archive] Summary fetch failed for ${categorySlug}; refusing to render a false empty archive.`, error);
+    throw error;
   }
 }
 
@@ -102,7 +102,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     : null;
   const category = isPostIdPath
     ? null
-    : await getCategoryBySlug(request.slug, request.locale).catch(() => null);
+    : await getCategoryBySlug(request.slug, request.locale);
   if (category) {
     const isEn = request.locale === 'en';
     const description = sanitizeMetaDescription(
@@ -123,7 +123,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   if (!request.isFlatContentPath) notFound();
-  const post = await getPostByPermalinkPath((await params).path.join('/'), request.locale).catch(() => null);
+  const post = await getPostByPermalinkPath((await params).path.join('/'), request.locale);
   if (!post) notFound();
 
   const title = stripHtml(post.title.rendered);
@@ -169,13 +169,7 @@ async function renderCategory(
   const isRecruitment = category.id === 85 || category.slug === 'thong-tin-tuyen-dung';
   // WordPress category archives include descendant terms. Core REST only
   // filters the exact IDs supplied, so expand the tree explicitly.
-  let categoryIds: number[];
-  try {
-    categoryIds = await getCategoryTreeIds(category.id, request.locale);
-  } catch (error) {
-    console.warn(`[category-archive] Category tree fetch failed for ${category.slug}; using its root term only.`, error);
-    categoryIds = [category.id];
-  }
+  const categoryIds = await getCategoryTreeIds(category.id, request.locale);
   const query = {
     categories: categoryIds,
     per_page: CATEGORY_POSTS_PER_PAGE,
@@ -290,13 +284,13 @@ export default async function WordPressPermalinkPage({ params, searchParams }: P
   const isPostIdPath = /-\d+$/.test(request.slug);
   const category = isPostIdPath
     ? null
-    : await getCategoryBySlug(request.slug, request.locale).catch(() => null);
+    : await getCategoryBySlug(request.slug, request.locale);
   if (category) {
     return renderCategory(category, request, parsePage((await searchParams).page));
   }
 
   if (!request.isFlatContentPath) notFound();
-  const post = await getPostByPermalinkPath((await params).path.join('/'), request.locale).catch(() => null);
+  const post = await getPostByPermalinkPath((await params).path.join('/'), request.locale);
   if (!post) notFound();
 
   const canonicalPath = buildPostUrl(post.slug, request.locale, post.link, post.id, post.canonical_path);

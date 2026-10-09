@@ -49,6 +49,14 @@ With the single managed service, the first E2E homepage navigation took 15.1 s a
 
 The captured homepage HAR loads in 2.334 s but has 23.717 s until the last request finishes, largely because video requests are aborted while the carousel changes. This illustrates why a fast DOM/load event alone is not a pass for all resources. No 30-sample/two-round benchmark, formal p50/p95, browser LCP, or concurrency profile has been completed. The cold-performance release gate **fails**.
 
+### First-load category/article results
+
+On 2026-10-09, a public GET of staging category `/tin-tuc` returned HTTP 200 in 7.275 s (TTFB 7.202 s); the immediate repeat returned HTTP 200 in 0.245 s (TTFB 0.172 s). The public article `...-56787` returned HTTP 200 in 0.230 s. This confirms a large cold/warm category latency difference, but did not reproduce a blank/404 response in that sample.
+
+Code inspection found concrete failure handling that can produce the reported symptom when an upstream request fails transiently: `src/app/[...path]/page.tsx` caught category/article resolution errors and treated them as missing content, fell back to only the root term if category-tree lookup failed, and rendered an empty archive if both post-list requests failed. The route therefore could return 404 or an empty category on the first request, then work on refresh once CMS/cache responses succeeded. This is a confirmed FE defect; the exact upstream trigger and frequency remain unisolated.
+
+The local FE patch adds one bounded retry for network/timeout, 408/425/429 and 5xx responses; propagates upstream errors instead of mapping them to 404; treats only a real post 404 as missing; and stops silently rendering incomplete/empty category archives after failed requests. TypeScript, ESLint and the production build pass locally. This patch has **not yet been deployed to staging**, so there is no post-fix runtime or E2E result yet.
+
 ### Backend release artifact reproducibility
 
 The backend builder previously packaged platform-dependent line endings. `tools/build_release.py` now canonicalizes CRLF to LF for both build and verification; the frontend mirror verifier uses the same normalization. Two builds of the same source produced 96 files and the exact SHA-256 in the manifest.

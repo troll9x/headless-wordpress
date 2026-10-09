@@ -29,6 +29,8 @@ interface WpFetchOptions {
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000;
+const MAX_TRANSIENT_RETRIES = 1;
+const TRANSIENT_RETRY_DELAY_MS = 200;
 // A cold homepage starts several independent category and post requests.
 // Keep a moderate ceiling so queued requests can start before the homepage's
 // fallback deadline without flooding WordPress.
@@ -160,58 +162,70 @@ async function executeWpPayloadNow<T>(
   }: Required<Pick<WpFetchOptions, 'revalidate' | 'timeoutMs'>> &
     Pick<WpFetchOptions, 'tags' | 'signal'>,
 ): Promise<WpPayloadResult<T>> {
-  const timeoutController = new AbortController();
-  const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs);
-  const requestSignal = signal
-    ? AbortSignal.any([signal, timeoutController.signal])
-    : timeoutController.signal;
+  for (let attempt = 0; ; attempt += 1) {
+    const timeoutController = new AbortController();
+    const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs);
+    const requestSignal = signal
+      ? AbortSignal.any([signal, timeoutController.signal])
+      : timeoutController.signal;
 
-  try {
-    const response = await fetch(url.toString(), {
-      next: { revalidate, tags },
-      headers: { Accept: 'application/json' },
-      signal: requestSignal,
-    });
-
-    if (!response.ok) {
-      const payload = await parseJsonSafely(response);
-      const parsedError = parseWordPressRestError(payload);
-
-      throw new WordPressApiError({
-        endpoint: getEndpointLabel(url),
-        status: response.status,
-        code: parsedError.code,
-        message:
-          parsedError.message ??
-          `WordPress API request failed with status ${response.status}.`,
+    try {
+      const response = await fetch(url.toString(), {
+        next: { revalidate, tags },
+        headers: { Accept: 'application/json' },
+        signal: requestSignal,
       });
-    }
 
-    const payload = await parseJsonSafely(response);
-    if (payload === undefined || payload === null) {
-      throw new WordPressResponseError(
-        getEndpointLabel(url),
-        'WordPress API returned an empty or invalid JSON response.',
-      );
-    }
+      if (!response.ok) {
+        const payload = await parseJsonSafely(response);
+        const parsedError = parseWordPressRestError(payload);
 
-    return { data: payload as T, response };
-  } catch (error) {
-    if (error instanceof WordPressApiError || error instanceof WordPressResponseError) {
-      throw error;
-    }
+        throw new WordPressApiError({
+          endpoint: getEndpointLabel(url),
+          status: response.status,
+          code: parsedError.code,
+          message:
+            parsedError.message ??
+            `WordPress API request failed with status ${response.status}.`,
+        });
+      }
 
-    const isTimeout = timeoutController.signal.aborted && !signal?.aborted;
-    throw new WordPressResponseError(
-      getEndpointLabel(url),
-      isTimeout
-        ? 'WordPress API request timed out.'
-        : 'WordPress API request could not be completed.',
-      error,
-    );
-  } finally {
-    clearTimeout(timeoutId);
+      const payload = await parseJsonSafely(response);
+      if (payload === undefined || payload === null) {
+        throw new WordPressResponseError(
+          getEndpointLabel(url),
+          'WordPress API returned an empty or invalid JSON response.',
+        );
+      }
+
+      return { data: payload as T, response };
+    } catch (error) {
+      const isTimeout = timeoutController.signal.aborted && !signal?.aborted;
+      const normalizedError = error instanceof WordPressApiError || error instanceof WordPressResponseError
+        ? error
+        : new WordPressResponseError(
+            getEndpointLabel(url),
+            isTimeout
+              ? 'WordPress API request timed out.'
+              : 'WordPress API request could not be completed.',
+            error,
+          );
+
+      if (signal?.aborted || attempt >= MAX_TRANSIENT_RETRIES || !isTransientWordPressError(normalizedError)) {
+        throw normalizedError;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, TRANSIENT_RETRY_DELAY_MS));
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
+}
+
+function isTransientWordPressError(error: Error): boolean {
+  if (error instanceof WordPressResponseError) return true;
+  if (!(error instanceof WordPressApiError)) return false;
+  return error.status === 408 || error.status === 425 || error.status === 429 || error.status >= 500;
 }
 
 /**
