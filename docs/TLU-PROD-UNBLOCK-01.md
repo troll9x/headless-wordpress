@@ -81,9 +81,10 @@ There is no checksum-verified DB + uploads backup or restore rehearsal evidence.
 | Active staging identity | PASS: `tlu-next-staging` active with working directory above; public header `X-TLU-Release: df5f93c`; staging A record resolves to `103.149.253.223`. |
 | E2E run 1 | PASS 15/15 against `dev.nguyenhongson.vn` on release `df5f93c`. Includes interleaved VI/EN raw HTML, article 56787, language switch, images/carousel, search, SEO, 404, legacy redirect, responsive and unsigned revalidation. Total 59.8 s; homepage 15.1 s. |
 | E2E run 2 | PASS 15/15 against the same release. Total 24.0 s; homepage 1.6 s. This demonstrates correctness stability in these two runs, not the required latency budget. |
+| E2E run 3 after staging rollback attempt and restoration | PASS 15/15 on `df5f93c`; total 1.2 min; homepage test 20.8 s, optional footer map/image test 29.7 s, 404 test 10.9 s. This verifies the restored release still passes the suite; these are Playwright test durations, not TTFB measurements. |
 | Article HAR | 28 requests, zero failed requests, load 232 ms, last captured request 443 ms; one run only. |
 | Homepage HAR | 47 requests, load 2.334 s, last captured request 23.717 s, 7.88 MB encoded, nine aborted video requests; one run only. |
-| TLS | PASS for the observed public HTTPS/API calls using normal certificate validation. No TLS bypass flags or insecure Node settings were used. Full origin/certificate-chain audit remains incomplete. |
+| TLS | PASS for observed public HTTPS/API calls using normal certificate validation. Local Node v26.1.0 with `NODE_TLS_REJECT_UNAUTHORIZED` unset fetched CMS health HTTP 200. No TLS bypass flags or insecure Node settings were used. Full origin/certificate-chain audit remains incomplete. |
 | Dependency audit | `npm audit` reports 5 high findings in the development lint/build toolchain (`@next/eslint-plugin-next`, `braces`, `eslint-config-next`, `fast-glob`, `micromatch`); `npm audit --omit=dev` reports 0. The suggested remediation changes the ESLint Next config version and was not forced. Track the dev-toolchain findings before release. |
 | 30 cold + 30 warm samples, two rounds and LCP | NOT RUN; G3 remains FAIL. |
 | CMS 2.0.9 compatibility / required ACF and Polylang data | BLOCKED / NOT TESTED. Runtime remains 2.0.8. |
