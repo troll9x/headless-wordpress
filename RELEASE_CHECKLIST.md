@@ -13,6 +13,8 @@
 
 ## Source and content gates
 
+- [x] Read-only CMS runtime version/schema probe: health reports Headless API 2.0.8; `/wp-json/tlu/v1/schema` reports schema 4.9. One cold schema request took about 121 s and a repeat 2.885 s. This does not validate candidate 2.0.9.
+- [ ] Promote and validate backend 2.0.9 only after authenticated CMS backup/restore evidence and ACF/WPCode review; CMS is still serving 2.0.8.
 - [ ] Obtain current `home-seo` WPCode/snippet implementation; review route registration, permissions, schema and sanitization; version it without duplicate route registration.
 - [ ] Inventory ACF options actually in use, including custom fields outside the known public contract. Approve any field added to `headless_api_allowed_options_fields` before plugin promotion.
 - [ ] On staging, validate VI/EN hero, logo, footer, social, favicon, quick links, map, Education taxonomy introduction and child categories, posts, menus, gallery, and media URLs. Verify missing translations route safely.
@@ -24,16 +26,17 @@
 
 - [x] Local lint/typecheck/production build, backend PHP lint/regression, frontend source tests, artifact parity and production dependency audit pass; details in `PRODUCTION_FIX_REPORT.md`.
 - [x] Local browser smoke: 11 passed, 1 staging-only unsigned revalidation check skipped. Windows Node-to-CMS certificate errors remain in logs, so completeness of upstream content is not proven by those browser checks.
-- [ ] Deploy exact candidate to `dev.nguyenhongson.vn` through reviewed staging procedure, then rerun `npm run test:e2e` against `E2E_BASE_URL=https://dev.nguyenhongson.vn`. Old staging: 11 passed, 1 failed (English server HTML `lang=vi`).
+- [x] Deploy exact candidate to existing `dev.nguyenhongson.vn` service from separate worktree; build passed, service active, and `X-TLU-Release: 394ee281e147` verified. Previous app tree and original systemd unit remain available for staging rollback.
+- [ ] Staging E2E: 11 passed, 1 failed because the English homepage response had server HTML `lang=vi`; focused rerun timed out at 45 s. Direct upstream and later public curl returned `lang=en`, so behavior is inconsistent and remains a blocker.
 - [ ] Implement/run controlled CMS timeout and 500 fault tests, valid cache invalidation, and concurrency test on staging. No large production load test.
-- [ ] Measure cold/warm VI/EN home, article, search and representative CMS APIs with sample counts, p50/p95 TTFB and total, browser LCP and cache status. Demonstrate agreed 1–2 s target; current evidence does not.
+- [ ] Three-sample staging curl observations: home VI median TTFB/total 0.148/0.309 s; home EN 0.161/0.329 s; English article 0.161/0.225 s; `/en/search?q=water` 0.165/0.228 s median but first response 17.875/17.940 s. These samples cannot establish p95; no HAR/LCP captured and the 1–2 s target is not met consistently.
 - [ ] Identify source of staging's extra `Cache-Control: no-cache`; verify final edge cache behavior and invalidate after a CMS edit.
 - [ ] Review full `npm audit` 5 HIGH development advisories with compatible dependency upgrades; production dependency audit currently has 0.
 - [ ] Accessibility/keyboard/media/SEO review on actual staging artifact, including canonical/hreflang, structured data, sitemap, robots, 404 and a representative legacy URL set.
 
 ## Infrastructure gate (read-only inspection first)
 
-- [ ] Operator confirms MariaDB `innodb_force_recovery=0`, `read_only=OFF`, successful application write path, and documented recovery history. Do **not** change recovery mode based on this checklist.
+- [ ] Operator on the actual CMS/production database host confirms MariaDB `innodb_force_recovery=0`, `read_only=OFF`, successful application write path, and documented recovery history. The staging aaPanel host is separate; its MariaDB status does not establish CMS/production database health. Do **not** change recovery mode based on this checklist.
 - [ ] Operator provides PHP-FPM worker/queue and error log, Nginx vhost/reverse proxy/cache headers, TLS, Cloudflare route/cache rules, CPU/RAM/swap/disk/I/O observations and alerts.
 - [ ] Verified recent database and media/config backups, checksum and a documented **successful restore rehearsal**; retain previous frontend artifact and CMS plugin package.
 - [ ] Rollback owner, exact routing/config revert steps and trigger thresholds agreed; rehearsed on staging.
