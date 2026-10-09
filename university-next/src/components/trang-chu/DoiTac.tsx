@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { Autoplay } from 'swiper/modules';
+import { Autoplay, Virtual } from 'swiper/modules';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
 import SectionTitle from '@/components/ui/SectionTitle';
@@ -69,7 +69,8 @@ export default function DoiTac({
 
         <div className="partner-logo-slider mt-8 bg-white px-8 py-4 sm:px-12">
           <Swiper
-            modules={[Autoplay]}
+            modules={[Autoplay, Virtual]}
+            virtual={{ addSlidesBefore: 1, addSlidesAfter: 2 }}
             slidesPerView={2}
             spaceBetween={10}
             loop={carouselItems.length > 6}
@@ -82,7 +83,7 @@ export default function DoiTac({
             }}
           >
             {carouselItems.map((logo, index) => (
-              <SwiperSlide key={`${logo.id}-${index}`}>
+              <SwiperSlide key={`${logo.id}-${index}`} virtualIndex={index}>
                 {logo.linkUrl ? (
                   <a
                     href={logo.linkUrl}

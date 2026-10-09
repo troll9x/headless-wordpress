@@ -17,11 +17,18 @@ if actual_hash != metadata["sha256"]:
 
 source = release / "headless-api"
 files = {"headless-api/" + p.relative_to(source).as_posix(): p for p in source.rglob("*") if p.is_file()}
+
+
+def normalized_source(path: Path) -> bytes:
+    """Compare the canonical LF artifact with Windows CRLF checkouts."""
+    return path.read_bytes().replace(b"\r\n", b"\n")
+
+
 with zipfile.ZipFile(artifact) as archive:
     if set(archive.namelist()) != set(files):
         raise SystemExit("Artifact manifest differs from mirrored source")
     for name, path in files.items():
-        if archive.read(name) != path.read_bytes():
+        if archive.read(name) != normalized_source(path):
             raise SystemExit(f"Artifact content differs from mirrored source: {name}")
     if archive.testzip() is not None:
         raise SystemExit("Artifact ZIP integrity check failed")

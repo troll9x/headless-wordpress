@@ -11,6 +11,7 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 import { EnvelopeIcon, MapPinIcon, PhoneIcon } from '@/components/ui/icons';
 import type { Locale } from '@/types/ngon-ngu';
 import type { SiteFooterData, SiteFooterLink } from '@/lib/wordpress/site-footer';
@@ -131,6 +132,8 @@ function ContactItem({
 
 export default function Footer({ logos, footer, social }: FooterProps) {
   const pathname = usePathname();
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const [shouldLoadMap, setShouldLoadMap] = useState(false);
   const locale: Locale = pathname === '/en' || pathname.startsWith('/en/') ? 'en' : 'vi';
   const copy = UI_COPY[locale];
   const content = footer?.locales[locale] ?? null;
@@ -140,6 +143,21 @@ export default function Footer({ logos, footer, social }: FooterProps) {
     return url ? [{ ...platform, url }] : [];
   });
   const year = new Date().getFullYear();
+
+  useEffect(() => {
+    const container = mapContainerRef.current;
+    if (!container || !footer?.mapEmbedUrl) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        setShouldLoadMap(true);
+        observer.disconnect();
+      }
+    }, { rootMargin: '250px 0px' });
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [footer?.mapEmbedUrl]);
 
   return (
     <footer className="bg-[#1907dc] text-white">
@@ -212,14 +230,27 @@ export default function Footer({ logos, footer, social }: FooterProps) {
           {footer?.mapEmbedUrl && (
             <section>
               <ColumnHeading>{copy.map}</ColumnHeading>
-              <iframe
-                title={copy.mapTitle}
-                src={footer.mapEmbedUrl}
-                className="h-[152px] w-full border-0"
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                allowFullScreen
-              />
+              <div ref={mapContainerRef} className="h-[152px] w-full">
+                {shouldLoadMap ? (
+                  <iframe
+                    title={copy.mapTitle}
+                    src={footer.mapEmbedUrl}
+                    className="h-full w-full border-0"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    allowFullScreen
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShouldLoadMap(true)}
+                    className="flex h-full w-full items-center justify-center rounded border border-white/30 bg-white/10 px-3 text-center text-sm font-semibold text-white hover:bg-white/20"
+                    aria-label={locale === 'en' ? 'Load university map' : 'Tải bản đồ trường'}
+                  >
+                    {locale === 'en' ? 'Load interactive map' : 'Tải bản đồ tương tác'}
+                  </button>
+                )}
+              </div>
             </section>
           )}
         </div>

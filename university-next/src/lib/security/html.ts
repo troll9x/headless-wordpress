@@ -65,6 +65,14 @@ const cmsOptions: sanitizeHtml.IOptions = {
         sandbox: attribs.sandbox || 'allow-scripts allow-same-origin allow-presentation',
       },
     }),
+    img: (_tagName, attribs) => ({
+      tagName: 'img',
+      attribs: {
+        ...attribs,
+        loading: attribs.loading || 'lazy',
+        decoding: attribs.decoding || 'async',
+      },
+    }),
   },
   disallowedTagsMode: 'discard',
   enforceHtmlBoundary: true,
