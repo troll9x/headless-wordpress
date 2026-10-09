@@ -13,7 +13,7 @@ The staging server is the aaPanel host at `103.149.253.223`; the CMS and product
 
 | Repository | Branch and commit | Status |
 |---|---|---|
-| Frontend `troll9x/headless-wordpress` | `release/tlu-production-rc-2026-10-09`, source `f0d8470cbba291cd87e4ee62636e8257416af00f`, report/deployed HEAD `394ee281e1475d073211f39d446e8b654b4f5021` | Pushed to GitHub; not merged or tagged. Local worktree has pre-existing untracked `.tmp-capture-har.mjs`; it was not staged. |
+| Frontend `troll9x/headless-wordpress` | `release/tlu-production-rc-2026-10-09`, source `f0d8470cbba291cd87e4ee62636e8257416af00f`; deployed staging tree `394ee281e1475d073211f39d446e8b654b4f5021`; final report/docs commit `373983f59e378cb81c491b5d069c712501f604f2` | Pushed to GitHub; not merged or tagged. The later commit changes documentation only, not the staged app source. Local worktree has pre-existing untracked `.tmp-capture-har.mjs`; it was not staged. |
 | Backend `troll9x/Headless-API` | `release/tlu-headless-api-rc-2026-10-09`, `57e718adca8a0a07286d8d51b2bc6a1e7742a5fa` | Pushed to GitHub; not merged or tagged. |
 
 Backend artifact candidate is Headless API 2.0.9/schema 4.9, SHA-256 `67c2acff25544da9163e39d9ebac1f77c92ec99e4e691c20c779f0e57e892a75`, pinned in `release/HEADLESS_API_CANDIDATE.json`. That candidate is not installed on CMS.
