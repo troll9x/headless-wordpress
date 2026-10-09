@@ -97,7 +97,7 @@ test('partner carousel keeps offscreen partner logos virtualized', async ({ page
   await expect.poll(() => partnerLogos.count()).toBeLessThanOrEqual(20);
 });
 
-test('English article images are lazy and the footer map loads on demand', async ({ page }) => {
+test('English article images are lazy and the optional footer map is handled correctly', async ({ page, request }) => {
   const response = await page.goto(articleEn, { waitUntil: 'domcontentloaded' });
   expect(response?.status()).toBe(200);
 
@@ -110,8 +110,20 @@ test('English article images are lazy and the footer map loads on demand', async
 
   const footer = page.locator('footer').last();
   await expect(footer.locator('iframe')).toHaveCount(0);
-  await footer.getByRole('button', { name: 'Load interactive map' }).click();
-  await expect(footer.locator('iframe')).toHaveCount(1);
+  const footerOptions = await request.get('https://cms.tlu.edu.vn/wp-json/headless/v1/options?key=tlu_site_footer');
+  expect(footerOptions.status()).toBe(200);
+  const footerPayload = await footerOptions.json();
+  const mapUrl = footerPayload?.data?.fields?.url_map;
+  const mapButton = footer.getByRole('button', { name: 'Load interactive map' });
+
+  if (typeof mapUrl !== 'string' || mapUrl.trim() === '') {
+    // The current CMS has no public map URL, so the optional section must stay absent.
+    await expect(mapButton).toHaveCount(0);
+    return;
+  }
+
+  await mapButton.click();
+  await expect(footer.locator('iframe')).toHaveAttribute('src', mapUrl);
 });
 
 test('search API and search page respond', async ({ request, page }) => {
