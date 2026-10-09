@@ -9,10 +9,10 @@
 
 | Component | Verified identity |
 |---|---|
-| Frontend repo | `troll9x/headless-wordpress`, branch `release/tlu-production-rc-2026-10-09`, HEAD before this task-record update `e051d3980abda3d2674719ffa8564bfaff391398`. Staging application build uses source commit `df5f93c12fd83db63e33a13e979af58aa1d99821`; later E2E-only commit `e051d3980abda3d2674719ffa8564bfaff391398` changes the optional-map test, not app code. |
+| Frontend repo | `troll9x/headless-wordpress`, branch `release/tlu-production-rc-2026-10-09`, current code commit `43d3b0e83a666f2e85407f29685cd3dbe2cbe936`. The current staging candidate includes the first-load CMS error handling fix. |
 | Backend repo | `troll9x/Headless-API`, branch `release/tlu-headless-api-rc-2026-10-09`, commit `d6ffda9a128748fc95d58f620c5f788d2c5c03a8`. Kept separate from frontend; no CRM merge. |
 | Backend candidate | Headless API 2.0.9 / schema 4.9; ZIP SHA-256 `ddaba8ebbd53b473a428551f53b866db736bc00488efdbeba8f394242bc67f78`. This artifact is **not installed** on CMS. |
-| Staging | `https://dev.nguyenhongson.vn`, A record `103.149.253.223`, service `tlu-next-staging`, Node 22.22.2 / npm 10.9.7. Current systemd working directory `/www/wwwroot/dev.nguyenhongson.vn-app/rc/university-next-df5f93c/university-next`; public response marker `X-TLU-Release: df5f93c`. |
+| Staging | `https://dev.nguyenhongson.vn`, A record `103.149.253.223`, service `tlu-next-staging`, Node 22.22.2 / npm 10.9.7. Current systemd working directory `/www/wwwroot/dev.nguyenhongson.vn-app/rc/university-next-43d3b0e-rebuild/university-next`; a public no-cache request returns `X-TLU-Release: 43d3b0e`. The ordinary cached `/` response can still return `df5f93c`; cache was not purged. |
 | CMS | `https://cms.tlu.edu.vn`; API reports Headless API 2.0.8 / schema 4.9. |
 | Public production | `https://tlu.edu.vn` remains the existing WordPress site. No production code, DNS, database, vhost, plugin or route was changed. |
 
@@ -55,7 +55,11 @@ On 2026-10-09, a public GET of staging category `/tin-tuc` returned HTTP 200 in 
 
 Code inspection found concrete failure handling that can produce the reported symptom when an upstream request fails transiently: `src/app/[...path]/page.tsx` caught category/article resolution errors and treated them as missing content, fell back to only the root term if category-tree lookup failed, and rendered an empty archive if both post-list requests failed. The route therefore could return 404 or an empty category on the first request, then work on refresh once CMS/cache responses succeeded. This is a confirmed FE defect; the exact upstream trigger and frequency remain unisolated.
 
-The local FE patch adds one bounded retry for network/timeout, 408/425/429 and 5xx responses; propagates upstream errors instead of mapping them to 404; treats only a real post 404 as missing; and stops silently rendering incomplete/empty category archives after failed requests. TypeScript, ESLint and the production build pass locally. This patch has **not yet been deployed to staging**, so there is no post-fix runtime or E2E result yet.
+The FE patch in commit `43d3b0e83a666f2e85407f29685cd3dbe2cbe936` adds one bounded retry for network/timeout, 408/425/429 and 5xx responses; propagates upstream errors instead of mapping them to 404; treats only a real post 404 as missing; and stops silently rendering incomplete/empty category archives after failed requests. Local TypeScript, ESLint and production build passed.
+
+Staging now runs this commit from `/www/wwwroot/dev.nguyenhongson.vn-app/rc/university-next-43d3b0e-rebuild/university-next`, with `X-TLU-Release: 43d3b0e`; the previous `df5f93c` override was checksum-copied before the service switch. The first build attempt omitted `TLU_RELEASE_ID` at build time and returned `unversioned`; it was replaced by a second isolated build with the release ID set, before the final service switch. `tlu-next-staging` is active. Public smoke requests to `/tin-tuc` and article `...-56787` returned HTTP 200. After an upstream homepage health request had already warmed Next's cache, the public category sample was 0.218 s and its repeat 0.163 s; this is **not a cold-category benchmark**.
+
+The staging E2E suite passed 15/15 against the updated staging deployment. It verifies VI/EN category listings and article rendering, but does not inject a transient failure into the CMS origin. A fresh public no-cache request to `/` and the known article returned `X-TLU-Release: 43d3b0e`; the ordinary cached `/` request still returned `df5f93c` while the ordinary `/tin-tuc` request returned `43d3b0e`. This shows a stale root response on the default path; cache behavior was not purged or changed in this task. The exact CMS failure trigger and its frequency remain unisolated, so the FE resilience fix is verified by code review/build/E2E, not a fault-injection reproduction.
 
 ### Backend release artifact reproducibility
 
@@ -86,13 +90,14 @@ There is no checksum-verified DB + uploads backup or restore rehearsal evidence.
 
 | Check | Result and evidence |
 |---|---|
-| Frontend branch and task commits | Branch `release/tlu-production-rc-2026-10-09`; app fix commit `df5f93c12fd83db63e33a13e979af58aa1d99821`; E2E config test commit `e051d3980abda3d2674719ffa8564bfaff391398`. Both pushed. |
+| Frontend branch and task commits | Branch `release/tlu-production-rc-2026-10-09`; deployed first-load fix commit `43d3b0e83a666f2e85407f29685cd3dbe2cbe936`; previous app fix `df5f93c12fd83db63e33a13e979af58aa1d99821`; E2E config test `e051d3980abda3d2674719ffa8564bfaff391398`. All pushed. |
 | Lint / TypeScript | PASS on current frontend HEAD: `npm run lint`, `npm run typecheck`. |
-| Frontend production build | PASS for app commit `df5f93c`, Next.js 16.3.8 / Turbopack, Node 22.22.2 on staging; compile, TypeScript, static generation and route output completed. Local production build also passed. |
-| Active staging identity | PASS: `tlu-next-staging` active with working directory above; public header `X-TLU-Release: df5f93c`; staging A record resolves to `103.149.253.223`. |
+| Frontend production build | PASS for app commit `43d3b0e`, Next.js 16.3.8 / Turbopack, Node 22.22.2 on staging; compile, TypeScript, static generation and route output completed. Local production build also passed. |
+| Active staging identity | PASS for the service/upstream: `tlu-next-staging` active with working directory above; upstream and public no-cache requests return `X-TLU-Release: 43d3b0e`; staging A record resolves to `103.149.253.223`. Ordinary cached homepage may return stale `df5f93c`, so public cache consistency is not fully verified. |
 | E2E run 1 | PASS 15/15 against `dev.nguyenhongson.vn` on release `df5f93c`. Includes interleaved VI/EN raw HTML, article 56787, language switch, images/carousel, search, SEO, 404, legacy redirect, responsive and unsigned revalidation. Total 59.8 s; homepage 15.1 s. |
 | E2E run 2 | PASS 15/15 against the same release. Total 24.0 s; homepage 1.6 s. This demonstrates correctness stability in these two runs, not the required latency budget. |
 | E2E run 3 after staging rollback attempt and restoration | PASS 15/15 on `df5f93c`; total 1.2 min; homepage test 20.8 s, optional footer map/image test 29.7 s, 404 test 10.9 s. This verifies the restored release still passes the suite; these are Playwright test durations, not TTFB measurements. |
+| E2E run 4 after first-load error handling fix | PASS 15/15 against staging after deploying code commit `43d3b0e`; includes VI/EN category listings and article rendering. This run did not inject an upstream CMS failure and is not a fault-tolerance proof. |
 | Article HAR | 28 requests, zero failed requests, load 232 ms, last captured request 443 ms; one run only. |
 | Homepage HAR | 47 requests, load 2.334 s, last captured request 23.717 s, 7.88 MB encoded, nine aborted video requests; one run only. |
 | TLS | PASS for observed public HTTPS/API calls using normal certificate validation. Local Node v26.1.0 with `NODE_TLS_REJECT_UNAUTHORIZED` unset fetched CMS health HTTP 200. No TLS bypass flags or insecure Node settings were used. Full origin/certificate-chain audit remains incomplete. |
