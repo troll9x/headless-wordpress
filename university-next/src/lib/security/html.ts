@@ -120,6 +120,8 @@ export function sanitizeCmsHtml(value: string, mediaBaseUrl?: string): string {
               ...attribs,
               ...(attribs.src ? { src: resolveMediaUrl(attribs.src, mediaBaseUrl) } : {}),
               ...(attribs.srcset ? { srcset: resolveMediaSrcset(attribs.srcset, mediaBaseUrl) } : {}),
+              loading: attribs.loading || 'lazy',
+              decoding: attribs.decoding || 'async',
             },
           }),
           source: (_tagName: string, attribs: Record<string, string>) => ({

@@ -70,7 +70,7 @@ export default function DoiTac({
         <div className="partner-logo-slider mt-8 bg-white px-8 py-4 sm:px-12">
           <Swiper
             modules={[Autoplay, Virtual]}
-            virtual={{ addSlidesBefore: 1, addSlidesAfter: 2 }}
+            virtual={{ enabled: true, addSlidesBefore: 1, addSlidesAfter: 2 }}
             slidesPerView={2}
             spaceBetween={10}
             loop={carouselItems.length > 6}
