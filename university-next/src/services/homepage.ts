@@ -135,6 +135,14 @@ async function loadHomepageData(
   const loadErrors: string[] = [];
   const safe = <T,>(label: string, promise: Promise<T>, fallback: T) =>
     withHomepageFallback(label, promise, fallback, loadErrors);
+  // Start independent options/media requests while the content snapshot loads.
+  const extras = {
+    slides: safe('hero slides', getHeroSlides(locale), []),
+    image: safe('static image', getSiteStaticImage(locale), null),
+    faculties: safe('faculties', getFacultySliderItems(locale), []),
+    logos: safe('partner logos', getPartnerLogos(locale), []),
+    gallery: safe('media gallery', getHomeMediaGallery(locale), null),
+  };
   let snapshot = null;
   try {
     snapshot = await getHomepageContentSnapshot(locale);
@@ -164,12 +172,8 @@ async function loadHomepageData(
     momentGallery,
   ] = await Promise.all([
     snapshot ? Promise.resolve(snapshot.heroPage) : safe('hero', getFirstPageBySlug(PAGE_SLUGS.HERO, locale), null),
-    safe('hero slides', getHeroSlides(locale), []),
-    getSiteStaticImage(locale).catch((error: unknown) => {
-      console.warn('[homepage] CMS static image unavailable; section omitted.', error);
-      loadErrors.push('static image');
-      return null;
-    }),
+    extras.slides,
+    extras.image,
     snapshot ? Promise.resolve(snapshot.announcements) : safe('announcements', getPostsByCategories(CATEGORY_SLUGS.ANNOUNCEMENTS, 8, locale), []),
     // Match the WordPress shortcode and merge the selected HOT/NEW posts.
     snapshot ? Promise.resolve(snapshot.news) : safe('news', getHomepageNews(locale), []),
@@ -179,14 +183,14 @@ async function loadHomepageData(
     snapshot ? Promise.resolve(snapshot.featurePosts.training) : safe('featured training', getLatestPostByCategoryCandidates(CATEGORY_SLUGS.FEATURE_TRAINING, locale, true), null),
     snapshot ? Promise.resolve(snapshot.featurePosts.students) : safe('featured students', getLatestPostByCategoryCandidates(CATEGORY_SLUGS.FEATURE_STUDENTS, locale), null),
     snapshot ? Promise.resolve(snapshot.featurePosts.alumni) : safe('featured alumni', getLatestPostByCategoryCandidates(CATEGORY_SLUGS.FEATURE_ALUMNI, locale), null),
-    safe('faculties', getFacultySliderItems(locale), []),
-    safe('partner logos', getPartnerLogos(locale), []),
+    extras.faculties,
+    extras.logos,
     snapshot ? Promise.resolve(snapshot.partners) : safe('partners', getPostsByCategories(CATEGORY_SLUGS.PARTNERS, 12, locale), []),
     snapshot ? Promise.resolve(snapshot.cooperation) : safe('cooperation', getPostsByCategories(CATEGORY_SLUGS.COOPERATION, 6, locale, true), []),
     snapshot ? Promise.resolve(snapshot.research) : safe('research', getPostsByCategories(CATEGORY_SLUGS.RESEARCH, 6, locale, true), []),
     snapshot ? Promise.resolve(snapshot.community) : safe('community', getPostsByCategories(CATEGORY_SLUGS.COMMUNITY, 6, locale), []),
     snapshot ? Promise.resolve(snapshot.moments) : safe('moments', getPostsByCategories(CATEGORY_SLUGS.MOMENTS, 15, locale), []),
-    safe('media gallery', getHomeMediaGallery(locale), null),
+    extras.gallery,
   ]);
 
   const compactPosts = (posts: WPPost[]) => posts.map(compactHomepagePost);

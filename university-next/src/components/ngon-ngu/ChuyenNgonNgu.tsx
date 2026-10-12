@@ -1,125 +1,83 @@
-'use client';
+﻿'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState, useTransition } from 'react';
+import { startNavigation } from '@/components/layout/NavigationProgress';
 import './chuyen-ngon-ngu.css';
 
-/**
- * Get the Vietnamese equivalent path from an English path.
- *
- * This uses string replacement as a quick client-side heuristic.
- * For flat dynamic routes (/en/[slug] → /[slug]),
- * the translated slug should ideally come from the backend resolve endpoint.
- * The current replace keeps the slug unchanged; if translated slugs differ,
- * a client fetch to the resolve endpoint would be needed.
- */
-function getVietnamesePath(pathname: string) {
-  if (pathname === '/en') return '/';
-  const staticRoutes: Record<string, string> = {
-    '/en/about': '/gioi-thieu',
-    '/en/mission': '/su-mang',
-    '/en/mission-goals-strategy': '/su-mang-muc-tieu-chien-luoc',
-    '/en/admission': '/tuyen-sinh',
-    '/en/education': '/dao-tao',
-    '/en/research': '/nghien-cuu',
-    '/en/external-relations': '/doi-ngoai',
-    '/en/community': '/vi-cong-dong',
-    '/en/organizational-structure': '/co-cau-to-chuc',
-  };
-  if (staticRoutes[pathname]) return staticRoutes[pathname];
-  if (pathname.startsWith('/en/news/')) return pathname.replace('/en/news/', '/');
-  if (pathname === '/en/news') return '/tin-tuc-thong-bao';
-  if (pathname.startsWith('/en/category/')) return pathname.replace('/en/category/', '/');
-  if (pathname === '/en/search') return '/tim-kiem';
-  if (pathname.startsWith('/en/')) return pathname.replace('/en', '') || '/';
-  return pathname;
-}
-
-/**
- * Get the English equivalent path from a Vietnamese path.
- *
- * Same heuristic as getVietnamesePath; the slug is assumed identical across locales.
- * When translated slugs differ, the resolve endpoint would be required.
- */
-function getEnglishPath(pathname: string) {
-  if (pathname === '/') return '/en';
-  const staticRoutes: Record<string, string> = {
-    '/gioi-thieu': '/en/about',
-    '/su-mang': '/en/mission',
-    '/su-mang-muc-tieu-chien-luoc': '/en/mission-goals-strategy',
-    '/tuyen-sinh': '/en/admission',
-    '/dao-tao': '/en/education',
-    '/nghien-cuu': '/en/research',
-    '/doi-ngoai': '/en/external-relations',
-    '/vi-cong-dong': '/en/community',
-    '/co-cau-to-chuc': '/en/organizational-structure',
-  };
-  if (staticRoutes[pathname]) return staticRoutes[pathname];
-  if (pathname.startsWith('/tin-tuc-thong-bao/')) return pathname.replace('/tin-tuc-thong-bao/', '/en/');
-  if (pathname === '/tin-tuc-thong-bao') return '/en/news';
-  if (pathname.startsWith('/chuyen-muc/')) return pathname.replace('/chuyen-muc/', '/en/');
-  if (pathname === '/tim-kiem') return '/en/search';
-  if (pathname.startsWith('/en')) return pathname;
-  return `/en${pathname}`;
-}
+const pairs: Record<string, string> = {
+  '/': '/en',
+  '/su-mang-muc-tieu-chien-luoc': '/en/mission-goals-strategy',
+  '/co-cau-to-chuc': '/en/organizational-structure',
+  '/tim-kiem': '/en/search',
+};
 
 export default function ChuyenNgonNgu() {
   const pathname = usePathname();
+  // Shared layouts survive navigation. Reset lookup/lock state for the new URL.
+  return <LanguageSwitch key={pathname} pathname={pathname} />;
+}
+
+function LanguageSwitch({ pathname }: { pathname: string }) {
   const router = useRouter();
-  const isVietnamese = !pathname.startsWith('/en');
-  const [isSwitching, setIsSwitching] = useState(false);
+  const isVietnamese = !(pathname === '/en' || pathname.startsWith('/en/'));
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState(false);
+  const locked = useRef(false);
 
-  async function handleChange() {
-    if (isSwitching) return;
-    setIsSwitching(true);
-    const targetLocale = isVietnamese ? 'en' : 'vi';
-    const fallbackPath = isVietnamese ? getEnglishPath(pathname) : getVietnamesePath(pathname);
-    const articleId = pathname.split('/').at(-1)?.match(/-(\d+)$/)?.[1];
-    let nextPath = fallbackPath;
-
-    // Article translations have their own slugs. Resolve by stable ID through
-    // the Headless API instead of copying the current locale's slug.
-    if (articleId) {
+  function handleChange() {
+    if (locked.current || pending) return;
+    locked.current = true;
+    setError(false);
+    startTransition(async () => {
       try {
-        const response = await fetch(`/api/translation?id=${articleId}&lang=${targetLocale}`, {
-          headers: { Accept: 'application/json' },
-          cache: 'no-store',
-        });
-        const payload = await response.json() as { path?: unknown };
-        nextPath = response.ok && typeof payload.path === 'string'
-          ? payload.path
-          : targetLocale === 'en' ? '/en' : '/';
+        const locale = isVietnamese ? 'en' : 'vi';
+        const path = pathname.replace(/\/+$/, '') || '/';
+        let nextPath = isVietnamese ? pairs[path] : Object.entries(pairs).find(([, en]) => en === path)?.[0];
+        if (!nextPath) {
+          const params = new URLSearchParams({ path, lang: locale });
+          const response = await fetch(`/api/translation?${params}`, {
+            headers: { Accept: 'application/json' },
+            signal: AbortSignal.timeout(15_000),
+          });
+          if (!response.ok) throw new Error('Translation lookup failed');
+          const payload = await response.json() as { path?: unknown };
+          if (typeof payload.path !== 'string' || !payload.path.startsWith('/') || payload.path.startsWith('//')) throw new Error('Invalid translation');
+          nextPath = payload.path;
+        }
+        // Search terms are meaningful across languages; archive page numbers and
+        // article anchors generally refer to different content after translation.
+        const query = path === '/tim-kiem' || path === '/en/search'
+          ? new URLSearchParams({ q: new URLSearchParams(window.location.search).get('q') || '' }).toString()
+          : '';
+        const destination = `${nextPath}${query ? `?${query}` : ''}`;
+        startNavigation(destination);
+        startTransition(() => router.push(destination));
       } catch {
-        nextPath = targetLocale === 'en' ? '/en' : '/';
+        setError(true);
+      } finally {
+        locked.current = false;
       }
-    }
-
-    const query = window.location.search.replace(/^\?/, '');
-    const hash = window.location.hash;
-    router.push(`${nextPath}${query ? `?${query}` : ''}${hash}`);
+    });
   }
 
   return (
-    <label className="lang-ios-texttoggle" aria-label={isVietnamese ? 'Chuyển ngôn ngữ' : 'Switch language'}>
-      <input
-        type="checkbox"
-        checked={isVietnamese}
-        onChange={handleChange}
-        disabled={isSwitching}
-        aria-label={isVietnamese ? 'Chuyển sang tiếng Anh' : 'Switch to Vietnamese'}
-      />
-      <span className="track">
-        <span className="label-text en">EN</span>
-        <span className="label-text vi">VN</span>
-        <span className="knob">
-          <span className="flag flag-en" aria-hidden>
-            EN
-          </span>
-          <span className="flag flag-vi" aria-hidden>
-            ★
-          </span>
+    <div className="relative flex items-center gap-2">
+      <label className="lang-ios-texttoggle" aria-label={isVietnamese ? 'Chuyển ngôn ngữ' : 'Switch language'} aria-busy={pending}>
+        <input type="checkbox" checked={isVietnamese} onChange={handleChange} disabled={pending}
+          aria-label={isVietnamese ? 'Chuyển sang tiếng Anh' : 'Switch to Vietnamese'} />
+        <span className="track">
+          <span className="label-text en">EN</span><span className="label-text vi">VN</span>
+          <span className="knob"><span className="flag flag-en" aria-hidden>EN</span><span className="flag flag-vi" aria-hidden>★</span></span>
         </span>
-      </span>
-    </label>
+      </label>
+      {pending && <span role="status" className="text-xs text-blue-800"><span aria-hidden className="inline-block h-4 w-4 rounded-full border-2 border-blue-200 border-t-blue-800 motion-safe:animate-spin" /><span className="sr-only">{isVietnamese ? 'Đang chuyển ngôn ngữ' : 'Switching language'}</span></span>}
+      {error && <div role="alert" className="absolute right-0 top-full w-56 rounded bg-white p-3 text-sm text-red-800 shadow-lg">
+        <span>{isVietnamese ? 'Chưa chuyển được ngôn ngữ.' : 'Unable to switch language.'}</span>{' '}
+        <button type="button" onClick={handleChange} className="font-semibold underline focus-visible:outline-2 focus-visible:outline-offset-2">
+          {isVietnamese ? 'Thử lại' : 'Try again'}
+        </button>
+      </div>}
+    </div>
   );
 }

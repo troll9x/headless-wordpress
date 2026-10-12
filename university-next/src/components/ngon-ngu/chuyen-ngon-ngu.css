@@ -95,3 +95,6 @@
 .lang-ios-texttoggle input:checked + .track .knob .flag-vi {
   display: flex;
 }
+@media (prefers-reduced-motion: reduce) {
+  .lang-ios-texttoggle .knob { transition: none; }
+}

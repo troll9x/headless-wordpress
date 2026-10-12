@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ChevronDownIcon, CloseIcon } from '@/components/ui/icons';
+import LiveSearch from '@/components/tim-kiem/LiveSearch';
 import { getMenuItemLabel, isMenuItemActive } from '@/components/layout/navigationUtils';
 import type { Locale } from '@/types/ngon-ngu';
 import type { WPMenuItemWithChildren } from '@/types/wordpress';
@@ -145,6 +146,10 @@ export default function MobileNav({ id, items, isOpen, locale, pathname, onClose
           >
             <CloseIcon className="h-5 w-5" />
           </button>
+        </div>
+
+        <div className="relative z-10 border-b border-slate-200 px-5 py-3">
+          <LiveSearch className="w-full" />
         </div>
 
         <nav className="flex-1 overflow-y-auto overscroll-contain" aria-label={locale === 'en' ? 'Mobile navigation' : 'Điều hướng di động'}>

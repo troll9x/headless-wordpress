@@ -40,12 +40,13 @@ export default async function SearchResultsPage({
   const searchPath = isEn ? '/en/search' : '/tim-kiem';
   const cleanQuery = query.trim().replace(/\s+/g, ' ').slice(0, 120);
   const currentPage = pageNumber(rawPage);
+  let searchFailed = false;
   const result = cleanQuery
-    ? await searchSite(cleanQuery, locale, currentPage, RESULTS_PER_PAGE).catch(() => ({
-        items: [],
-        total: 0,
-        totalPages: 0,
-      }))
+    ? await searchSite(cleanQuery, locale, currentPage, RESULTS_PER_PAGE).catch((error: unknown) => {
+        console.error('[search] Results unavailable', error);
+        searchFailed = true;
+        return { items: [], total: 0, totalPages: 0 };
+      })
     : { items: [], total: 0, totalPages: 0 };
   const totalPages = Math.max(1, result.totalPages);
   const startPage = Math.max(1, currentPage - 2);
@@ -99,6 +100,11 @@ export default async function SearchResultsPage({
           <p className="mt-8 rounded-lg bg-slate-50 p-6 text-slate-600">
             {isEn ? 'Enter a keyword to search the website.' : 'Nhập từ khóa để tìm kiếm trên website.'}
           </p>
+        ) : searchFailed ? (
+          <div role="alert" className="mt-8 rounded-lg bg-amber-50 p-6 text-amber-900">
+            <p>{isEn ? 'Search is temporarily unavailable. Please try again.' : 'Tìm kiếm tạm thời gián đoạn. Vui lòng thử lại.'}</p>
+            <a className="mt-3 inline-block underline" href={paginationHref(searchPath, cleanQuery, currentPage)}>{isEn ? 'Try again' : 'Thử lại'}</a>
+          </div>
         ) : result.items.length === 0 ? (
           <p className="mt-8 rounded-lg bg-slate-50 p-6 text-slate-600">
             {isEn ? `No results found for “${cleanQuery}”.` : `Không tìm thấy kết quả cho “${cleanQuery}”.`}
@@ -122,6 +128,7 @@ export default async function SearchResultsPage({
                       {stripHtml(item.title)}
                     </Link>
                   </h2>
+                  {item.excerpt && <p className="mt-2 line-clamp-3 text-sm text-slate-600">{stripHtml(item.excerpt)}</p>}
                 </li>
               ))}
             </ol>

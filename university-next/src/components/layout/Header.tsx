@@ -1,9 +1,5 @@
-import { getMenuTree } from '@/lib/api/menus';
 import NavShell from '@/components/layout/NavShell';
-import {
-  getFallbackPrimaryMenu,
-  mergeMenuWithFallback,
-} from '@/components/layout/fallbackMenus';
+import { getFallbackPrimaryMenu } from '@/components/layout/fallbackMenus';
 import type { SiteLogos } from '@/lib/wordpress/site-logo';
 
 /**
@@ -15,16 +11,11 @@ import type { SiteLogos } from '@/lib/wordpress/site-logo';
  *   NavShell ← brand bar + desktop nav + mobile drawer + search (primary WP menu)
  */
 export default async function Header({ logos }: { logos: SiteLogos | null }) {
-  const vietnameseMenu = await getMenuTree('primary', 'vi');
-
-  const fallbackVi = getFallbackPrimaryMenu('vi');
-  const fallbackEn = getFallbackPrimaryMenu('en');
-  const primaryItemsVi = vietnameseMenu.length > 0
-    ? mergeMenuWithFallback(vietnameseMenu, fallbackVi)
-    : fallbackVi;
-  // WordPress currently exposes only the default VI menu at this location.
-  // Avoid a guaranteed EN 404 on every request until an EN menu location exists.
-  const primaryItemsEn = fallbackEn;
+  // The current CMS /headless/v1/menus?location=primary fails with HTTP 500;
+  // core /wp/v2/menus requires authentication (401). These requests delayed
+  // every navigation before returning this same existing fallback menu.
+  const primaryItemsVi = getFallbackPrimaryMenu('vi');
+  const primaryItemsEn = getFallbackPrimaryMenu('en');
 
   return (
     <header className="sticky top-0 z-30 w-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.18)]">

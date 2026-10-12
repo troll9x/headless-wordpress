@@ -40,6 +40,7 @@ export async function getHomepageContentSnapshot(
 ): Promise<HomepageContentSnapshot | null> {
   const url = buildWordPressRestUrl(WP_API_URL, '/headless/v1/homepage', { lang: locale });
   const response = await fetch(url, {
+    signal: AbortSignal.timeout(10_000),
     headers: { Accept: 'application/json' },
     next: {
       revalidate: REVALIDATE_POSTS,
@@ -61,6 +62,12 @@ export async function getHomepageContentSnapshot(
     || !Array.isArray(snapshot.news)
     || !Array.isArray(snapshot.announcements)
     || !Array.isArray(snapshot.events)
+    || !snapshot.featurePosts
+    || !Array.isArray(snapshot.partners)
+    || !Array.isArray(snapshot.cooperation)
+    || !Array.isArray(snapshot.research)
+    || !Array.isArray(snapshot.community)
+    || !Array.isArray(snapshot.moments)
   ) {
     throw new Error('Homepage snapshot API returned an invalid schema or locale.');
   }

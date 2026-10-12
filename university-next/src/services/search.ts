@@ -22,8 +22,6 @@ function normalizeItems(data: unknown): LiveSearchItem[] {
   }
 
   const rawItems = data.items;
-  if (rawItems === undefined) return [];
-
   if (!Array.isArray(rawItems)) {
     throw new SearchResponseError('Search response items is not an array.');
   }

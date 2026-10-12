@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { searchHeadlessSite } from '@/lib/wordpress/headless-search';
-import { getClientIp } from '@/lib/security/rate-limit';
+import { consumeRateLimit, getClientIp } from '@/lib/security/rate-limit';
 import { TRUSTED_CLIENT_IP_HEADER } from '@/config/env/server';
 import type { Locale } from '@/types/ngon-ngu';
 
@@ -26,13 +26,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ items: [] });
   }
 
+  const clientIp = getClientIp(request, TRUSTED_CLIENT_IP_HEADER);
+  const rate = consumeRateLimit('search', clientIp, clientIp === 'unknown' ? 1200 : 60, 60_000);
+  if (!rate.allowed) {
+    return NextResponse.json({ items: [], error: 'Too many searches.' }, {
+      status: 429,
+      headers: { 'Retry-After': String(rate.retryAfterSeconds), 'Cache-Control': 'no-store' },
+    });
+  }
+
   try {
     const result = await searchHeadlessSite(
       query,
       locale,
       1,
       limit,
-      getClientIp(request, TRUSTED_CLIENT_IP_HEADER),
       request.signal,
     );
     return NextResponse.json(
@@ -53,7 +61,7 @@ export async function GET(request: NextRequest) {
   } catch {
     return NextResponse.json(
       { items: [], error: 'Search service is temporarily unavailable.' },
-      { status: 502 },
+      { status: 502, headers: { 'Cache-Control': 'no-store' } },
     );
   }
 }

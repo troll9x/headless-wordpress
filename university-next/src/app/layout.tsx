@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
+import { Suspense } from 'react';
+import NavigationProgress from '@/components/layout/NavigationProgress';
 import './globals.css';
 import '@/styles/site-font.css';
 import Header from '@/components/layout/Header';
@@ -90,6 +92,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} className="h-full antialiased" suppressHydrationWarning>
       <body className="flex min-h-full flex-col bg-white">
+        <Suspense fallback={null}><NavigationProgress /></Suspense>
         <DocumentLanguage />
         <Header logos={logos} />
         <main className="flex-1">{children}</main>

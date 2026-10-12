@@ -283,7 +283,7 @@ async function buildCategoryTreeIds(
   rootId: number,
   locale: Locale = 'vi',
 ): Promise<number[]> {
-  const allCategories = await fetchAllCategories(locale);
+  const allCategories = await getCachedAllCategories(locale);
   const childrenByParent = new Map<number, WPCategory[]>();
 
   for (const category of allCategories) {

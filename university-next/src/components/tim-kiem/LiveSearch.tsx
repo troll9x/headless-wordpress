@@ -16,6 +16,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { SearchIcon } from '@/components/ui/icons';
 import { searchPosts } from '@/services/search';
+import { startNavigation } from '@/components/layout/NavigationProgress';
 import type { LiveSearchItem } from '@/types/search';
 
 const MIN_CHARS = 2;
@@ -81,7 +82,7 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
   const [items, setItems] = useState<LiveSearchItem[]>([]);
   const [status, setStatus] = useState<SearchStatus>('idle');
   const [isOpen, setIsOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(-1);
 
    const trimmedQuery = query.trim();
    const locale = pathname === '/en' || pathname.startsWith('/en/') ? 'en' : 'vi';
@@ -94,7 +95,7 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
      params.set('q', trimmedQuery);
      return `${searchPath}?${params.toString()}`;
    })();
-   const showDropdown = isOpen && (status === 'loading' || status === 'error' || items.length > 0);
+   const showDropdown = isOpen && status !== 'idle';
 
   const highlightedItems = useMemo(
     () =>
@@ -107,13 +108,16 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
   );
 
   function updateQuery(value: string) {
+    requestIdRef.current += 1;
     setQuery(value);
+    setItems([]);
+    setActiveIndex(-1);
 
     if (value.trim().length < MIN_CHARS) {
       setItems([]);
       setStatus('idle');
       setIsOpen(false);
-      setActiveIndex(0);
+      setActiveIndex(-1);
     }
   }
 
@@ -130,7 +134,7 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
 
     const timer = window.setTimeout(async () => {
       setItems([]);
-      setActiveIndex(0);
+      setActiveIndex(-1);
       setStatus('loading');
       setIsOpen(true);
 
@@ -145,9 +149,9 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
         if (controller.signal.aborted || requestIdRef.current !== requestId) return;
 
         setItems(results);
-        setActiveIndex(0);
+        setActiveIndex(-1);
         setStatus('ready');
-        setIsOpen(results.length > 0);
+        setIsOpen(document.activeElement === inputRef.current);
       } catch (error) {
         const isAbortError =
           error instanceof Error && error.name === 'AbortError';
@@ -157,7 +161,7 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
         }
 
         setItems([]);
-        setActiveIndex(0);
+        setActiveIndex(-1);
         setStatus('error');
         setIsOpen(true);
       }
@@ -183,6 +187,7 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
   function submitSearch() {
     if (!trimmedQuery) return;
     setIsOpen(false);
+    startNavigation(viewAllHref);
     router.push(viewAllHref);
   }
 
@@ -210,6 +215,7 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
       const item = highlightedItems[activeIndex];
       if (item) {
         setIsOpen(false);
+        startNavigation(item.url);
         router.push(item.url);
       } else {
         submitSearch();
@@ -238,7 +244,7 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
          value={query}
          onChange={(event) => updateQuery(event.target.value)}
          onFocus={() => {
-           if (items.length > 0 || status === 'error') setIsOpen(true);
+           if (status !== 'idle') setIsOpen(true);
          }}
          onKeyDown={handleKeyDown}
          placeholder={isEn ? 'Search...' : 'Tìm kiếm...'}
@@ -274,7 +280,11 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
           )}
 
           {status === 'error' && (
-            <div className="px-3.5 py-[11px] text-sm text-slate-500">{isEn ? 'Search error' : 'Lỗi tìm kiếm'}</div>
+            <div role="alert" className="px-3.5 py-[11px] text-sm text-slate-500">{isEn ? 'Search is temporarily unavailable. Please try again.' : 'Tìm kiếm tạm thời gián đoạn. Vui lòng thử lại.'}</div>
+          )}
+
+          {status === 'ready' && highlightedItems.length === 0 && (
+            <div role="status" className="px-3.5 py-[11px] text-sm text-slate-500">{isEn ? 'No results found.' : 'Không tìm thấy kết quả.'}</div>
           )}
 
            {status === 'ready' &&
@@ -295,6 +305,7 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
                   onClick={(event) => {
                     event.preventDefault();
                     setIsOpen(false);
+                    startNavigation(item.url);
                     router.push(item.url);
                   }}
                 >

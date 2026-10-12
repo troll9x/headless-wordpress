@@ -1,0 +1,5 @@
+﻿import fs from 'node:fs';
+import {execFileSync} from 'node:child_process';
+const paths=['/','/en','/50-nam-tro-ve-ven-nguyen-nghia-tinh-cua-cuu-sinh-vien-khoa-13-truong-dai-hoc-thuy-loi-57004','/en/lecturers-from-thuyloi-university-granted-patent-for-new-measurement-method-49957','/tin-tuc-thong-bao','/en/news-and-events','/en/search?q=water','/api/search?q=water&lang=en&limit=5'];
+const out=[];
+for(const path of paths){for(let sample=0;sample<3;sample++){try{const text=execFileSync('curl.exe',['-sS','--max-time','65','-o','NUL','-w','%{json}',`https://dev.nguyenhongson.vn${path}`],{encoding:'utf8'});const d=JSON.parse(text);out.push({path,sample,phase:sample===0?'first-observed':'repeat',status:d.http_code,dns:d.time_namelookup,tcp:d.time_connect,tls:d.time_appconnect,ttfb:d.time_starttransfer,total:d.time_total});}catch(e){out.push({path,sample,error:String(e).slice(0,150)});}fs.writeFileSync(`artifacts/staging-debug/${process.argv[2]||'before'}-http.json`,JSON.stringify(out,null,2));} console.log(path,out.slice(-3).map(x=>[x.status,x.ttfb,x.total]));}
