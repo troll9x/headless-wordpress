@@ -96,13 +96,25 @@ export async function searchHeadlessSite(
   const total = Number.parseInt(response.headers.get('X-WP-Total') || '', 10);
   const totalPages = Number.parseInt(response.headers.get('X-WP-TotalPages') || '', 10);
   if (!Number.isSafeInteger(total) || !Number.isSafeInteger(totalPages)) throw new Error('CMS search omitted pagination metadata.');
+  // Core search does not register `lang` on this CMS. Keep only posts whose
+  // original CMS permalink belongs to the requested locale; never rewrite a
+  // Vietnamese permalink under /en. Its total remains a cross-locale upper
+  // bound until CMS provides a language-scoped search endpoint.
+  let localeMismatches = 0;
   const items = (payload as CoreSearchItem[]).flatMap((item) => {
     if (typeof item.id !== 'number' || typeof item.title !== 'string' || typeof item.url !== 'string') return [];
     if (item.subtype !== 'post' && item.subtype !== 'page') return [];
+    const originalPath = sameSitePath(item.url);
+    if (!originalPath) return [];
+    const isEnglishPost = originalPath === '/en' || originalPath.startsWith('/en/');
+    if (isEnglishPost !== (locale === 'en')) {
+      localeMismatches += 1;
+      return [];
+    }
     const detail = item._embedded?.self?.[0];
     const url = item.subtype === 'post' && detail?.slug
       ? buildPostUrl(detail.slug, locale, undefined, item.id, detail.canonical_path)
-      : sameSitePath(item.url);
+      : originalPath;
     if (!url || !item.title.trim() || (locale === 'en' ? !url.startsWith('/en/') : url.startsWith('/en/'))) return [];
     return [{
       id: item.id,
@@ -113,5 +125,8 @@ export async function searchHeadlessSite(
       thumb: detail?._embedded?.['wp:featuredmedia']?.[0]?.source_url || '',
     }];
   });
+  if (items.length === 0 && localeMismatches > 0) {
+    throw new Error('CMS search cannot establish whether the requested locale has results.');
+  }
   return { items, total, totalPages, hasMore: safePage < totalPages };
 }
