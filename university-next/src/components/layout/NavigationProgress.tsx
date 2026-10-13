@@ -52,8 +52,10 @@ function Progress({ isEn }: { isEn: boolean }) {
       <button onClick={() => setDestination('')}>{isEn ? 'Dismiss' : 'Đóng'}</button>
     </div>
   ) : (
-    <div role="status" data-testid="navigation-progress" className="fixed inset-x-0 top-0 z-[200] h-1 bg-blue-100">
-      <div className="h-full w-2/3 bg-blue-700 motion-safe:animate-pulse" />
+    <div role="status" data-testid="navigation-progress" className="pointer-events-none fixed inset-0 z-[200] flex items-center justify-center">
+      <div className="rounded-full bg-white/90 p-3 shadow-lg">
+        <div className="h-9 w-9 rounded-full border-[3px] border-blue-100 border-t-blue-700 motion-safe:animate-spin" />
+      </div>
       <span className="sr-only">{isEn ? 'Loading page' : 'Đang tải trang'}</span>
     </div>
   );
