@@ -3,7 +3,7 @@
 ## State
 
 - Branch: `fix/staging-stabilization-20261012`; starting HEAD for this continuation: `6b40afb053ab5e434aaf96848349cda41978aa00`. Targeted hotfix and checkpoint commit: `0e27e22`, pushed to `origin`; see `git log -1` for any later documentation update.
-- Frontend staging: release `fa55fee` on `tlu-next-staging`; the React #441 fallback is deployed, but CMS timeouts can still interrupt content. Production `tlu.edu.vn` was not changed.
+- Frontend staging: release `2970f7b` on `tlu-next-staging`; it retains the React #441 fallback and replaces the top navigation bar with a centered circular spinner. CMS timeouts can still interrupt content. Production `tlu.edu.vn` was not changed.
 - CMS: installed Headless API **2.1.0** at `/www/wwwroot/cms.tlu.edu.vn/wp-content/plugins/headless-api`; local plugin tree is **2.0.9**, so do not deploy the full tree. CMS plugin remains unchanged.
 - CMS backup: `/home/admintlu/headless-api-2.1.0-20261012.tgz`, SHA-256 `cddc5b4a5720e7c5c219380c2e28ce0f33653e1badce5819809953cd51c6e68`.
 - Preserve unrelated pre-existing work: `docs/TLU-PROD-UNBLOCK-01.md`, `.tmp-capture-har.mjs`, `artifacts/staging-debug/baseline-language/`, `prompt-tlu-dieu-tra-va-go-production.md`.
@@ -32,3 +32,9 @@
 5. Profile homepage endpoint phases, PHP-FPM queue, slow SQL, and cache under comparable healthy conditions. Optimize the proven bottleneck, retest content completeness, and measure against warm navigation/search p95 ≤ 2 s and cold document p95 ≤ 5 s.
 
 No CMS deployment, Cloudflare rule, database change, MariaDB restart, or production change was made in this continuation.
+
+## Navigation loading follow-up — 2026-10-13
+
+- User identified the thin line at the top of staging as the wrong loading affordance. `university-next/src/components/layout/NavigationProgress.tsx` now displays a centered circular spinner during client navigation; the existing delayed warning/retry behavior remains.
+- Source commit `2970f7b` was pushed. Local ESLint, TypeScript check and production build passed. An isolated release was built on the FE VPS and `tlu-next-staging` was switched to it; previous override saved at `/tmp/tlu-next-staging-2970f7b.rollback.conf`, old release retained.
+- `systemctl show` reported active/running with `TLU_RELEASE_ID=2970f7b`; public HTTPS `/robots.txt?probe=2970f7b` returned 200 and `X-TLU-Release: 2970f7b`. Browser reload followed by an internal click showed the centered spinner, then a populated homepage. CMS search and homepage performance gates remain open.
