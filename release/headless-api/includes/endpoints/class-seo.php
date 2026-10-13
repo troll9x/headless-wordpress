@@ -51,9 +51,12 @@ class Seo {
 		}
 
 		if ( $id > 0 ) {
-			$data = $this->service->get_seo_by_id( $id );
+			$data = $this->service->get_seo_by_id( $id, (string) $lang );
 		} else {
 			$data = $this->service->get_seo( $slug, $type, $lang );
+		}
+		if ( is_wp_error( $data ) ) {
+			return $data;
 		}
 
 		if ( null === $data ) {

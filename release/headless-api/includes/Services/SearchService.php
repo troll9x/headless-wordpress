@@ -20,17 +20,79 @@ class SearchService {
 
 	/** @return array|\WP_Error */
 	public function search( string $query, int $per = 8, int $page = 1, string $language = '' ) {
+		$per      = min( 50, max( 1, $per ) );
+		$page     = max( 1, $page );
+		$language = in_array( $language, [ 'vi', 'en' ], true ) ? $language : '';
+
+		// The legacy FULLTEXT backend paginates before this plugin can inspect
+		// Polylang languages. Query the CMS directly for language-scoped search.
+		if ( '' !== $language ) {
+			return $this->search_language( $query, $per, $page, $language );
+		}
+
 		return $this->dispatch(
 			self::SEARCH_ROUTE,
 			[
 				'q'    => $query,
-				'per'  => min( 50, max( 1, $per ) ),
-				'page' => max( 1, $page ),
-				'lang' => in_array( $language, [ 'vi', 'en' ], true ) ? $language : '',
+				'per'  => $per,
+				'page' => $page,
+				'lang' => '',
 			],
 			true,
-			$language
+			''
 		);
+	}
+
+	/** @return array|\WP_Error */
+	private function search_language( string $query, int $per, int $page, string $language ) {
+		if ( ! function_exists( 'pll_get_post_language' ) ) {
+			return new \WP_Error( 'search_language_unavailable', 'Polylang is unavailable.', [ 'status' => 503 ] );
+		}
+
+		$posts = new \WP_Query( [
+			's'                   => $query,
+			'post_type'           => [ 'post' ],
+			'post_status'         => 'publish',
+			'has_password'        => false,
+			'lang'                => $language,
+			'posts_per_page'      => $per,
+			'paged'               => $page,
+			'no_found_rows'       => false,
+			'ignore_sticky_posts' => true,
+			'suppress_filters'    => false,
+		] );
+
+		$items = [];
+		foreach ( $posts->posts as $post ) {
+			// Fail closed if another query/filter has changed the language or
+			// visibility after SQL pagination, rather than returning false totals.
+			if (
+				! $post instanceof \WP_Post
+				|| ! ContentVisibility::is_post_public( $post )
+				|| (string) pll_get_post_language( $post->ID, 'slug' ) !== $language
+			) {
+				return new \WP_Error( 'search_query_mismatch', 'Search query returned an invalid result.', [ 'status' => 503 ] );
+			}
+
+			$items[] = [
+				'id'       => (int) $post->ID,
+				'title'    => get_the_title( $post ),
+				'url'      => 'post' === $post->post_type ? CanonicalUrlBuilder::post_path( $post ) : get_permalink( $post ),
+				'type'     => $post->post_type,
+				'excerpt'  => wp_trim_words( wp_strip_all_tags( $post->post_excerpt ?: $post->post_content ), 30 ),
+				'thumb'    => get_the_post_thumbnail_url( $post, 'thumbnail' ) ?: '',
+				'language' => $language,
+			];
+		}
+
+		return [
+			'items'       => $items,
+			'total'       => (int) $posts->found_posts,
+			'total_pages' => (int) $posts->max_num_pages,
+			'page'        => $page,
+			'per'         => $per,
+			'per_page'    => $per,
+		];
 	}
 
 	/** @return array|\WP_Error */

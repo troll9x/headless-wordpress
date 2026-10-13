@@ -49,7 +49,7 @@ class Search {
 
 		$result = $this->service->search(
 			$query,
-			(int) $request->get_param( 'per' ),
+			(int) ( $request->has_param( 'per_page' ) ? $request->get_param( 'per_page' ) : $request->get_param( 'per' ) ),
 			(int) $request->get_param( 'page' ),
 			(string) $request->get_param( 'lang' )
 		);
@@ -89,6 +89,11 @@ class Search {
 				'sanitize_callback' => 'absint',
 				'validate_callback' => fn( $value ) => is_numeric( $value ) && (int) $value >= 1 && (int) $value <= 50,
 			],
+			'per_page' => [
+				'required'          => false,
+				'sanitize_callback' => 'absint',
+				'validate_callback' => fn( $value ) => is_numeric( $value ) && (int) $value >= 1 && (int) $value <= 50,
+			],
 			'page' => [
 				'default'           => 1,
 				'sanitize_callback' => 'absint',
@@ -97,7 +102,7 @@ class Search {
 			'lang' => [
 				'required'          => false,
 				'default'           => '',
-				'sanitize_callback' => fn( $value ) => in_array( (string) $value, [ 'vi', 'en' ], true ) ? (string) $value : '',
+				'sanitize_callback' => 'sanitize_text_field',
 				'validate_callback' => fn( $value ) => '' === $value || in_array( (string) $value, [ 'vi', 'en' ], true ),
 			],
 		];
