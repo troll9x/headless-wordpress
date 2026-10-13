@@ -2,7 +2,7 @@
 
 ## State
 
-- Branch: `fix/staging-stabilization-20261012`; starting HEAD for this continuation: `6b40afb053ab5e434aaf96848349cda41978aa00`. See `git log -1` for the commit containing this checkpoint.
+- Branch: `fix/staging-stabilization-20261012`; starting HEAD for this continuation: `6b40afb053ab5e434aaf96848349cda41978aa00`. Targeted hotfix and checkpoint commit: `0e27e22`, pushed to `origin`; see `git log -1` for any later documentation update.
 - Frontend staging: release `fa55fee` on `tlu-next-staging`; the React #441 fallback is deployed, but CMS timeouts can still interrupt content. Production `tlu.edu.vn` was not changed.
 - CMS: installed Headless API **2.1.0** at `/www/wwwroot/cms.tlu.edu.vn/wp-content/plugins/headless-api`; local plugin tree is **2.0.9**, so do not deploy the full tree. CMS plugin remains unchanged.
 - CMS backup: `/home/admintlu/headless-api-2.1.0-20261012.tgz`, SHA-256 `cddc5b4a5720e7c5c219380c2e28ce0f33653e1badce5819809953cd51c6e68`.

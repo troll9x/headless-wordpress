@@ -4,6 +4,8 @@
 
 The CMS search code fix is **prepared and locally tested, but not deployed**. Live search verification and the homepage benchmark remain blocked by unreliable CMS REST responses and recent PHP-FPM failures. The staging React #441 incident has a separate frontend fallback fix in commit `fa55fee70a06fd7144881740ab9f881a4bcc6340`; the fallback does not restore CMS data. Do not label search or the article route fixed until the CMS API and staging checks below pass.
 
+This continuation's targeted source, tests, overlay and handoff were committed as `0e27e22` on `fix/staging-stabilization-20261012` and pushed to `origin`. No CMS deployment was performed.
+
 ## CMS plugin and search findings
 
 - The installed plugin at `/www/wwwroot/cms.tlu.edu.vn/wp-content/plugins/headless-api` reports version **2.1.0**. It is not a Git checkout. The local `release/headless-api` source is version **2.0.9** and differs from the installed files. The public [Headless-API repository](https://github.com/troll9x/Headless-API) could not be treated as an exact replacement for the installed 2.1.0 release.
