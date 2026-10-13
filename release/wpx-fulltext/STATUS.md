@@ -1,0 +1,5 @@
+# WPX snippet 50120: FAILED / ROLLBACK SUBMITTED
+
+Do **not** deploy `wpcode-snippet-50120.php`. On 2026-10-13, the candidate was saved to the active CMS snippet and verified at code SHA-256 `81986866139c782c4b9c9ecbde42ca8b1a9bff538fcb6f682897187ffbe99309`, but real `water` and `Kyoto` searches still returned empty results. Nginx logged `DOUBLE value is out of range in phr_score / 64e0`.
+
+The original code was submitted as a rollback and WPCode showed `Snippet updated.` CMS admin/REST then timed out and the admin tab showed Cloudflare 524, so independently verify snippet 50120 is active and its normalized code SHA-256 is the original `a0d21313e0f2e279fa014472b887e84bdb38580ae64946cc5fc91aa75c8d55c7`. The complete single-snippet backup is `artifacts/cms-search-hotfix/wpcode-50120-backup-20261013.json` (SHA-256 `30fdb092a9499bdc4ff003de957969268a0b273d50aa91e14ec3a8df557d6291`). Obtain bounded read-only raw FULLTEXT scores before designing another fix. The local PHP test only checks finite arithmetic; it did not predict the MariaDB result.

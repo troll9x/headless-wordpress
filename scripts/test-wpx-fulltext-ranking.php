@@ -2,7 +2,8 @@
 declare(strict_types=1);
 
 // Run locally: php scripts/test-wpx-fulltext-ranking.php
-// This tests the WPCode snippet's ranking expression without touching CMS data.
+// This tests finite PHP arithmetic and source shape, not MariaDB FULLTEXT.
+// The 2026-10-13 live CMS query still overflowed at phr_score / 64e0.
 $source = file_get_contents(__DIR__ . '/../release/wpx-fulltext/wpcode-snippet-50120.php');
 if ($source === false) {
     throw new RuntimeException('WPCode snippet source is missing');
@@ -68,4 +69,4 @@ $hugeA = ['rec' => 0, 'phrase' => $large, 'plain' => $large, 'content' => 0, 'po
 $hugeB = ['rec' => 0, 'phrase' => $large / 2, 'plain' => $large / 2, 'content' => 0, 'popularity' => 0, 'ft' => $large / 2];
 check(is_finite($score($hugeA)) && $score($hugeA) > $score($hugeB), 'Large-score order is invalid');
 
-echo "WPX FULLTEXT ranking regression passed\n";
+echo "WPX arithmetic fixtures PASS (live MariaDB query failed separately)\n";
