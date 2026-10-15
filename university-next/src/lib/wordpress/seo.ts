@@ -45,9 +45,7 @@ export function extractWpSeoMeta(post: WPPost | WPPage): WpSeoMeta {
 }
 
 const SEO_TIMEOUT_MS = 4_000;
-// The CMS home SEO route can take ~2.3 s on an uncached request. Keep this
-// bounded while allowing the independent hero and SEO fetches to overlap.
-const HOME_SEO_TIMEOUT_MS = 3_000;
+const HOME_SEO_TIMEOUT_MS = 1_500;
 
 function isHeadlessSeoData(value: unknown): value is HeadlessSeoData {
   if (!value || typeof value !== 'object') return false;

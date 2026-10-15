@@ -10,15 +10,13 @@ import TrangChu from '@/components/trang-chu/TrangChu';
 export async function generateMetadata(): Promise<Metadata> {
   // Metadata needs only the hero page; loading every homepage section here
   // doubles the cold CMS fan-out before the page itself renders.
-  const [heroPage, homeSeo] = await Promise.all([
-    getFirstPageBySlug(PAGE_SLUGS.HERO, 'vi'),
-    getHeadlessHomeSeo('vi'),
-  ]);
+  const heroPage = await getFirstPageBySlug(PAGE_SLUGS.HERO, 'vi');
   const hero = extractHeroData(heroPage);
 
   const title = 'Trường Đại học Thủy lợi';
   const description = 'Trường Đại học Thủy lợi là một trường đại học công lập trực thuộc Bộ Nông nghiệp & Môi trường, trường hàng đầu trong việc đào tạo nguồn nhân lực chất lượng cao!';
   const canonical = FRONTEND_URL;
+  const homeSeo = await getHeadlessHomeSeo('vi');
   const seo = mergeHomeSeoOverride(null, homeSeo ?? { title, description });
 
   return generateHeadlessMetadata(seo, {
