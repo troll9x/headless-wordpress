@@ -47,6 +47,11 @@ namespace {
 			$this->found_posts = count( $matches );
 			$this->max_num_pages = (int) ceil( $this->found_posts / $args['posts_per_page'] );
 			$this->posts = array_slice( $matches, ( $args['paged'] - 1 ) * $args['posts_per_page'], $args['posts_per_page'] );
+			// WordPress skips its found-rows query when LIMIT/OFFSET returns no rows.
+			if ( [] === $this->posts && $args['paged'] > 1 ) {
+				$this->found_posts = 0;
+				$this->max_num_pages = 0;
+			}
 			if ( self::$inject_wrong_language ) {
 				$this->posts[] = new WP_Post( 99, 'post', 'vi' );
 			}
@@ -136,6 +141,8 @@ namespace {
 	assert_same( [], array_column( $second['items'], 'id' ), 'English page beyond final' );
 	assert_same( 2, $second['page'], 'Page metadata' );
 	assert_same( 2, $second['per_page'], 'Per-page metadata' );
+	assert_same( 2, $second['total'], 'English out-of-range page retains total' );
+	assert_same( 1, $second['total_pages'], 'English out-of-range page retains total pages' );
 	$vi = $service->search( 'water', 2, 1, 'vi' );
 	assert_same( [ 1, 4 ], array_column( $vi['items'], 'id' ), 'Vietnamese first page' );
 	assert_same( 2, $vi['total'], 'Vietnamese total' );

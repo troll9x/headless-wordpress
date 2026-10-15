@@ -49,7 +49,7 @@ class SearchService {
 			return new \WP_Error( 'search_language_unavailable', 'Polylang is unavailable.', [ 'status' => 503 ] );
 		}
 
-		$posts = new \WP_Query( [
+		$query_args = [
 			's'                   => $query,
 			'post_type'           => [ 'post' ],
 			'post_status'         => 'publish',
@@ -60,7 +60,24 @@ class SearchService {
 			'no_found_rows'       => false,
 			'ignore_sticky_posts' => true,
 			'suppress_filters'    => false,
-		] );
+		];
+		$posts = new \WP_Query( $query_args );
+		$total = (int) $posts->found_posts;
+		// WordPress does not calculate found_posts when OFFSET yields no rows.
+		// Re-run only an out-of-range page at page one to retain accurate totals.
+		if ( 0 === $total && $page > 1 && [] === $posts->posts ) {
+			$first_page = new \WP_Query( array_merge( $query_args, [ 'posts_per_page' => 1, 'paged' => 1 ] ) );
+			if ( ! empty( $first_page->posts ) ) {
+				$first_post = $first_page->posts[0];
+				if ( ! $first_post instanceof \WP_Post
+					|| ! ContentVisibility::is_post_public( $first_post )
+					|| (string) pll_get_post_language( $first_post->ID, 'slug' ) !== $language
+				) {
+					return new \WP_Error( 'search_query_mismatch', 'Search query returned an invalid result.', [ 'status' => 503 ] );
+				}
+			}
+			$total = (int) $first_page->found_posts;
+		}
 
 		$items = [];
 		foreach ( $posts->posts as $post ) {
@@ -87,8 +104,8 @@ class SearchService {
 
 		return [
 			'items'       => $items,
-			'total'       => (int) $posts->found_posts,
-			'total_pages' => (int) $posts->max_num_pages,
+			'total'       => $total,
+			'total_pages' => (int) ceil( $total / $per ),
 			'page'        => $page,
 			'per'         => $per,
 			'per_page'    => $per,
