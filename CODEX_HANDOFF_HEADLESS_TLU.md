@@ -2,6 +2,8 @@
 
 ## Latest checkpoint — 2026-10-15
 
+- **User deployment rule (2026-10-15):** From now on, upload/update Headless API only through the WordPress Admin Dashboard plugin update flow. Prepare and verify a complete installable ZIP compatible with the installed version before using that flow. Do not write plugin files via aaPanel File Manager, terminal, SSH or SFTP. An exceptional method requires the user's explicit authorization for that specific case.
+
 - **CMS Search VI/EN: deployed and targeted checks PASS. Staging: release `828581d`, functional E2E 3/3 PASS. Production: NO-GO due cold homepage latency and prior partial response.** Full evidence and rollback commands are in `HEADLESS_TLU_OPTIMIZATION_AND_DEPLOY_20261015.md`.
 - Installed Headless API 2.1.0 was preserved. Only three Search/SEO files were overlaid on `cms.tlu.edu.vn`; the repo's 2.0.9 plugin is not a safe full ZIP replacement. Verified live hashes, PHP syntax, backup tar and per-file rollback. Final overlay ZIP SHA-256 `4ec9f56f3f394f3f25df2779ea63bdb9b5f5ccf223f051ec95949a7edf11ff4b`.
 - Live `water`: VI total 101/34 pages, EN total 37/13 pages, page 2 distinct; out-of-range pages retain totals. Existing SEO ID works; invalid ID returns HTML 404 and remains open. Search ranking uses native `WP_Query` for VI/EN; direct/unscoped WPX remains separate.
