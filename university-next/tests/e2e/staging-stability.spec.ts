@@ -89,12 +89,12 @@ test('live search reports upstream errors and invalid schema separately from emp
   await expect(page.getByRole('listbox')).toContainText('temporarily unavailable');
 });
 
-test('core CMS search cannot leak Vietnamese posts into English results', async ({ request }) => {
+test('CMS search keeps English results scoped to English', async ({ request }) => {
   const response = await request.get(`/api/search?${new URLSearchParams({ q: 'thủy lợi', lang: 'en' })}`);
-  expect(response.status()).toBe(502);
+  expect(response.status()).toBe(200);
   const result = await response.json();
-  expect(result.items).toEqual([]);
-  expect(result.error).toBeTruthy();
+  expect(result.items.length).toBeGreaterThan(0);
+  expect(result.items.every((item: { url: string }) => item.url.startsWith('/en/'))).toBe(true);
 });
 
 test('stale responses cannot reopen cleared search', async ({ page }) => {

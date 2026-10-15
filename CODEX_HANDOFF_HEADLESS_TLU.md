@@ -1,5 +1,14 @@
 # Headless TLU checkpoint — 2026-10-13
 
+## Latest checkpoint — 2026-10-15
+
+- **CMS Search VI/EN: deployed and targeted checks PASS. Staging: release `828581d`, functional E2E 3/3 PASS. Production: NO-GO due cold homepage latency and prior partial response.** Full evidence and rollback commands are in `HEADLESS_TLU_OPTIMIZATION_AND_DEPLOY_20261015.md`.
+- Installed Headless API 2.1.0 was preserved. Only three Search/SEO files were overlaid on `cms.tlu.edu.vn`; the repo's 2.0.9 plugin is not a safe full ZIP replacement. Verified live hashes, PHP syntax, backup tar and per-file rollback. Final overlay ZIP SHA-256 `4ec9f56f3f394f3f25df2779ea63bdb9b5f5ccf223f051ec95949a7edf11ff4b`.
+- Live `water`: VI total 101/34 pages, EN total 37/13 pages, page 2 distinct; out-of-range pages retain totals. Existing SEO ID works; invalid ID returns HTML 404 and remains open. Search ranking uses native `WP_Query` for VI/EN; direct/unscoped WPX remains separate.
+- Staging source commits `9f2fc0d`, `828581d`; `tlu-next-staging` active and public header `X-TLU-Release: 828581d`. The previous `2970f7b` release and override backup are retained. Local targeted tests, lint, typecheck and build passed; live Playwright VI/EN search/article/pagination plus language isolation passed 3/3.
+- Performance gate open: one staging homepage request timed out at 20 s; a later request took 9.68 s; direct CMS homepage API took 7.92 s. Cached repeat requests were fast, but this does not meet the cold ≤5 s gate or establish p95. Prior `/en` partial transfer did not recur in the limited smoke, and its cause is still unknown. Profile CMS 2.1.0 homepage phases and request-level logs; repeat bounded complete-response measurements before production consideration.
+- Preserve unrelated dirty files (`docs/TLU-PROD-UNBLOCK-01.md`, WPX source/test edits, `.tmp-capture-har.mjs`, baseline-language artifacts, prior readiness report/JSON and user prompt). No production, DB, Cloudflare or WordPress core change.
+
 ## State
 
 - Branch: `fix/staging-stabilization-20261012`; starting HEAD for this continuation: `6b40afb053ab5e434aaf96848349cda41978aa00`. Targeted hotfix and checkpoint commit: `0e27e22`, pushed to `origin`; see `git log -1` for any later documentation update.
