@@ -1,0 +1,9 @@
+{
+  "installed_plugin_version": "2.1.0",
+  "scope": "Three-file Search/SEO overlay, not a complete installable plugin",
+  "files": {
+    "includes/Services/SearchService.php": "64bfab515333ab1ddb00e157b35af537cce0d9b7862b01f766b2f7a3509ccaac",
+    "includes/endpoints/class-search.php": "669db728fdb502759ed61f06cf98b115c9ae411a4d2d1c0c6f7ff1fe0fb99b21",
+    "includes/endpoints/class-seo.php": "3e84dba1a5a25644e7edbef0f921689d7a86c7e897f9adf24cf5dfe0a1b55217"
+  }
+}
