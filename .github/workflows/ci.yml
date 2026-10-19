@@ -3,8 +3,9 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [local-full-work]
+    branches: [main, local-full-work]
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
