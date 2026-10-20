@@ -81,7 +81,7 @@ export default function TheNoiBat({
           const media = post ? getFeaturedImage(post) : null;
 
           return (
-            <div key={group.key}>
+            <div key={group.key} className="min-w-0">
               <SectionTitle title={group.title} href={group.href} prefetch={false} className="!mb-4" />
               <article className="overflow-hidden rounded-md bg-white shadow-[0_2px_14px_rgba(15,23,42,0.12)]">
                 {postHref && media ? (

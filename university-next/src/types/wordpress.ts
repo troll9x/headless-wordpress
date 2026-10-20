@@ -79,6 +79,11 @@ export interface CategoryBannerData {
   height: number;
 }
 
+export interface CategoryIntroductionData {
+  title: string;
+  html: string;
+}
+
 export interface CategorySidebarTermItem {
   type: 'term';
   id: number;

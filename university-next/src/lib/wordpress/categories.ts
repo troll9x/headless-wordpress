@@ -8,6 +8,7 @@ import { coalesce } from '@/lib/utils/coalesce';
 import type { Locale } from '@/types/ngon-ngu';
 import type {
   CategoryBannerData,
+  CategoryIntroductionData,
   CategorySidebarData,
   CategorySidebarTermItem,
   WPCategory,
@@ -44,6 +45,8 @@ interface HeadlessCategoryTerm {
   ancestors?: HeadlessCategoryTerm[];
   acf?: {
     banner_tin_tuc?: HeadlessCategoryImage | string | null;
+    education_intro_title?: string | null;
+    education_intro_content?: string | null;
   } | [];
 }
 
@@ -173,6 +176,25 @@ export async function getCategoryBanner(
   const term = await getHeadlessCategoryTerm(category.slug, locale);
   const banner = getTermBanner(term);
   return term && banner ? toCategoryBanner(term, banner) : null;
+}
+
+/** Read the editor-managed category introduction from the normalized ACF term payload. */
+export async function getCategoryIntroduction(
+  category: WPCategory,
+  locale: Locale,
+): Promise<CategoryIntroductionData | null> {
+  if (locale !== 'en') return null;
+  const term = await getHeadlessCategoryTerm(category.slug, locale);
+  if (!term?.acf || Array.isArray(term.acf)) return null;
+
+  const title = term.acf.education_intro_title;
+  const html = term.acf.education_intro_content;
+  if (typeof html !== 'string' || !stripHtml(html).trim()) return null;
+
+  return {
+    title: typeof title === 'string' ? stripHtml(title).trim() : '',
+    html: html.trim(),
+  };
 }
 
 /** Reproduces the Flatsome single-post rule: use the first leaf category banner. */
