@@ -372,11 +372,7 @@ export default function CategoryArchive({
             </div>
           )}
 
-          {posts.length === 0 ? (
-            <p className="rounded-lg bg-slate-50 px-5 py-8 text-center text-slate-500">
-              {isEn ? 'No posts in this category yet.' : 'Chưa có bài viết trong chuyên mục này.'}
-            </p>
-          ) : isRecruitment ? (
+          {posts.length === 0 ? null : isRecruitment ? (
             <RecruitmentLayout posts={posts} locale={locale} />
           ) : isTitleOnly ? (
             <TitleOnlyLayout posts={posts} locale={locale} />
