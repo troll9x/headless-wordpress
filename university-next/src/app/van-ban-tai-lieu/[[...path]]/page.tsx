@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import DocumentTaxonomyArchive from '@/components/tai-lieu/DocumentTaxonomyArchive';
 import DocumentLibrary, { type LibraryData } from '@/components/tai-lieu/DocumentLibrary';
 import { WP_API_URL } from '@/config/env/server';
+import { buildWordPressRestUrl } from '@/lib/wordpress/url';
 import { FRONTEND_URL } from '@/constants/api';
 import { getDocumentTaxonomyData } from '@/lib/wordpress/documents';
 import { stripHtml } from '@/lib/utils/html';
@@ -51,7 +52,7 @@ export default async function DocumentTaxonomyPage({ params, searchParams }: Pro
   let library: LibraryData | null = null;
   if (libraryCategories.includes(libraryCategory)) {
     try {
-      const url = new URL(`/headless/v1/document-library?category=${encodeURIComponent(libraryCategory)}&per_page=20`, WP_API_URL);
+      const url = buildWordPressRestUrl(WP_API_URL, '/headless/v1/document-library', { category: libraryCategory, per_page: 20 });
       const response = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(12_000) });
       if (response.ok) library = await response.json() as LibraryData;
     } catch {

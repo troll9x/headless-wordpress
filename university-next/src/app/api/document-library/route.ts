@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { WP_API_URL } from '@/config/env/server';
+import { buildWordPressRestUrl } from '@/lib/wordpress/url';
 
 const categories = new Set(['van-ban-cua-dang', 'van-ban-nha-nuoc', 'van-ban-truong', 'bieu-mau']);
 
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
   if (q) params.set('q', q);
   params.set('page', String(Math.min(1000, Math.max(1, Number(input.get('page')) || 1))));
   params.set('per_page', '20');
-  const url = new URL(`/headless/v1/document-library?${params}`, WP_API_URL);
+  const url = buildWordPressRestUrl(WP_API_URL, '/headless/v1/document-library', Object.fromEntries(params));
   try {
     const response = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(12_000) });
     if (!response.ok) throw new Error(`CMS ${response.status}`);
