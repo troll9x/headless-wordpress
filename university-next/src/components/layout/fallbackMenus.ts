@@ -86,7 +86,7 @@ const VIETNAMESE_MENU: MenuSpec[] = [
     children: [
       { title: 'Công tác Đảng', url: '/cong-tac-dang' },
       { title: 'Giáo dục chính trị – tư tưởng', url: '/giao-duc-chinh-tri-tu-tuong' },
-      { title: 'Văn bản', url: 'https://web18.tlu.edu.vn/Van-ban', external: true },
+      { title: 'Văn bản', url: '/van-ban-tai-lieu' },
       { title: 'Cổng thông tin việc làm', url: 'https://job.tlu.edu.vn/', external: true },
       { title: 'Thư viện', url: 'https://lib.tlu.edu.vn/', external: true },
       { title: 'Trang hành chính', url: 'https://hanhchinh.tlu.edu.vn/', external: true },

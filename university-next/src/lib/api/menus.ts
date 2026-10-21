@@ -39,6 +39,10 @@ function toRelativePath(url: string, objectType: string): string {
     const site = new URL(WP_SITE_URL);
     const isFrontendUrl = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
 
+    if (parsed.hostname === 'web18.tlu.edu.vn' && /^\/Van-ban\/?$/i.test(parsed.pathname)) {
+      return '/van-ban-tai-lieu';
+    }
+
     if (parsed.hostname === site.hostname || isFrontendUrl) {
       let pathname = parsed.pathname || '/';
 
