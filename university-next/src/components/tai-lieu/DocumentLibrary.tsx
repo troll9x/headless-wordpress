@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const tabs = [
   { slug: 'van-ban-cua-dang', label: 'Văn bản của Đảng' },
@@ -43,6 +43,7 @@ function displayDate(value: string) {
 }
 
 export default function DocumentLibrary({ initial, category }: { initial: LibraryData; category: string }) {
+  const tabBar = useRef<HTMLElement>(null);
   const [data, setData] = useState(initial);
   const [sector, setSector] = useState('');
   const [keyword, setKeyword] = useState('');
@@ -51,6 +52,14 @@ export default function DocumentLibrary({ initial, category }: { initial: Librar
   const [retry, setRetry] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+
+  useEffect(() => {
+    const bar = tabBar.current;
+    const active = bar?.querySelector<HTMLElement>('a[aria-current="page"]');
+    if (!bar || !active) return;
+    const left = active.getBoundingClientRect().left - bar.getBoundingClientRect().left + bar.scrollLeft;
+    bar.scrollLeft = left - (bar.clientWidth - active.clientWidth) / 2;
+  }, [category]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebounced(keyword.trim()), 300);
@@ -88,7 +97,7 @@ export default function DocumentLibrary({ initial, category }: { initial: Librar
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <nav aria-label="Loại văn bản" className="flex gap-1 overflow-x-auto border-b border-slate-200 bg-slate-50 p-2">
+        <nav ref={tabBar} aria-label="Loại văn bản" className="flex gap-1 overflow-x-auto border-b border-slate-200 bg-slate-50 p-2">
           {tabs.map(tab => <Link key={tab.slug} href={`/van-ban-tai-lieu/${tab.slug}`}
             aria-current={category === tab.slug ? 'page' : undefined}
             className={`shrink-0 rounded-lg px-4 py-3 text-sm font-semibold transition sm:px-5 ${category === tab.slug ? 'bg-blue-800 text-white shadow-sm' : 'text-slate-700 hover:bg-blue-50 hover:text-blue-800'}`}>
