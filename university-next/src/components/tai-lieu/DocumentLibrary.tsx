@@ -42,6 +42,10 @@ function displayDate(value: string) {
   return value || '—';
 }
 
+function detailHref(url: string) {
+  return `${url}${url.includes('?') ? '&' : '?'}view=details`;
+}
+
 export default function DocumentLibrary({ initial, category }: { initial: LibraryData; category: string }) {
   const tabBar = useRef<HTMLElement>(null);
   const [data, setData] = useState(initial);
@@ -135,7 +139,7 @@ export default function DocumentLibrary({ initial, category }: { initial: Librar
               {data.items.map(row => <tr key={row.id} className="align-top hover:bg-blue-50/50">
                 <td className="break-words px-5 py-5 font-semibold text-slate-800">{row.symbol || '—'}</td>
                 <td className="px-5 py-5 text-slate-600">{displayDate(row.issued_date)}</td>
-                <td className="px-5 py-5"><Link href={row.detail_url} className="font-medium leading-relaxed text-slate-900 hover:text-blue-800 hover:underline">{row.title}</Link>
+                <td className="px-5 py-5"><Link href={detailHref(row.detail_url)} className="font-medium leading-relaxed text-slate-900 hover:text-blue-800 hover:underline">{row.title}</Link>
                   {row.sectors.length > 0 && <div className="mt-2 text-xs text-slate-500">{row.sectors.map(item => item.name).join(', ')}</div>}</td>
                 <td className="px-5 py-5">{status(row.effect_status) && <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${status(row.effect_status)!.className}`}>{status(row.effect_status)!.text}</span>}</td>
                 <td className="px-5 py-5">{row.files.length ? <a href={row.files[0].url} target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-800 hover:underline" aria-label={`Tải tệp: ${row.title}`}>Tải xuống</a> : '—'}</td>
@@ -147,7 +151,7 @@ export default function DocumentLibrary({ initial, category }: { initial: Librar
         <div className="divide-y divide-slate-100 md:hidden">
           {data.items.map(row => <article key={row.id} className="p-4">
             <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600"><span className="font-bold text-blue-800">{row.symbol || 'Văn bản'}</span><span>· {displayDate(row.issued_date)}</span></div>
-            <h2 className="mt-2 font-semibold leading-snug text-slate-900"><Link href={row.detail_url}>{row.title}</Link></h2>
+            <h2 className="mt-2 font-semibold leading-snug text-slate-900"><Link href={detailHref(row.detail_url)}>{row.title}</Link></h2>
             {row.sectors.length > 0 && <p className="mt-2 text-xs text-slate-500">{row.sectors.map(item => item.name).join(', ')}</p>}
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
               {status(row.effect_status) ? <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${status(row.effect_status)!.className}`}>{status(row.effect_status)!.text}</span> : <span />}
