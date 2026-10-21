@@ -164,7 +164,11 @@ async function getHeadlessMenuTree(
 
     if (!response.ok) return [];
     const items = getHeadlessItems(await response.json());
-    return buildMenuTree(normalizeHeadlessItems(items));
+    const normalized = normalizeHeadlessItems(items);
+    const itemIds = new Set(normalized.map(item => item.id));
+    // Do not promote children to the top bar when the CMS omits a parent item.
+    if (normalized.some(item => item.parent > 0 && !itemIds.has(item.parent))) return [];
+    return buildMenuTree(normalized);
   } catch {
     return [];
   }

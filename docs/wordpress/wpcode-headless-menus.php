@@ -25,13 +25,24 @@ function tlu_headless_menu_items($menu_id) {
         return array();
     }
 
+    $parent_ids = array();
+    foreach ($posts as $post) {
+        if ($post instanceof WP_Post && (int) $post->menu_item_parent > 0) {
+            $parent_ids[(int) $post->menu_item_parent] = true;
+        }
+    }
+
     $items = array();
     foreach ($posts as $post) {
         if (!$post instanceof WP_Post) {
             continue;
         }
         $url = esc_url_raw((string) $post->url);
-        if ('' === $url || !preg_match('#^https?://#i', $url)) {
+        // WordPress allows a blank custom URL for a grouping parent such as eTLU.
+        if ('' === $url && 'custom' === $post->type && isset($parent_ids[(int) $post->ID])) {
+            $url = '#';
+        }
+        if ('' === $url || ('#' !== $url && !preg_match('#^https?://#i', $url))) {
             continue;
         }
         $items[] = array(
