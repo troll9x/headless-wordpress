@@ -10,7 +10,7 @@
 }
 
 .lang-ios-texttoggle .track {
-  --w: 72px;
+  --w: 64px;
   --h: 36px;
   --pad: 3px;
 
@@ -37,30 +37,38 @@
   border-radius: 50%;
   box-shadow: 0 2px 6px rgba(0, 0, 0, .25);
   transition: transform .25s cubic-bezier(.22, .61, .36, 1);
-}
-
-.lang-ios-texttoggle .flag {
-  position: absolute;
-  top: 3px;
-  width: 30px;
-  height: 30px;
-  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  line-height: 1;
-  pointer-events: none;
 }
 
-.lang-ios-texttoggle .flag svg {
-  width: 24px;
-  height: 18px;
-  border-radius: 2px;
-  box-shadow: 0 0 0 1px rgba(15, 23, 42, .14);
+.lang-ios-texttoggle .label-text {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #111;
+  font-size: 14px;
+  font-weight: 600;
 }
 
-.lang-ios-texttoggle .flag-en { left: 3px; }
-.lang-ios-texttoggle .flag-vi { right: 3px; }
+.lang-ios-texttoggle .label-vi { left: 10px; }
+.lang-ios-texttoggle .label-en { right: 10px; }
+.lang-ios-texttoggle input:checked + .track .label-en,
+.lang-ios-texttoggle input:not(:checked) + .track .label-vi {
+  display: none;
+}
+
+.lang-ios-texttoggle .knob img {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.lang-ios-texttoggle input:checked + .track .flag-en,
+.lang-ios-texttoggle input:not(:checked) + .track .flag-vi {
+  display: none;
+}
 
 .lang-ios-texttoggle input:checked + .track .knob {
   transform: translateX(calc(var(--w) - var(--h)));

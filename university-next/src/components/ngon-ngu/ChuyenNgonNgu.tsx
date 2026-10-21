@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useRef, useState, useTransition } from 'react';
 import { startNavigation } from '@/components/layout/NavigationProgress';
@@ -67,21 +68,11 @@ function LanguageSwitch({ pathname }: { pathname: string }) {
         <input type="checkbox" checked={isVietnamese} onChange={handleChange} disabled={pending}
           aria-label={isVietnamese ? 'Chuyển sang tiếng Anh' : 'Switch to Vietnamese'} />
         <span className="track">
-          <span className="knob" aria-hidden />
-          <span className="flag flag-en" aria-hidden>
-            <svg viewBox="0 0 60 30" role="presentation" focusable="false">
-              <rect width="60" height="30" fill="#012169" />
-              <path d="M0 0 60 30 M60 0 0 30" stroke="#fff" strokeWidth="7" />
-              <path d="M0 0 60 30 M60 0 0 30" stroke="#c8102e" strokeWidth="2.5" />
-              <path d="M30 0v30 M0 15h60" stroke="#fff" strokeWidth="10" />
-              <path d="M30 0v30 M0 15h60" stroke="#c8102e" strokeWidth="5" />
-            </svg>
-          </span>
-          <span className="flag flag-vi" aria-hidden>
-            <svg viewBox="0 0 60 30" role="presentation" focusable="false">
-              <rect width="60" height="30" fill="#da251d" />
-              <polygon points="30,4 32.6,11.5 40.5,11.5 34.1,16.2 36.7,24 30,19.3 23.3,24 25.9,16.2 19.5,11.5 27.4,11.5" fill="#ff0" />
-            </svg>
+          <span className="label-text label-vi" aria-hidden>VN</span>
+          <span className="label-text label-en" aria-hidden>EN</span>
+          <span className="knob" aria-hidden>
+            <Image className="flag-en" src="/flags/united-kingdom.webp" alt="" width={20} height={20} unoptimized />
+            <Image className="flag-vi" src="/flags/vietnam.webp" alt="" width={20} height={20} unoptimized />
           </span>
         </span>
       </label>
