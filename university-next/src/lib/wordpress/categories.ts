@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache';
-import { wpFetch, wpFetchCollection } from '@/lib/wordpress/client';
+import { wpFetch, wpFetchCollection, wpFetchUrl } from '@/lib/wordpress/client';
 import { CACHE_TAGS, REVALIDATE_CATEGORIES } from '@/constants/api';
 import { WP_API_URL } from '@/config/env/server';
 import { buildWordPressRestUrl } from '@/lib/wordpress/url';
@@ -404,14 +404,26 @@ async function getFallbackCategorySidebar(
   };
 }
 
-/**
- * Build the sidebar from the cached WordPress taxonomy. The optional ACW route
- * is not registered on the current CMS and its per-post 404 added a blocking
- * network request before this same fallback could be returned.
- */
 export async function getCategorySidebar(
   params: CategorySidebarParams,
   locale: Locale = 'vi',
 ): Promise<CategorySidebarData | null> {
+  if (params.postId || params.categoryId || params.categorySlug) {
+    const url = buildWordPressRestUrl(WP_API_URL, '/acw/v1/sidebar', {
+      post_id: params.postId,
+      category_id: params.categoryId,
+      category_slug: params.categorySlug,
+      lang: locale,
+    });
+    try {
+      const sidebar = await wpFetchUrl<CategorySidebarData>(url.toString(), {
+        revalidate: REVALIDATE_CATEGORIES,
+        tags: [CACHE_TAGS.CATEGORIES, `acw-sidebar-${params.postId ?? params.categoryId ?? params.categorySlug}-${locale}`],
+      });
+      if (sidebar?.root?.id && Array.isArray(sidebar.items)) return sidebar;
+    } catch {
+      // Keep the taxonomy sidebar available while the optional adapter is offline.
+    }
+  }
   return getFallbackCategorySidebar(params, locale);
 }

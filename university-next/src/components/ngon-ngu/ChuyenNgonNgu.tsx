@@ -67,8 +67,8 @@ function LanguageSwitch({ pathname }: { pathname: string }) {
         <input type="checkbox" checked={isVietnamese} onChange={handleChange} disabled={pending}
           aria-label={isVietnamese ? 'Chuyển sang tiếng Anh' : 'Switch to Vietnamese'} />
         <span className="track">
-          <span className="label-text en">EN</span><span className="label-text vi">VN</span>
-          <span className="knob"><span className="flag flag-en" aria-hidden>EN</span><span className="flag flag-vi" aria-hidden>★</span></span>
+          <span className="knob" aria-hidden />
+          <span className="flag flag-en" aria-hidden>🇬🇧</span><span className="flag flag-vi" aria-hidden>🇻🇳</span>
         </span>
       </label>
       {pending && <span role="status" className="text-xs text-blue-800"><span aria-hidden className="inline-block h-4 w-4 rounded-full border-2 border-blue-200 border-t-blue-800 motion-safe:animate-spin" /><span className="sr-only">{isVietnamese ? 'Đang chuyển ngôn ngữ' : 'Switching language'}</span></span>}

@@ -6,6 +6,7 @@ import Breadcrumb from '@/components/ui/Breadcrumb';
 import { getHomePath } from '@/constants/duong-dan';
 import {
   getDocumentAcfText,
+  getDocumentEffectLabel,
   getDocumentFeaturedImage,
   getDocumentFileUrl,
   type DocumentGroup,
@@ -70,6 +71,7 @@ function DocumentCard({
   const title = stripHtml(document.title.rendered);
   const issueDate = getDocumentAcfText(document, 'ngay_ban_hanh');
   const symbol = getDocumentAcfText(document, 'ky_hieu');
+  const effect = getDocumentAcfText(document, 'hieu_luc');
   const isEn = locale === 'en';
   const externalProps = fileUrl
     ? { target: '_blank' as const, rel: 'noopener noreferrer' }
@@ -99,6 +101,9 @@ function DocumentCard({
         <h3 className="text-lg font-semibold leading-snug text-slate-900 transition-colors group-hover:text-[#0118d8]">
           <a href={href} {...externalProps}>{title}</a>
         </h3>
+        {effect && <p className="mt-3 text-sm font-medium text-slate-700">
+          {isEn ? 'Status' : 'Hiệu lực'}: {getDocumentEffectLabel(effect, locale)}
+        </p>}
       </div>
     </article>
   );
