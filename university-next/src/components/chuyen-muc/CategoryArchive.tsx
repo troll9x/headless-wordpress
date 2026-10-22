@@ -5,10 +5,12 @@ import Breadcrumb from '@/components/ui/Breadcrumb';
 import { buildPostUrl, getHomePath } from '@/constants/duong-dan';
 import { formatDateShort } from '@/lib/utils/date';
 import { stripHtml } from '@/lib/utils/html';
+import { sanitizeCmsHtml } from '@/lib/security/html';
 import { blogArchiveStyles, recruitmentListStyles } from '@/styles/tlu-template-recipes';
 import type { Locale } from '@/types/ngon-ngu';
 import type {
   CategorySidebarData,
+  CategoryIntroductionData,
   WPCategory,
   WPMedia,
   WPPost,
@@ -18,6 +20,7 @@ const TITLE_ONLY_CATEGORIES = new Set(['dai-hoc-chinh-quy', 'thac-si', 'tien-si'
 
 interface CategoryArchiveProps {
   category: WPCategory;
+  introduction: CategoryIntroductionData | null;
   posts: WPPost[];
   sidebar: CategorySidebarData | null;
   locale: Locale;
@@ -324,6 +327,7 @@ function Pagination({
 
 export default function CategoryArchive({
   category,
+  introduction,
   posts,
   sidebar,
   locale,
@@ -359,11 +363,16 @@ export default function CategoryArchive({
             {categoryName}
           </h1>
 
-          {posts.length === 0 ? (
-            <p className="rounded-lg bg-slate-50 px-5 py-8 text-center text-slate-500">
-              {isEn ? 'No posts in this category yet.' : 'Chưa có bài viết trong chuyên mục này.'}
-            </p>
-          ) : isRecruitment ? (
+          {introduction && (
+            <div className="mb-8 text-base leading-7 text-slate-700">
+              {introduction.title && introduction.title !== categoryName && (
+                <h2 className="mb-3 text-xl font-bold text-[#0118d8]">{introduction.title}</h2>
+              )}
+              <div className="space-y-3 [&_p]:mb-3" dangerouslySetInnerHTML={{ __html: sanitizeCmsHtml(introduction.html) }} />
+            </div>
+          )}
+
+          {posts.length === 0 ? null : isRecruitment ? (
             <RecruitmentLayout posts={posts} locale={locale} />
           ) : isTitleOnly ? (
             <TitleOnlyLayout posts={posts} locale={locale} />

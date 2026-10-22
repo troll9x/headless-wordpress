@@ -176,7 +176,9 @@ async function loadHomepageData(
     extras.image,
     snapshot ? Promise.resolve(snapshot.announcements) : safe('announcements', getPostsByCategories(CATEGORY_SLUGS.ANNOUNCEMENTS, 8, locale), []),
     // Match the WordPress shortcode and merge the selected HOT/NEW posts.
-    snapshot ? Promise.resolve(snapshot.news) : safe('news', getHomepageNews(locale), []),
+    snapshot
+      ? safe('news priority', applyHomepagePostPriorities(snapshot.news, locale), snapshot.news)
+      : safe('news', getHomepageNews(locale), []),
     // Bổ sung ACF từ Headless API vì /wp/v2 có thể không công khai lịch sự kiện.
     snapshot ? Promise.resolve(snapshot.events) : safe('events', getHomepageEvents(locale), []),
     snapshot ? Promise.resolve(snapshot.admissionsPage) : safe('admissions', getFirstPageBySlug(PAGE_SLUGS.ADMISSIONS, locale), null),

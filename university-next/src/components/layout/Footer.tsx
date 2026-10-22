@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { EnvelopeIcon, MapPinIcon, PhoneIcon } from '@/components/ui/icons';
+import { SITE_SHELL_CLASS } from '@/components/layout/siteShell';
 import type { Locale } from '@/types/ngon-ngu';
 import type { SiteFooterData, SiteFooterLink } from '@/lib/wordpress/site-footer';
 import type { SiteLogos } from '@/lib/wordpress/site-logo';
@@ -161,7 +162,7 @@ export default function Footer({ logos, footer, social }: FooterProps) {
 
   return (
     <footer className="bg-[#1907dc] text-white">
-      <div className="mx-auto max-w-[1180px] px-5 pb-4 pt-10 sm:px-6 sm:pt-12 lg:px-0">
+      <div className={`${SITE_SHELL_CLASS} pb-4 pt-10 sm:pt-12`}>
         <div className="grid gap-x-12 gap-y-8 pb-16 sm:grid-cols-2 lg:grid-cols-[1.35fr_1fr_1fr_1fr] lg:items-center lg:pb-24">
           {logo && (
             <div className="relative h-[105px] w-[280px] max-w-full sm:h-[115px] sm:w-[300px]">

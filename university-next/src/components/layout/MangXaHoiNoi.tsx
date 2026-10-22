@@ -28,7 +28,7 @@ export default function MangXaHoiNoi({ social }: { social: SiteSocialLinks | nul
   if (links.length === 0) return null;
 
   return (
-    <nav className="fixed bottom-[40vh] right-0 z-20 flex flex-col gap-2 min-[768px]:bottom-auto min-[768px]:right-4 min-[768px]:top-[24vh]" aria-label={isEn ? 'Social media' : 'Mạng xã hội'}>
+    <nav className="fixed right-4 top-[24vh] z-20 hidden flex-col gap-2 md:flex" aria-label={isEn ? 'Social media' : 'Mạng xã hội'}>
       {links.map((item) => (
         <a key={item.label} href={item.href} target="_blank" rel="noopener noreferrer" aria-label={item.label} className={`flex h-10 w-10 items-center justify-center rounded-l-lg bg-white shadow-[0_5px_16px_rgba(0,0,0,0.18)] transition-transform hover:-translate-y-0.5 min-[768px]:rounded-lg ${item.color}`}>
           <FontAwesomeIcon icon={item.icon} className="h-5 w-5" />
