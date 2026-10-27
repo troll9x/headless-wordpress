@@ -55,6 +55,14 @@ const SOCIAL_PLATFORMS: ReadonlyArray<{
   { id: 'tiktok', label: 'TikTok', icon: faTiktok },
 ];
 
+const EN_QUICK_LINKS: SiteFooterLink[] = [
+  { label: 'Faculties and Centers', url: '/en/organizational-structure', external: false },
+  { label: 'Education', url: '/en/education', external: false },
+  { label: 'Admissions', url: 'https://ts.tlu.edu.vn/', external: true },
+  { label: 'Research', url: '/en/research', external: false },
+  { label: 'International Relations', url: '/en/external-relations', external: false },
+];
+
 interface FooterProps {
   logos: SiteLogos | null;
   footer: SiteFooterData | null;
@@ -138,6 +146,9 @@ export default function Footer({ logos, footer, social }: FooterProps) {
   const locale: Locale = pathname === '/en' || pathname.startsWith('/en/') ? 'en' : 'vi';
   const copy = UI_COPY[locale];
   const content = footer?.locales[locale] ?? null;
+  const quickLinks = locale === 'en' && !content?.quickLinks.length
+    ? EN_QUICK_LINKS
+    : content?.quickLinks ?? [];
   const logo = logos?.footer[locale] ?? null;
   const socialItems = SOCIAL_PLATFORMS.flatMap((platform) => {
     const url = social?.[platform.id];
@@ -205,7 +216,7 @@ export default function Footer({ logos, footer, social }: FooterProps) {
 
         <div className="grid gap-x-12 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
           <LinkColumn title={copy.about} items={content?.aboutLinks ?? []} />
-          <LinkColumn title={copy.quick} items={content?.quickLinks ?? []} />
+          <LinkColumn title={copy.quick} items={quickLinks} />
 
           {socialItems.length > 0 && (
             <section>
