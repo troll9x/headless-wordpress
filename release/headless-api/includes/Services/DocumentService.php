@@ -85,6 +85,7 @@ final class DocumentService {
 			'banner'       => $banner,
 			'documents'    => $documents,
 			'document_count' => count( $documents ),
+			'effect_status' => $this->get_scalar_field( 'hieu_luc', $post->ID ),
 			'redirect'     => [
 				'required' => $redirect,
 				'url'      => $redirect ? $documents[0]['file']['url'] : '',
@@ -297,6 +298,7 @@ final class DocumentService {
 			'symbol'              => $this->get_scalar_field( 'ky_hieu', $post->ID ),
 			'issued_date'         => $this->acf->normalize( $raw_date, 'date_picker' ),
 			'issued_date_display' => $raw_date,
+			'effect_status'       => $this->get_scalar_field( 'hieu_luc', $post->ID ),
 			'thumbnail'           => $thumbnail,
 			'thumbnail_source'    => $thumbnail_id > 0 ? 'featured' : 'fallback',
 			'detail_url'          => $detail_url,
