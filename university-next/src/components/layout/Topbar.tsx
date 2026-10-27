@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { MenuIcon } from '@/components/ui/icons';
 import SearchBox from '@/components/layout/SearchBox';
+import { SITE_SHELL_CLASS } from '@/components/layout/siteShell';
 import ChuyenNgonNgu from '@/components/ngon-ngu/ChuyenNgonNgu';
 import type { SiteLogos } from '@/lib/wordpress/site-logo';
 
@@ -21,7 +22,7 @@ export default function Topbar({ onMenuOpen, mobileOpen, logos }: TopbarProps) {
 
   return (
     <div className="relative z-40 bg-white">
-      <div className="mx-auto flex h-[76px] max-w-[1270px] items-center justify-between gap-2 px-4 sm:h-[88px] sm:gap-4 sm:px-6 min-[1025px]:h-[100px] min-[1025px]:px-0">
+      <div className={`${SITE_SHELL_CLASS} flex h-[76px] items-center justify-between gap-2 sm:h-[88px] sm:gap-4 min-[1025px]:h-[100px]`}>
         {logo && (
           <Link
             href={isEnglish ? '/en' : '/'}

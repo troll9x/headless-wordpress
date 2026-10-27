@@ -1,0 +1,2 @@
+# False positive: WordPress attachment metadata key, not an API credential.
+9c65d47aba7b1445b93af5cc6360d0862408775e:docs/wordpress/wpcode-web18-import.php:generic-api-key:70

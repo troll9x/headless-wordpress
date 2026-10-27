@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDownload, faFileArrowDown } from '@fortawesome/free-solid-svg-icons';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import { getHomePath } from '@/constants/duong-dan';
-import type { DocumentDetailsData } from '@/lib/wordpress/documents';
+import { getDocumentEffectLabel, type DocumentDetailsData } from '@/lib/wordpress/documents';
 import type { Locale } from '@/types/ngon-ngu';
 
 export default function DocumentDetails({ data, locale }: { data: DocumentDetailsData; locale: Locale }) {
@@ -44,6 +44,9 @@ export default function DocumentDetails({ data, locale }: { data: DocumentDetail
           </span>
           <h1 className="max-w-5xl font-heading text-2xl font-extrabold uppercase leading-tight text-[#0118d8] sm:text-3xl">{data.title}</h1>
           {data.excerpt && <p className="max-w-3xl leading-7 text-slate-600">{data.excerpt}</p>}
+          {data.effect_status && <p className="text-sm font-medium text-slate-700">
+            {isEn ? 'Status' : 'Hiệu lực'}: {getDocumentEffectLabel(data.effect_status, locale)}
+          </p>}
         </div>
 
         {data.documents.length > 0 ? (
