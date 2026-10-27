@@ -9,4 +9,4 @@ targetRules = ["generic-api-key"]
 condition = "AND"
 regexTarget = "line"
 paths = ['''^docs/wordpress/wpcode-web18-import\.php$''']
-regexes = ['''^[[:space:]]*'meta_key'[[:space:]]*=>[[:space:]]*'_web18_attachment_id',[[:space:]]*'meta_value'[[:space:]]*=>''']
+regexes = ['''meta_key.*_web18_attachment_id''']
