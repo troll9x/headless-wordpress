@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { execFileSync } from "node:child_process";
+import { GA_MEASUREMENT_ID } from "./src/config/analytics";
 
 function releaseId(): string {
   const configured = process.env.TLU_RELEASE_ID ?? process.env.GITHUB_SHA;
@@ -34,15 +35,23 @@ if (wordpressUrl.protocol !== "http:" && wordpressUrl.protocol !== "https:") {
 }
 
 const wordpressOrigin = wordpressUrl.origin;
+const publicSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+const enableAnalytics = isProduction
+  && publicSiteUrl != null
+  && new URL(publicSiteUrl).hostname === "tlu.edu.vn"
+  && /^G-[A-Z0-9]+$/.test(GA_MEASUREMENT_ID);
+const analyticsScriptSource = enableAnalytics ? " https://www.googletagmanager.com" : "";
+const analyticsImageSources = enableAnalytics ? " https://www.googletagmanager.com https://*.google-analytics.com" : "";
+const analyticsConnectSources = enableAnalytics ? " https://www.googletagmanager.com https://*.google-analytics.com https://*.google.com" : "";
 
 const contentSecurityPolicy = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"}`,
+  `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"}${analyticsScriptSource}`,
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
-  `img-src 'self' data: blob: ${wordpressOrigin} https://tlu.edu.vn https://www.tlu.edu.vn`,
+  `img-src 'self' data: blob: ${wordpressOrigin} https://tlu.edu.vn https://www.tlu.edu.vn https://secure.gravatar.com${analyticsImageSources}`,
   `media-src 'self' blob: ${wordpressOrigin}`,
-  `connect-src 'self' ${wordpressOrigin}${isProduction ? "" : " ws: wss:"}`,
+  `connect-src 'self' ${wordpressOrigin}${isProduction ? "" : " ws: wss:"}${analyticsConnectSources}`,
   "frame-src 'self' https://www.google.com https://maps.google.com https://www.youtube.com https://www.youtube-nocookie.com",
   "worker-src 'self' blob:",
   "object-src 'none'",
@@ -95,6 +104,11 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "www.tlu.edu.vn",
+      },
+      {
+        protocol: "https",
+        hostname: "secure.gravatar.com",
+        pathname: "/avatar/**",
       },
     ],
   },

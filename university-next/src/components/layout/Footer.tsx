@@ -29,7 +29,19 @@ const UI_COPY = {
     social: 'Theo dõi TLU',
     map: 'Trường Đại học Thủy lợi',
     mapTitle: 'Bản đồ Trường Đại học Thủy lợi',
-    copyright: (year: number) => `Bản quyền © ${year} Trường Đại học Thủy lợi. Phát triển bởi Trung tâm Tin học TLU.`,
+    copyright: (year: number) => (
+      <>
+        Bản quyền © {year} Trường Đại học Thủy lợi. Phát triển bởi{' '}
+        <a
+          href="https://ttth.tlu.edu.vn"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-yellow-300 hover:text-yellow-400"
+        >
+          Trung tâm Công nghệ số & Học liệu TLU
+        </a>
+      </>
+    ),
   },
   en: {
     address: 'Address',
@@ -40,7 +52,19 @@ const UI_COPY = {
     social: 'Follow TLU',
     map: 'Thuyloi University',
     mapTitle: 'Map of Thuyloi University',
-    copyright: (year: number) => `Copyright © ${year} Thuyloi University. Developed by IT Center TLU.`,
+    copyright: (year: number) => (
+      <>
+        Copyright © {year} Thuyloi University. Developed by{' '}
+        <a
+          href="https://ttth.tlu.edu.vn"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-yellow-300 hover:text-yellow-400"
+        >
+          IT Center TLU
+        </a>
+      </>
+    ),
   },
 } as const;
 

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { Suspense } from 'react';
+import Script from 'next/script';
 import NavigationProgress from '@/components/layout/NavigationProgress';
 import './globals.css';
 import '@/styles/site-font.css';
@@ -10,6 +11,7 @@ import MangXaHoiNoi from '@/components/layout/MangXaHoiNoi';
 import DocumentLanguage from '@/components/ngon-ngu/DocumentLanguage';
 import { SITE_NAME } from '@/constants/api';
 import { NEXT_PUBLIC_SITE_URL } from '@/config/env/public';
+import { GA_MEASUREMENT_ID } from '@/config/analytics';
 import { getSiteFavicon, type SiteFavicon } from '@/lib/wordpress/site-favicon';
 import { getSiteLogos } from '@/lib/wordpress/site-logo';
 import { getSiteFooter } from '@/lib/wordpress/site-footer';
@@ -48,6 +50,9 @@ const baseMetadata: Metadata = {
     },
   },
 };
+
+const trackPublicSite = process.env.NODE_ENV === 'production'
+  && new URL(NEXT_PUBLIC_SITE_URL).hostname === 'tlu.edu.vn';
 
 function faviconDescriptor(favicon: SiteFavicon) {
   return {
@@ -92,6 +97,20 @@ export default async function RootLayout({
   return (
     <html lang={locale} className="h-full antialiased" suppressHydrationWarning>
       <body className="flex min-h-full flex-col bg-white">
+        {trackPublicSite && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', ${JSON.stringify(GA_MEASUREMENT_ID)});`}
+            </Script>
+          </>
+        )}
         <Suspense fallback={null}><NavigationProgress /></Suspense>
         <DocumentLanguage />
         <Header logos={logos} />

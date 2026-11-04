@@ -119,7 +119,7 @@ export async function POST(request: Request) {
 
   if (!VIETTEL_TTS_TOKEN) {
     return jsonError(
-      'Viettel TTS chưa được cấu hình. Hãy thêm VIETTEL_TTS_TOKEN vào .env.local.',
+      'Giọng đọc Ai chưa được cấu hình. Vui lòng liên hệ quản trị viên.',
       503,
     );
   }
