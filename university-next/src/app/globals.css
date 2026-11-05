@@ -110,6 +110,18 @@ body {
   text-align: center;
 }
 
+.article-readable-content p:has(> img) > img {
+  margin-bottom: 0.25rem;
+}
+
+.article-readable-content p:has(> img):has(+ p > :is(em, i):only-child) {
+  margin-bottom: 0.25rem;
+}
+
+.article-readable-content p:has(> img) + p:has(> :is(em, i):only-child) {
+  margin-top: 0;
+}
+
 .article-readable-content p:has(> img) + p > :is(em, i):only-child,
 .article-readable-content p:has(> img) > br + :is(em, i) {
   font-size: 0.875em;

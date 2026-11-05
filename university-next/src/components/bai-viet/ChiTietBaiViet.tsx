@@ -53,8 +53,8 @@ interface ChiTietBaiVietProps {
 const ARTICLE_BODY_CLASSES = [
   'text-base leading-7 text-slate-700',
   '[&_h1]:mb-2 [&_h1]:mt-7 [&_h1]:text-3xl [&_h1]:font-bold [&_h1]:leading-[1.3] [&_h1]:text-slate-900',
-  '[&_h2]:mb-2 [&_h2]:mt-7 [&_h2]:scroll-mt-36 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:leading-[1.3] [&_h2]:text-slate-900',
-  '[&_h3]:mb-2 [&_h3]:mt-7 [&_h3]:scroll-mt-36 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:leading-[1.3] [&_h3]:text-slate-900',
+  '[&_h2]:mb-2 [&_h2]:mt-7 [&_h2]:scroll-mt-36 [&_h2]:text-3xl [&_h2]:font-bold [&_h2]:leading-[1.3] [&_h2]:text-slate-900',
+  '[&_h3]:mb-2 [&_h3]:mt-7 [&_h3]:scroll-mt-36 [&_h3]:text-2xl [&_h3]:font-bold [&_h3]:leading-[1.3] [&_h3]:text-slate-900',
   '[&_h4]:mb-2 [&_h4]:mt-7 [&_h4]:scroll-mt-36 [&_h4]:text-lg [&_h4]:font-bold [&_h4]:leading-[1.3] [&_h4]:text-slate-900',
   '[&_h5]:mb-2 [&_h5]:mt-7 [&_h5]:font-bold [&_h5]:leading-[1.3] [&_h5]:text-slate-900',
   '[&_h6]:mb-2 [&_h6]:mt-7 [&_h6]:font-bold [&_h6]:leading-[1.3] [&_h6]:text-slate-900',
