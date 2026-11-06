@@ -13,7 +13,7 @@ const cmsOptions: sanitizeHtml.IOptions = {
     'td', 'tfoot', 'th', 'thead', 'time', 'tr', 'u', 'ul', 'video',
   ],
   allowedAttributes: {
-    '*': sharedAttributes,
+    '*': [...sharedAttributes, 'style'],
     a: ['href', 'name', 'target', 'rel'],
     blockquote: ['cite'],
     col: ['span', 'width'],
@@ -22,16 +22,36 @@ const cmsOptions: sanitizeHtml.IOptions = {
       'src', 'width', 'height', 'allow', 'allowfullscreen', 'loading',
       'referrerpolicy', 'sandbox',
     ],
+    // TinyMCE stores paragraph alignment and inline emphasis as CSS styles.
+    // Keep only the small set of presentation properties needed by article
+    // content; sanitize-html otherwise drops the entire style attribute.
+    div: ['align', 'style'],
+    h1: ['align', 'style'],
+    h2: ['align', 'style'],
+    h3: ['align', 'style'],
+    h4: ['align', 'style'],
+    h5: ['align', 'style'],
+    h6: ['align', 'style'],
     img: [
       'src', 'srcset', 'sizes', 'alt', 'width', 'height', 'loading',
       'decoding', 'referrerpolicy',
     ],
     source: ['src', 'srcset', 'sizes', 'type', 'media'],
+    p: ['align', 'style'],
+    span: ['style'],
     table: ['summary', 'width'],
-    td: ['colspan', 'rowspan', 'headers', 'width'],
-    th: ['colspan', 'rowspan', 'headers', 'scope', 'width'],
+    td: ['align', 'colspan', 'rowspan', 'headers', 'width', 'style'],
+    th: ['align', 'colspan', 'rowspan', 'headers', 'scope', 'width', 'style'],
     time: ['datetime'],
     video: ['src', 'poster', 'width', 'height', 'controls', 'preload'],
+  },
+  allowedStyles: {
+    '*': {
+      'text-align': [/^(?:left|right|center|justify)$/i],
+      'font-weight': [/^(?:normal|bold|bolder|lighter|[1-9]00)$/i],
+      'font-style': [/^(?:normal|italic|oblique)$/i],
+      'text-decoration': [/^(?:none|underline|overline|line-through)$/i],
+    },
   },
   allowedSchemes: ['http', 'https', 'mailto', 'tel'],
   allowedSchemesByTag: {
