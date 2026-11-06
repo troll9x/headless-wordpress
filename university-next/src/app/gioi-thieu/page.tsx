@@ -13,12 +13,21 @@ const PAGE_SLUG = 'gioi-thieu';
 const PAGE_ID = 279;
 const PAGE_URL = `${FRONTEND_URL}/gioi-thieu`;
 const HERO_IMAGE = 'https://cms.tlu.edu.vn/wp-content/uploads/2025/06/Toan-truong-scaled-1.webp';
+const BUILDER_IMAGES: Record<string, { src: string; alt: string }> = {
+  '353': { src: HERO_IMAGE, alt: 'Toàn cảnh Trường Đại học Thủy lợi' },
+  '1009': { src: 'https://cms.tlu.edu.vn/wp-content/uploads/2025/07/Lich-su-cua-truong.webp', alt: 'Lịch sử của trường' },
+  '1010': { src: 'https://cms.tlu.edu.vn/wp-content/uploads/2025/07/Lich-su-cua-truong-1.webp', alt: 'Lịch sử của trường' },
+};
 
 // The CMS still stores Flatsome builder shortcodes in this page's rendered HTML.
 // Keep the editor's actual headings and paragraphs, without showing shortcode text.
 function cleanAboutHtml(html: string): string {
   return sanitizeCmsHtml(
     html
+      .replace(/\[ux_image\b[^\]]*?id=(?:&#8221;|[”"'])(\d+)[^\]]*\]/gi, (_shortcode, id: string) => {
+        const image = BUILDER_IMAGES[id];
+        return image ? `<img src="${image.src}" alt="${image.alt}" />` : '';
+      })
       .replace(/\[(?:\/?[a-z][a-z0-9_-]*)(?:\s[^\]]*)?\]/gi, '')
       .replace(/<p(?:\s[^>]*)?>\s*(?:<br\s*\/?\s*>|&nbsp;|\s)*<\/p>/gi, ''),
   );
