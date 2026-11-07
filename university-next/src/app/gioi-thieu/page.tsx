@@ -26,9 +26,12 @@ function section(html: string, start: string, end: string): string {
 }
 
 function contentParagraphs(html: string): string[] {
-  return [...html.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)]
-    .map((match) => sanitizeCmsHtml(match[1].replace(/\[[^\]]*\]/g, '').replace(/<br\s*\/?\s*>/gi, ' ')))
-    .filter((text) => stripHtml(text).trim().length > 35);
+  return [...html.matchAll(/<(p|li)\b[^>]*>([\s\S]*?)<\/\1>/gi)]
+    .map((match) => {
+      const text = sanitizeCmsHtml(match[2].replace(/\[[^\]]*\]/g, '').replace(/<br\s*\/?\s*>/gi, ' '));
+      return match[1].toLowerCase() === 'li' ? `• ${text}` : text;
+    })
+    .filter((text) => stripHtml(text).trim().length > 8);
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -57,7 +60,9 @@ export default async function AboutPage() {
   const intro = contentParagraphs(section(html, 'Giới thiệu về', 'Lịch sử của trường'))[0];
   const historyStart = contentParagraphs(section(html, 'Lịch sử của trường', '[ux_image id=&#8221;1009'));
   const historyMiddle = contentParagraphs(section(html, '[ux_image id=&#8221;1010', 'Năm 1979'));
-  const historyEnd = contentParagraphs(section(html, 'Năm 1979', '[ux_image id=&#8221;353'));
+  const year1979 = html.indexOf('Năm 1979');
+  const historyEndStart = year1979 < 0 ? '' : html.slice(html.lastIndexOf('<p', year1979));
+  const historyEnd = contentParagraphs(section(historyEndStart, '<p', '[ux_image id=&#8221;353'));
   const present = contentParagraphs(section(html, 'Đại học Thủy lợi hiện tại', '[khoa_nganh_slider'))[0];
   const awards = contentParagraphs(section(html, 'DANH HIỆU', '[/section]'));
   const figures = [
