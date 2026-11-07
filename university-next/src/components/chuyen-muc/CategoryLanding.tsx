@@ -2,8 +2,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import { getHomePath } from '@/constants/duong-dan';
+import { sanitizeCmsHtml } from '@/lib/security/html';
 import type { Locale } from '@/types/ngon-ngu';
-import type { WPCategory } from '@/types/wordpress';
+import type { CategoryIntroductionData, WPCategory } from '@/types/wordpress';
 
 interface LandingLink {
   label: string;
@@ -109,8 +110,7 @@ function getEducationContent(locale: Locale): LandingContent {
   if (locale === 'en') {
     return {
       introduction: [
-        'Education is one of the key missions of Thuyloi University. The University continuously improves training quality to meet society’s growing demand for highly qualified human resources.',
-        'Its education programs build on TLU’s established strengths in engineering and technology while supporting innovation and sustainable socio-economic development.',
+        'Education is one of the key missions of Thuyloi University. Building on its tradition and the achievements made, from 2006 to the present, the University has implemented numerous policies and solutions to continuously improve the quality of education, meeting the increasingly demanding needs of society. These efforts in training and education have helped Thuyloi University maintain and affirm its leading position in providing high-quality human resources in engineering and technology. This contribution supports the implementation of socio-economic development strategies of the Party and State, pioneers innovation, and plays an active role in building and developing the higher education system.',
       ],
       cards: [
         {
@@ -131,7 +131,7 @@ function getEducationContent(locale: Locale): LandingContent {
           imageUrl: PROGRAM_IMAGES.masters,
           imageAlt: "Master's programs",
           description:
-            'Full-time and part-time programs provide flexible pathways for advanced professional and research development.',
+            'Thuyloi University (TLU) offers two main forms of Master\'s training: full-time and part-time. The typical duration of study is 1.5 years (18 months) for the full-time program and 2 years (24 months) for the part-time program.',
           links: [
             { label: 'Program outcome standards', href: '/en/chuan-dau-ra-thac-si' },
             { label: 'Training programs', href: '/en/chuong-trinh-dao-tao-thac-si' },
@@ -145,7 +145,7 @@ function getEducationContent(locale: Locale): LandingContent {
           imageUrl: PROGRAM_IMAGES.doctoral,
           imageAlt: 'Doctoral programs',
           description:
-            'Doctoral candidates undertake concentrated study and research under the University’s doctoral training regulations.',
+            'The full-time doctoral program requires candidates to spend at least 12 continuous months of concentrated study at Thuyloi University during the first 24 months from the official recognition of their doctoral candidacy. Detailed information about the doctoral admission fields at Thuyloi University can be found here...',
           links: [
             { label: 'Program outcome standards', href: '/en/chuan-dau-ra-tien-si' },
             { label: 'Training programs', href: '/en/chuong-trinh-dao-tao-tien-si' },
@@ -254,9 +254,11 @@ function ProgramCard({ card }: { card: LandingCard }) {
 export default function CategoryLanding({
   category,
   locale,
+  introduction,
 }: {
   category: WPCategory;
   locale: Locale;
+  introduction: CategoryIntroductionData | null;
 }) {
   const content = ['tuyen-sinh', 'admission', 'admissions'].includes(category.slug)
     ? getAdmissionsContent(locale)
@@ -279,7 +281,14 @@ export default function CategoryLanding({
         <h1 className="text-center text-3xl font-extrabold uppercase text-[#0118d8] sm:text-4xl">
           {category.name}
         </h1>
-        {content.introduction.length > 0 && (
+        {introduction ? (
+          <div className="mx-auto mt-7 max-w-5xl text-center text-base leading-7 text-slate-700">
+            {introduction.title && introduction.title !== category.name && (
+              <h2 className="mb-4 text-xl font-bold text-[#0118d8]">{introduction.title}</h2>
+            )}
+            <div className="space-y-4 [&_p]:mb-4" dangerouslySetInnerHTML={{ __html: sanitizeCmsHtml(introduction.html) }} />
+          </div>
+        ) : content.introduction.length > 0 && (
           <div className="mx-auto mt-7 max-w-5xl space-y-4 text-center text-base leading-7 text-slate-700">
             {content.introduction.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
           </div>

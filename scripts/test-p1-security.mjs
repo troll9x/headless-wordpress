@@ -2,6 +2,16 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { getClientIp } from '../university-next/src/lib/security/rate-limit.ts';
 import { signedSearchHeaders } from '../university-next/src/lib/security/search-proxy.ts';
+import { sanitizeCmsHtml } from '../university-next/src/lib/security/html.ts';
+
+test('CMS article formatting retains TinyMCE alignment and emphasis without unsafe styles', () => {
+  const html = sanitizeCmsHtml('<p style="text-align: justify; background-image: url(https://example.com/x)">Body</p><p style="text-align: right"><span style="font-weight: bold; font-style: italic" onclick="alert(1)">Signature</span></p>');
+  assert.match(html, /text-align:\s*justify/);
+  assert.match(html, /text-align:\s*right/);
+  assert.match(html, /font-weight:\s*bold/);
+  assert.match(html, /font-style:\s*italic/);
+  assert.doesNotMatch(html, /background-image|onclick/);
+});
 
 test('client IP ignores spoofable headers unless the trusted proxy header is configured', () => {
   const request = { headers: new Headers({

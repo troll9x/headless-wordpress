@@ -1,0 +1,99 @@
+name: CD production frontend
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        description: Full 40-character SHA already deployed and tested on staging
+        required: true
+        type: string
+      confirm:
+        description: Type DEPLOY tlu.edu.vn
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tlu-production-frontend
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    name: Verify exact candidate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require current main SHA and explicit confirmation
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha }}
+          CONFIRM: ${{ inputs.confirm }}
+          CURRENT_SHA: ${{ github.sha }}
+          REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          [[ "$REF" == refs/heads/main ]]
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$RELEASE_SHA" == "$CURRENT_SHA" ]]
+          [[ "$CONFIRM" == 'DEPLOY tlu.edu.vn' ]]
+      - name: Require staging to serve the same source commit
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha }}
+        run: |
+          set -euo pipefail
+          headers="$(curl --fail --silent --show-error --location --head --max-time 20 https://dev.nguyenhongson.vn/)"
+          stage_id="$(printf '%s\n' "$headers" | tr -d '\r' | awk 'tolower($1)=="x-tlu-release:" {print tolower($2)}' | tail -n 1)"
+          [[ "$stage_id" =~ ^[0-9a-f]{7,12}$ ]]
+          [[ "$RELEASE_SHA" == "$stage_id"* ]]
+          echo "Staging release $stage_id matches candidate."
+
+  ci:
+    needs: gate
+    uses: ./.github/workflows/ci.yml
+
+  staging:
+    needs: gate
+    uses: ./.github/workflows/e2e-staging.yml
+
+  deploy:
+    name: Deploy frontend service
+    needs: [ci, staging]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate configured target and deploy exact SHA
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha }}
+          SSH_HOST: ${{ vars.PROD_SSH_HOST }}
+          SSH_PORT: ${{ vars.PROD_SSH_PORT }}
+          SSH_USER: ${{ vars.PROD_SSH_USER }}
+          APP_DIR: ${{ vars.PROD_APP_DIR }}
+          SERVICE: ${{ vars.PROD_SYSTEMD_SERVICE }}
+          HEALTH_URL: ${{ vars.PROD_HEALTH_URL }}
+          SSH_PRIVATE_KEY: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.PROD_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          [[ "$SSH_HOST" =~ ^[A-Za-z0-9.-]+$ ]]
+          [[ "$SSH_USER" =~ ^[A-Za-z_][A-Za-z0-9_-]*$ ]]
+          [[ "$SSH_PORT" =~ ^[0-9]{1,5}$ ]] && (( SSH_PORT >= 1 && SSH_PORT <= 65535 ))
+          [[ "$APP_DIR" =~ ^/[A-Za-z0-9/_-]+$ ]]
+          [[ "$SERVICE" =~ ^[A-Za-z0-9@_.-]+$ ]]
+          [[ "$HEALTH_URL" =~ ^http://127\.0\.0\.1:[0-9]{1,5}(/[A-Za-z0-9/_-]*)?$ ]]
+          [[ -n "$SSH_PRIVATE_KEY" && -n "$SSH_KNOWN_HOSTS" ]]
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$tmp/key"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$tmp/known_hosts"
+          chmod 600 "$tmp/key" "$tmp/known_hosts"
+          ssh -i "$tmp/key" -p "$SSH_PORT" \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$tmp/known_hosts" \
+            "$SSH_USER@$SSH_HOST" \
+            "bash -s -- $RELEASE_SHA $APP_DIR $SERVICE $HEALTH_URL" \
+            < scripts/deploy-production.sh

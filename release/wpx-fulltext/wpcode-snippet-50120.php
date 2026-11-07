@@ -746,14 +746,13 @@ class WPX_FT_LocalIndex {
             exact_title_hit DESC,
             title_prefix    DESC,
 
-            /* Tầng 2: cùng trọng số, chia từng hạng tử trước khi nhân/cộng
-               để các MATCH score kiểu DOUBLE lớn không làm tràn phép tính. */
-            ( rec_linear*80 / 64e0
-            + phr_score / 64e0 * 10
-            + phr_plain_score / 64e0 * 6
-            + exact_content_hit*2 / 64e0
-            + popularity_score / 64e0
-            + ft_score / 64e0
+            /* Tầng 2: điểm tổng hợp (recency mạnh) */
+            ( rec_linear*80
+            + LEAST(phr_score, 1e6)*10
+            + LEAST(phr_plain_score, 1e6)*6
+            + exact_content_hit*2
+            + popularity_score*1
+            + LEAST(ft_score, 1e6)
             ) DESC,
 
             /* Cuối cùng: bài mới hơn đứng trước */

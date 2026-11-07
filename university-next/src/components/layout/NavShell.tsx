@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import Topbar from '@/components/layout/Topbar';
 import MainMenu from '@/components/layout/MainMenu';
 import MobileNav from '@/components/layout/MobileNav';
+import { SITE_SHELL_CLASS } from '@/components/layout/siteShell';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import type { Locale } from '@/types/ngon-ngu';
 import type { WPMenuItemWithChildren } from '@/types/wordpress';
@@ -35,7 +36,7 @@ export default function NavShell({ primaryItemsVi, primaryItemsEn, logos }: NavS
         className="relative z-10 hidden h-10 bg-[#0118d8] min-[1025px]:block"
         aria-label={locale === 'en' ? 'Main navigation' : 'Điều hướng chính'}
       >
-        <div className="mx-auto flex h-full max-w-[1270px] items-center">
+        <div className={`${SITE_SHELL_CLASS} flex h-full items-center`}>
           <MainMenu items={primaryItems} pathname={pathname} />
         </div>
       </nav>

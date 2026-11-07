@@ -10,7 +10,7 @@ function getFeaturedImage(page: WPPage): WPMedia | null {
   return media && !('code' in media) ? media : null;
 }
 
-const FALLBACK_IMAGE = 'https://tlu.edu.vn/wp-content/uploads/2025/08/diem-chuan-dai-hoc-thuy-loi2.webp';
+const FALLBACK_IMAGE = 'https://cms.tlu.edu.vn/wp-content/uploads/2025/08/diem-chuan-dai-hoc-thuy-loi2.webp';
 
 export default function KhuVucTuyenSinh({ page, locale }: { page: WPPage | null; locale: Locale }) {
   const isEn = locale === 'en';

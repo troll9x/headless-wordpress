@@ -77,3 +77,57 @@ html {
 body {
   overflow-x: hidden;
 }
+
+/* CMS article markup uses the normal font files for italic text. */
+.article-readable-content {
+  font-synthesis: style;
+}
+
+.article-readable-content :is(em, i) {
+  font-style: italic;
+}
+
+.article-readable-content :is(figure:has(figcaption), .wp-caption) {
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.article-readable-content :is(figcaption, .wp-caption-text) {
+  margin-top: 0.375rem;
+  margin-bottom: 0;
+  text-align: center;
+  font-style: italic;
+}
+
+/* The CMS also stores photo captions as an italic paragraph after an image,
+   or as italic text after a line break inside the image paragraph. */
+.article-readable-content p:has(> img) + p:has(> em:only-child),
+.article-readable-content p:has(> img) + p:has(> i:only-child),
+.article-readable-content p:has(> img):has(> br + em),
+.article-readable-content p:has(> img):has(> br + i) {
+  text-align: center;
+}
+
+.article-readable-content p:has(> img) > img {
+  margin-bottom: 0.25rem;
+}
+
+.article-readable-content p:has(> img):has(+ p > :is(em, i):only-child) {
+  margin-bottom: 0.25rem;
+}
+
+.article-readable-content p:has(> img) + p:has(> :is(em, i):only-child) {
+  margin-top: 0;
+}
+
+.article-readable-content p:has(> img) + p > :is(em, i):only-child,
+.article-readable-content p:has(> img) > br + :is(em, i) {
+  font-size: 0.875em;
+  font-style: italic;
+}
+
+.article-readable-content :is(figure:has(figcaption), .wp-caption) img {
+  margin-block: 0;
+}

@@ -83,6 +83,12 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
   const [status, setStatus] = useState<SearchStatus>('idle');
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setHydrated(true), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
    const trimmedQuery = query.trim();
    const locale = pathname === '/en' || pathname.startsWith('/en/') ? 'en' : 'vi';
@@ -241,6 +247,7 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
          ref={inputRef}
          id={inputId}
          type="search"
+         disabled={!hydrated}
          value={query}
          onChange={(event) => updateQuery(event.target.value)}
          onFocus={() => {
@@ -263,6 +270,7 @@ export default function LiveSearch({ className = '' }: LiveSearchProps) {
        />
       <button
         type="submit"
+        disabled={!hydrated}
         className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-black transition-colors hover:bg-black/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0118d8]"
         aria-label={isEn ? 'Search' : 'Tìm kiếm'}
       >

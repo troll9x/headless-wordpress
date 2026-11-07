@@ -65,23 +65,19 @@ export default function TheNoiBat({
   posts: HomepageFeaturePosts;
   locale: Locale;
 }) {
-  const emptyText = locale === 'en'
-    ? 'There are no posts in this category yet.'
-    : 'Chưa có bài viết trong chuyên mục này.';
-
   return (
     <section
       className="bg-white pb-16 pt-10"
       aria-label={locale === 'en' ? 'Education, Students, Alumni' : 'Đào tạo, Sinh viên, Cựu sinh viên'}
     >
       <div className="mx-auto grid max-w-[1400px] gap-12 px-4 sm:px-6 md:grid-cols-3 md:gap-6 lg:px-8">
-        {GROUPS[locale].map((group) => {
+        {GROUPS[locale].filter((group) => posts[group.key]).map((group) => {
           const post = posts[group.key];
           const postHref = post ? buildPostUrl(post.slug, locale, post.link, post.id, post.canonical_path) : null;
           const media = post ? getFeaturedImage(post) : null;
 
           return (
-            <div key={group.key}>
+            <div key={group.key} className="min-w-0">
               <SectionTitle title={group.title} href={group.href} prefetch={false} className="!mb-4" />
               <article className="overflow-hidden rounded-md bg-white shadow-[0_2px_14px_rgba(15,23,42,0.12)]">
                 {postHref && media ? (
@@ -121,9 +117,7 @@ export default function TheNoiBat({
                         </p>
                       )}
                     </>
-                  ) : (
-                    <p className="text-sm text-slate-500">{emptyText}</p>
-                  )}
+                  ) : null}
                 </div>
               </article>
             </div>

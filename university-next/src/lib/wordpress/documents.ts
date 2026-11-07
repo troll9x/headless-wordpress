@@ -77,6 +77,7 @@ interface HeadlessDocumentArchiveItem {
   excerpt?: string;
   symbol?: string;
   issued_date_display?: string;
+  effect_status?: string;
   thumbnail?: {
     id?: number | null;
     url?: string;
@@ -124,6 +125,7 @@ export interface DocumentFileRow {
   symbol: string;
   issued_date: string | null;
   issued_date_display: string;
+  effect_status?: string;
   title: string;
   file: DocumentFileMedia;
 }
@@ -148,6 +150,7 @@ export interface DocumentDetailsData {
   } | null;
   documents: DocumentFileRow[];
   document_count: number;
+  effect_status?: string;
   redirect: { required: boolean; url: string; status: number | null };
 }
 
@@ -401,6 +404,7 @@ function toDocumentArchiveItem(
     acf: {
       ngay_ban_hanh: item.issued_date_display ?? '',
       ky_hieu: item.symbol ?? '',
+      hieu_luc: item.effect_status ?? '',
       tai_len_tai_lieu: hasSingleFile ? [{ tai_lieu: fileUrl }] : [],
     },
     _embedded: { 'wp:featuredmedia': featuredMedia },
@@ -564,6 +568,16 @@ export function getDocumentAcfText(document: WPDocument, key: string): string {
   return typeof value === 'string' || typeof value === 'number' ? String(value) : '';
 }
 
+export function getDocumentEffectLabel(value: string, locale: Locale): string {
+  const labels: Record<string, [string, string]> = {
+    conhieuluc: ['Còn hiệu lực', 'In effect'],
+    hethieuluc: ['Hết hiệu lực', 'Expired'],
+    chuacohieuluc: ['Chưa có hiệu lực', 'Not yet in effect'],
+  };
+  const label = labels[value.trim().toLowerCase()];
+  return label ? label[locale === 'en' ? 1 : 0] : value;
+}
+
 export function getDocumentFeaturedImage(document: WPDocument): WPMedia | null {
   const media = document._embedded?.['wp:featuredmedia']?.[0];
   return media && 'source_url' in media ? media : null;
@@ -624,6 +638,7 @@ function fallbackDocumentRows(document: WPDocument): DocumentFileRow[] {
       symbol,
       issued_date: null,
       issued_date_display: issuedDate,
+      effect_status: getDocumentAcfText(document, 'hieu_luc'),
       title: file.title || `Tài liệu ${index + 1}`,
       file,
     }];
@@ -686,7 +701,23 @@ export async function getDocumentDetails(
       next: { revalidate: REVALIDATE_POSTS, tags: [CACHE_TAGS.POSTS, `document-detail-${slug}-${locale}`] },
       signal: AbortSignal.timeout(10_000),
     });
-    if (response.ok) return await response.json() as DocumentDetailsData;
+    if (response.ok) {
+      const details = await response.json() as DocumentDetailsData;
+      if (!details.effect_status) {
+        try {
+          const itemUrl = buildWordPressRestUrl(WP_API_URL, `/headless/v1/document-library/item/${encodeURIComponent(slug)}`);
+          const item = await wpFetchUrl<{ effect_status?: string }>(itemUrl.toString(), {
+            revalidate: REVALIDATE_POSTS,
+            tags: [CACHE_TAGS.POSTS, `document-library-item-${slug}`],
+            timeoutMs: 5_000,
+          });
+          details.effect_status = item.effect_status || '';
+        } catch {
+          // The document itself remains available if the optional status API fails.
+        }
+      }
+      return details;
+    }
   } catch {
     // Continue with the core REST fallback below.
   }
@@ -710,6 +741,7 @@ export async function getDocumentDetails(
         symbol: '',
         issued_date: null,
         issued_date_display: '',
+        effect_status: getDocumentAcfText(document, 'hieu_luc'),
         title: stripHtml(document.title.rendered),
         file,
       }];
@@ -730,6 +762,7 @@ export async function getDocumentDetails(
     translations: {},
     banner: null,
     documents: rows,
+    effect_status: getDocumentAcfText(document, 'hieu_luc'),
     document_count: rows.length,
     redirect: { required: rows.length === 1, url: rows.length === 1 ? rows[0].file.url : '', status: rows.length === 1 ? 302 : null },
   };

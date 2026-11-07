@@ -3,8 +3,9 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [local-full-work]
+    branches: [main, local-full-work]
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -76,6 +77,7 @@ jobs:
       - name: Check release ZIP integrity
         run: |
           python3 scripts/verify-headless-release.py
+          python3 scripts/verify-cms-overlay.py
           unzip -t release/headless-api-2.0.9.zip
 
   secrets:

@@ -1,4 +1,12 @@
-# WPX snippet 50120: FAILED / ROLLBACK SUBMITTED
+# WPX snippet 50120: LOCAL CANDIDATE / NOT DEPLOYABLE
+
+On 2026-10-27 the local source uses `LEAST(score, 1e6)` to bound three
+FULLTEXT terms before weighting. PHP lint and local ranking fixtures pass.
+The cap can change the relative order of documents whose raw scores exceed
+the cap; no live MariaDB query or VI/EN result comparison has validated this
+candidate. Do **not** deploy it or treat the local test as a production gate.
+
+## Previous failed candidate
 
 Do **not** deploy `wpcode-snippet-50120.php`. On 2026-10-13, the candidate was saved to the active CMS snippet and verified at code SHA-256 `81986866139c782c4b9c9ecbde42ca8b1a9bff538fcb6f682897187ffbe99309`, but real `water` and `Kyoto` searches still returned empty results. Nginx logged `DOUBLE value is out of range in phr_score / 64e0`.
 

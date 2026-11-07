@@ -13,6 +13,7 @@ import {
   categoryUsesFullWidthLayout,
   categoryUsesLandingLayout,
   getCategoryBanner,
+  getCategoryIntroduction,
   getCategoryBySlug,
   getCategorySidebar,
   getCategoryTreeIds,
@@ -155,13 +156,16 @@ async function renderCategory(
   request: PermalinkRequest,
   currentPage: number,
 ) {
-  const categoryBanner = await getCategoryBanner(category, request.locale);
+  const [categoryBanner, introduction] = await Promise.all([
+    getCategoryBanner(category, request.locale),
+    getCategoryIntroduction(category, request.locale),
+  ]);
 
   if (categoryUsesLandingLayout(category.slug)) {
     return (
       <>
         {categoryBanner && <CategoryBanner banner={categoryBanner} />}
-        <CategoryLanding category={category} locale={request.locale} />
+        <CategoryLanding category={category} locale={request.locale} introduction={introduction} />
       </>
     );
   }
@@ -204,6 +208,7 @@ async function renderCategory(
       {categoryBanner && <CategoryBanner banner={categoryBanner} />}
       <CategoryArchive
         category={category}
+        introduction={introduction}
         posts={posts}
         sidebar={sidebar}
         locale={request.locale}

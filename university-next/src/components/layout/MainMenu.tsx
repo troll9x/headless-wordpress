@@ -65,7 +65,7 @@ export default function MainMenu({ items, pathname }: MainMenuProps) {
   return (
     <ul
       ref={menuRef}
-      className="flex h-full w-full items-stretch justify-center font-heading"
+      className="flex h-full w-full items-stretch font-heading"
       role="list"
     >
       {items.map((item, index) => {
@@ -75,11 +75,11 @@ export default function MainMenu({ items, pathname }: MainMenuProps) {
         const alignRight = index >= items.length - 2;
 
         return (
-          <li key={item.id} className="group relative flex flex-none border-r border-white/70 first:border-l">
+          <li key={item.id} className="group relative flex flex-auto border-r border-white/70 first:border-l">
             {item.url === '#' ? (
               <button
                 type="button"
-                className="flex h-10 items-center justify-center gap-1.5 whitespace-nowrap px-2 text-center font-heading text-[12px] font-bold uppercase leading-4 text-white transition-colors hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-none xl:px-4 xl:text-[15px]"
+                className="flex h-10 w-full items-center justify-center gap-1.5 whitespace-nowrap px-2 text-center font-heading text-[12px] font-bold uppercase leading-4 text-white transition-colors hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-none xl:px-4 xl:text-[15px]"
                 aria-haspopup={hasChildren ? 'menu' : undefined}
               >
                 <span>{label}</span>
@@ -90,7 +90,7 @@ export default function MainMenu({ items, pathname }: MainMenuProps) {
                 href={item.url}
                 {...externalProps(item)}
                 onClick={(event) => event.currentTarget.blur()}
-                className={`flex h-10 items-center justify-center gap-1.5 whitespace-nowrap px-2 text-center text-[12px] font-bold uppercase leading-4 text-white transition-colors hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-none xl:px-4 xl:text-[15px] ${isActive ? 'bg-white/15' : ''}`}
+                className={`flex h-10 w-full items-center justify-center gap-1.5 whitespace-nowrap px-2 text-center text-[12px] font-bold uppercase leading-4 text-white transition-colors hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-none xl:px-4 xl:text-[15px] ${isActive ? 'bg-white/15' : ''}`}
                 aria-current={isActive ? 'page' : undefined}
                 aria-haspopup={hasChildren ? 'menu' : undefined}
               >

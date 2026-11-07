@@ -6,7 +6,10 @@ import { generateHeadlessMetadata } from '@/lib/seo/metadata';
 import { getDocumentDetails } from '@/lib/wordpress/documents';
 import { getHeadlessSeoById } from '@/lib/wordpress/seo';
 
-type Props = { params: Promise<{ slug: string }> };
+type Props = {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ view?: string }>;
+};
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
@@ -25,9 +28,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   });
 }
 
-export default async function DocumentPage({ params }: Props) {
+export default async function DocumentPage({ params, searchParams }: Props) {
   const document = await getDocumentDetails((await params).slug, 'vi');
   if (!document) notFound();
-  if (document.redirect.required && document.redirect.url) redirect(document.redirect.url);
+  if ((await searchParams).view !== 'details' && document.redirect.required && document.redirect.url) redirect(document.redirect.url);
   return <DocumentDetails data={document} locale="vi" />;
 }

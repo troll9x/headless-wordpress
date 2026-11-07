@@ -24,6 +24,7 @@ import {
 } from '@/constants/duong-dan';
 import { formatDate, toISODate } from '@/lib/utils/date';
 import { stripHtml } from '@/lib/utils/html';
+import { prepareArticleToc } from '@/lib/wordpress/article-toc';
 import { recruitmentDetailStyles } from '@/styles/tlu-template-recipes';
 import type { Locale } from '@/types/ngon-ngu';
 import type {
@@ -52,9 +53,9 @@ interface ChiTietBaiVietProps {
 const ARTICLE_BODY_CLASSES = [
   'text-base leading-7 text-slate-700',
   '[&_h1]:mb-2 [&_h1]:mt-7 [&_h1]:text-3xl [&_h1]:font-bold [&_h1]:leading-[1.3] [&_h1]:text-slate-900',
-  '[&_h2]:mb-2 [&_h2]:mt-7 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:leading-[1.3] [&_h2]:text-slate-900',
-  '[&_h3]:mb-2 [&_h3]:mt-7 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:leading-[1.3] [&_h3]:text-slate-900',
-  '[&_h4]:mb-2 [&_h4]:mt-7 [&_h4]:text-lg [&_h4]:font-bold [&_h4]:leading-[1.3] [&_h4]:text-slate-900',
+  '[&_h2]:mb-2 [&_h2]:mt-7 [&_h2]:scroll-mt-36 [&_h2]:text-3xl [&_h2]:font-bold [&_h2]:leading-[1.3] [&_h2]:text-slate-900',
+  '[&_h3]:mb-2 [&_h3]:mt-7 [&_h3]:scroll-mt-36 [&_h3]:text-2xl [&_h3]:font-bold [&_h3]:leading-[1.3] [&_h3]:text-slate-900',
+  '[&_h4]:mb-2 [&_h4]:mt-7 [&_h4]:scroll-mt-36 [&_h4]:text-lg [&_h4]:font-bold [&_h4]:leading-[1.3] [&_h4]:text-slate-900',
   '[&_h5]:mb-2 [&_h5]:mt-7 [&_h5]:font-bold [&_h5]:leading-[1.3] [&_h5]:text-slate-900',
   '[&_h6]:mb-2 [&_h6]:mt-7 [&_h6]:font-bold [&_h6]:leading-[1.3] [&_h6]:text-slate-900',
   '[&_p]:mb-5',
@@ -67,7 +68,7 @@ const ARTICLE_BODY_CLASSES = [
   '[&_th]:border [&_th]:border-slate-200 [&_th]:bg-slate-50 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold [&_th]:text-slate-900',
   '[&_td]:border [&_td]:border-slate-200 [&_td]:px-3 [&_td]:py-2 [&_td]:text-left [&_tr:nth-child(even)_td]:bg-slate-50',
   '[&_hr]:my-8 [&_hr]:border-0 [&_hr]:border-t [&_hr]:border-slate-200',
-  '[&_strong]:font-semibold [&_strong]:text-slate-800 [&_b]:font-semibold [&_b]:text-slate-800',
+  '[&_strong]:font-bold [&_strong]:text-slate-800 [&_b]:font-bold [&_b]:text-slate-800',
   '[&_code]:rounded [&_code]:bg-slate-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-sm',
   '[&_pre]:mb-5 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-slate-800 [&_pre]:p-5 [&_pre]:text-slate-200',
   '[&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:text-inherit',
@@ -224,19 +225,26 @@ export default function ChiTietBaiViet({
   const categories = terms.filter((term) => term.taxonomy === 'category');
   const tags = terms.filter((term) => term.taxonomy === 'post_tag');
   const author = getAuthor(post);
+  const authorAvatar = author?.avatar_urls?.['96']?.trim() || author?.avatar_urls?.['48']?.trim();
+  const authorDescription = author?.description?.trim();
+  const hasCompleteAuthorProfile = Boolean(authorAvatar && authorDescription);
   const titleText = stripHtml(post.title.rendered);
   const isEn = locale === 'en';
   const isRecruitment = categories.some((category) => category.slug === 'thong-tin-tuyen-dung');
   const applicationUrl = getApplicationUrl(post);
   const homeHref = getHomePath(locale);
   const newsHref = getNewsPath(locale);
+  const articleContent = prepareArticleToc(
+    sanitizeCmsHtml(post.content.rendered, LEGACY_WP_SITE_URL),
+    post.id,
+  );
 
   return (
     <div className="min-h-screen bg-white">
       {bannerSlot ?? (categoryBanner && <CategoryBanner banner={categoryBanner} />)}
 
       <div className="border-b border-slate-100 bg-slate-50">
-        <div className="mx-auto max-w-4xl px-4 py-3 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
           <Breadcrumb
             items={[
               { label: isEn ? 'Home' : 'Trang chủ', href: homeHref },
@@ -253,23 +261,6 @@ export default function ChiTietBaiViet({
         }`}
       >
         <article className="min-w-0">
-          {categories.length > 0 && (
-            <div className="mb-[15px] flex flex-wrap items-center gap-2">
-              <span className="mr-[5px] rounded bg-[#0118d8] px-2.5 py-1 text-sm font-semibold text-white">
-                {isEn ? 'Categories' : 'Danh mục'}
-              </span>
-              {categories.map((category) => (
-                <Link
-                  key={category.id}
-                  href={buildCategoryUrl(category.slug, locale)}
-                  className="rounded bg-[#dedede] px-2.5 py-1 text-sm text-[#464646] transition-colors hover:bg-[#007bff] hover:text-white"
-                >
-                  {stripHtml(category.name)}
-                </Link>
-              ))}
-            </div>
-          )}
-
           <h1
             className="my-[10px] text-center font-['Raleway',Arial,sans-serif] text-3xl font-bold leading-tight text-[#0118d8] sm:text-4xl"
             dangerouslySetInnerHTML={{ __html: sanitizeInlineHtml(post.title.rendered) }}
@@ -277,7 +268,7 @@ export default function ChiTietBaiViet({
 
           <div className="mt-4 flex flex-col items-center gap-x-4 gap-y-1 text-sm text-slate-500 sm:flex-row sm:flex-wrap sm:justify-center">
             <time dateTime={toISODate(post.date)}>{formatDate(post.date, locale)}</time>
-            {author && (
+            {author && hasCompleteAuthorProfile && (
               <>
                 <span aria-hidden="true">·</span>
                 <span>{author.name}</span>
@@ -305,6 +296,22 @@ export default function ChiTietBaiViet({
           )}
 
           <section id="recruitment-content" className="mt-8 scroll-mt-36">
+            {articleContent.headings.length > 0 && (
+              <nav aria-label={isEn ? 'Table of contents' : 'Mục lục'} className="mb-8 rounded-lg border border-slate-200 bg-slate-50 p-5 sm:p-6">
+                <h2 className="mb-3 text-lg font-bold text-[#0118d8]">
+                  {isEn ? 'Table of contents' : 'Mục lục'}
+                </h2>
+                <ol className="max-h-80 space-y-2 overflow-y-auto text-sm leading-6 sm:text-base">
+                  {articleContent.headings.map((heading) => (
+                    <li key={heading.id} className={heading.level === 4 ? 'pl-8' : heading.level === 3 ? 'pl-4' : ''}>
+                      <a href={`#${encodeURIComponent(heading.id)}`} className="text-slate-700 transition-colors hover:text-[#0118d8] hover:underline">
+                        {heading.title}
+                      </a>
+                    </li>
+                  ))}
+                </ol>
+              </nav>
+            )}
             <ArticleVoiceControls
               contentId="article-readable-content"
               locale={locale}
@@ -312,8 +319,8 @@ export default function ChiTietBaiViet({
             />
             <div
               id="article-readable-content"
-              className={ARTICLE_BODY_CLASSES}
-              dangerouslySetInnerHTML={{ __html: sanitizeCmsHtml(post.content.rendered, LEGACY_WP_SITE_URL) }}
+              className={`article-readable-content ${ARTICLE_BODY_CLASSES}`}
+              dangerouslySetInnerHTML={{ __html: articleContent.html }}
             />
           </section>
 
@@ -330,6 +337,26 @@ export default function ChiTietBaiViet({
             </div>
           )}
 
+          {author && (
+            authorAvatar && authorDescription ? (
+              <section className="mt-10 flex items-start gap-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                <Image
+                  src={authorAvatar}
+                  alt={author.name}
+                  width={90}
+                  height={90}
+                  className="h-[90px] w-[90px] shrink-0 rounded-full object-cover"
+                />
+                <div className="min-w-0">
+                  <h5 className="font-bold uppercase text-slate-900">{author.name}</h5>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{authorDescription}</p>
+                </div>
+              </section>
+            ) : (
+              <p className="mt-10 text-right text-sm font-semibold text-slate-700">{author.name}</p>
+            )
+          )}
+
           <div className="my-8 flex justify-center border-y border-slate-100 py-6">
             <ArticleShareButton locale={locale} title={titleText} />
           </div>
@@ -338,12 +365,14 @@ export default function ChiTietBaiViet({
             <footer className="space-y-4 rounded-lg bg-slate-50 p-5 text-sm">
               {categories.length > 0 && (
                 <div className="flex flex-wrap items-center gap-2">
-                  <strong>{isEn ? 'Categories:' : 'Danh mục:'}</strong>
+                  <strong className="mr-[5px] rounded bg-[#0118d8] px-2.5 py-1 text-sm font-semibold text-white">
+                    {isEn ? 'Categories' : 'Danh mục'}
+                  </strong>
                   {categories.map((category) => (
                     <Link
                       key={category.id}
                       href={buildCategoryUrl(category.slug, locale)}
-                      className="rounded bg-white px-3 py-1 text-[#0118d8] shadow-sm hover:bg-[#0118d8] hover:text-white"
+                      className="rounded bg-[#dedede] px-2.5 py-1 text-sm text-[#464646] transition-colors hover:bg-[#007bff] hover:text-white"
                     >
                       {stripHtml(category.name)}
                     </Link>
@@ -364,28 +393,6 @@ export default function ChiTietBaiViet({
           )}
 
           {relatedSlot ?? <ArticleRelatedNavigation previousPost={previousPost} nextPost={nextPost} relatedPosts={relatedPosts} locale={locale} />}
-
-          {author && (
-            <section className="mt-10 flex items-start gap-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              {author.avatar_urls?.['96'] || author.avatar_urls?.['48'] ? (
-                <Image
-                  src={author.avatar_urls['96'] ?? author.avatar_urls['48']}
-                  alt={author.name}
-                  width={90}
-                  height={90}
-                  className="h-[90px] w-[90px] shrink-0 rounded-full object-cover"
-                />
-              ) : (
-                <div className="flex h-[90px] w-[90px] shrink-0 items-center justify-center rounded-full bg-slate-100 text-2xl font-bold text-slate-500">
-                  {author.name.charAt(0)}
-                </div>
-              )}
-              <div className="min-w-0">
-                <h5 className="font-bold uppercase text-slate-900">{author.name}</h5>
-                {author.description && <p className="mt-2 text-sm leading-6 text-slate-600">{author.description}</p>}
-              </div>
-            </section>
-          )}
 
           <div className="mt-12 border-t border-slate-100 pt-8">
             <Link
